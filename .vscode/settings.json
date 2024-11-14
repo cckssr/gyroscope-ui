@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "./.qtcreator/Python_3_9_6venv/bin/python3",
+    "code-runner.executorMap": {
+        "python": "./.qtcreator/Python_3_9_6venv/bin/python3 -u"
+    }
+}
