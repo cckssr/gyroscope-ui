@@ -119,11 +119,17 @@
                <height>40</height>
               </size>
              </property>
+             <property name="digitCount">
+              <number>6</number>
+             </property>
              <property name="segmentStyle">
               <enum>QLCDNumber::SegmentStyle::Filled</enum>
              </property>
              <property name="value" stdset="0">
-              <double>3000.000000000000000</double>
+              <double>30.000000000000000</double>
+             </property>
+             <property name="intValue" stdset="0">
+              <number>30</number>
              </property>
             </widget>
            </item>
@@ -156,14 +162,18 @@
               <number>0</number>
              </property>
              <item row="0" column="0">
-              <widget class="QLabel" name="label_3">
+              <widget class="QLabel" name="labelTimer">
                <property name="text">
                 <string>Timer:</string>
                </property>
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="QTimeEdit" name="timeEdit"/>
+              <widget class="QTimeEdit" name="inputTimer">
+               <property name="toolTip">
+                <string>Für die Messung kann ein Timer eingestellt werden.</string>
+               </property>
+              </widget>
              </item>
             </layout>
            </item>
@@ -184,7 +194,7 @@
          <widget class="QLabel" name="labelSerial">
           <property name="minimumSize">
            <size>
-            <width>80</width>
+            <width>90</width>
             <height>30</height>
            </size>
           </property>
@@ -195,7 +205,7 @@
            </size>
           </property>
           <property name="text">
-           <string>Serial Ports:</string>
+           <string>Serielle Ports:</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
@@ -210,6 +220,9 @@
             <height>0</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kommunikation mit dem Arduino erfolgt über die serielle Schnittstelle. &lt;/p&gt;&lt;p&gt;Wenn Arduino nicht erkannt wird, die Verbindung prüfen und evtl. Treiber installieren.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
           <property name="placeholderText">
            <string>Bitte Seriellen Port auswählen</string>
           </property>
@@ -222,6 +235,9 @@
             <width>35</width>
             <height>40</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>Die Liste der Ports aktualisieren</string>
           </property>
           <property name="text">
            <string/>
@@ -245,8 +261,11 @@
             <height>40</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>Nach Auswahl eines Ports kann eine Verbindung mit diesem hergestellt werden.</string>
+          </property>
           <property name="text">
-           <string>Connect</string>
+           <string>Verbinden</string>
           </property>
           <property name="icon">
            <iconset theme="QIcon::ThemeIcon::GoNext"/>
@@ -292,6 +311,9 @@
             <height>40</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>Start der Messung</string>
+          </property>
           <property name="text">
            <string>Start</string>
           </property>
@@ -314,6 +336,9 @@
             <height>40</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>Aktuelle Messung stoppen</string>
+          </property>
           <property name="text">
            <string>Stop</string>
           </property>
@@ -333,7 +358,7 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>75</width>
+            <width>100</width>
             <height>30</height>
            </size>
           </property>
@@ -343,8 +368,11 @@
             <height>40</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>Messung speichern (Dateidialog)</string>
+          </property>
           <property name="text">
-           <string>Save</string>
+           <string>Speichern</string>
           </property>
          </widget>
         </item>
@@ -359,6 +387,23 @@
     <bool>true</bool>
    </property>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1043</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuTK47">
+    <property name="title">
+     <string>TK47 - Radioaktivität</string>
+    </property>
+    <addaction name="demoMode"/>
+   </widget>
+   <addaction name="menuTK47"/>
+  </widget>
   <action name="actionHallo">
    <property name="text">
     <string>Hallo</string>
@@ -367,6 +412,14 @@
   <action name="actionmuhhh">
    <property name="text">
     <string>muhhh</string>
+   </property>
+  </action>
+  <action name="demoMode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Demomodus aktivieren</string>
    </property>
   </action>
  </widget>
