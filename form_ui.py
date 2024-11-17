@@ -67,10 +67,18 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addWidget(self.widgetPlot)
 
+        self.line_4 = QFrame(self.centralwidget)
+        self.line_4.setObjectName(u"line_4")
+        self.line_4.setFrameShape(QFrame.Shape.VLine)
+        self.line_4.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.horizontalLayout_2.addWidget(self.line_4)
+
         self.framePlot = QFrame(self.centralwidget)
         self.framePlot.setObjectName(u"framePlot")
         self.framePlot.setFrameShape(QFrame.Shape.Box)
         self.framePlot.setFrameShadow(QFrame.Shadow.Raised)
+        self.framePlot.setLineWidth(0)
         self.verticalLayout_4 = QVBoxLayout(self.framePlot)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.label = QLabel(self.framePlot)
@@ -131,9 +139,16 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.framePlot)
 
         self.horizontalLayout_2.setStretch(0, 15)
-        self.horizontalLayout_2.setStretch(1, 2)
+        self.horizontalLayout_2.setStretch(2, 1)
 
         self.verticalLayout.addLayout(self.horizontalLayout_2)
+
+        self.line_3 = QFrame(self.centralwidget)
+        self.line_3.setObjectName(u"line_3")
+        self.line_3.setFrameShape(QFrame.Shape.HLine)
+        self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.verticalLayout.addWidget(self.line_3)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -224,6 +239,17 @@ class Ui_MainWindow(object):
         self.menuTK47 = QMenu(self.menuBar)
         self.menuTK47.setObjectName(u"menuTK47")
         MainWindow.setMenuBar(self.menuBar)
+#if QT_CONFIG(shortcut)
+        self.labelTimer.setBuddy(self.inputTimer)
+        self.labelSerial.setBuddy(self.comboSerial)
+#endif // QT_CONFIG(shortcut)
+        QWidget.setTabOrder(self.comboSerial, self.buttonRefreshSerial)
+        QWidget.setTabOrder(self.buttonRefreshSerial, self.buttonConnect)
+        QWidget.setTabOrder(self.buttonConnect, self.inputTimer)
+        QWidget.setTabOrder(self.inputTimer, self.buttonStart)
+        QWidget.setTabOrder(self.buttonStart, self.buttonStop)
+        QWidget.setTabOrder(self.buttonStop, self.buttonSave)
+        QWidget.setTabOrder(self.buttonSave, self.lastData)
 
         self.menuBar.addAction(self.menuTK47.menuAction())
         self.menuTK47.addAction(self.demoMode)
