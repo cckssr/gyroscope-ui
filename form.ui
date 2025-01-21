@@ -423,26 +423,29 @@
     <property name="title">
      <string>TK47 - Radioaktivität</string>
     </property>
+    <addaction name="controlWindow"/>
+    <addaction name="separator"/>
     <addaction name="demoMode"/>
    </widget>
    <addaction name="menuTK47"/>
   </widget>
-  <action name="actionHallo">
-   <property name="text">
-    <string>Hallo</string>
-   </property>
-  </action>
-  <action name="actionmuhhh">
-   <property name="text">
-    <string>muhhh</string>
-   </property>
-  </action>
   <action name="demoMode">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
     <string>Demomodus aktivieren</string>
+   </property>
+  </action>
+  <action name="controlWindow">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Kontroll-Fenster</string>
+   </property>
+   <property name="toolTip">
+    <string>Öffnet ein neues Kontroll-Fenster</string>
    </property>
   </action>
  </widget>

@@ -1,6 +1,9 @@
 {
     "files": [
         "mainwindow.py",
-        "form.ui"
+        "form.ui",
+        "toolbox.ui",
+        "alert.ui",
+        "control.ui"
     ]
 }

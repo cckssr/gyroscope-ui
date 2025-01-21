@@ -35,13 +35,12 @@ class Ui_MainWindow(object):
         MainWindow.setFont(font)
         icon = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.WeatherStorm))
         MainWindow.setWindowIcon(icon)
-        self.actionHallo = QAction(MainWindow)
-        self.actionHallo.setObjectName(u"actionHallo")
-        self.actionmuhhh = QAction(MainWindow)
-        self.actionmuhhh.setObjectName(u"actionmuhhh")
         self.demoMode = QAction(MainWindow)
         self.demoMode.setObjectName(u"demoMode")
         self.demoMode.setCheckable(True)
+        self.controlWindow = QAction(MainWindow)
+        self.controlWindow.setObjectName(u"controlWindow")
+        self.controlWindow.setCheckable(True)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.centralwidget.setEnabled(True)
@@ -67,10 +66,18 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addWidget(self.widgetPlot)
 
+        self.line_4 = QFrame(self.centralwidget)
+        self.line_4.setObjectName(u"line_4")
+        self.line_4.setFrameShape(QFrame.Shape.VLine)
+        self.line_4.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.horizontalLayout_2.addWidget(self.line_4)
+
         self.framePlot = QFrame(self.centralwidget)
         self.framePlot.setObjectName(u"framePlot")
         self.framePlot.setFrameShape(QFrame.Shape.Box)
         self.framePlot.setFrameShadow(QFrame.Shadow.Raised)
+        self.framePlot.setLineWidth(0)
         self.verticalLayout_4 = QVBoxLayout(self.framePlot)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.label = QLabel(self.framePlot)
@@ -131,9 +138,16 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.framePlot)
 
         self.horizontalLayout_2.setStretch(0, 15)
-        self.horizontalLayout_2.setStretch(1, 2)
+        self.horizontalLayout_2.setStretch(2, 1)
 
         self.verticalLayout.addLayout(self.horizontalLayout_2)
+
+        self.line_3 = QFrame(self.centralwidget)
+        self.line_3.setObjectName(u"line_3")
+        self.line_3.setFrameShape(QFrame.Shape.HLine)
+        self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.verticalLayout.addWidget(self.line_3)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -224,8 +238,21 @@ class Ui_MainWindow(object):
         self.menuTK47 = QMenu(self.menuBar)
         self.menuTK47.setObjectName(u"menuTK47")
         MainWindow.setMenuBar(self.menuBar)
+#if QT_CONFIG(shortcut)
+        self.labelTimer.setBuddy(self.inputTimer)
+        self.labelSerial.setBuddy(self.comboSerial)
+#endif // QT_CONFIG(shortcut)
+        QWidget.setTabOrder(self.comboSerial, self.buttonRefreshSerial)
+        QWidget.setTabOrder(self.buttonRefreshSerial, self.buttonConnect)
+        QWidget.setTabOrder(self.buttonConnect, self.inputTimer)
+        QWidget.setTabOrder(self.inputTimer, self.buttonStart)
+        QWidget.setTabOrder(self.buttonStart, self.buttonStop)
+        QWidget.setTabOrder(self.buttonStop, self.buttonSave)
+        QWidget.setTabOrder(self.buttonSave, self.lastData)
 
         self.menuBar.addAction(self.menuTK47.menuAction())
+        self.menuTK47.addAction(self.controlWindow)
+        self.menuTK47.addSeparator()
         self.menuTK47.addAction(self.demoMode)
 
         self.retranslateUi(MainWindow)
@@ -235,9 +262,11 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"TK47 - Radioactivity", None))
-        self.actionHallo.setText(QCoreApplication.translate("MainWindow", u"Hallo", None))
-        self.actionmuhhh.setText(QCoreApplication.translate("MainWindow", u"muhhh", None))
         self.demoMode.setText(QCoreApplication.translate("MainWindow", u"Demomodus aktivieren", None))
+        self.controlWindow.setText(QCoreApplication.translate("MainWindow", u"Kontroll-Fenster", None))
+#if QT_CONFIG(tooltip)
+        self.controlWindow.setToolTip(QCoreApplication.translate("MainWindow", u"\u00d6ffnet ein neues Kontroll-Fenster", None))
+#endif // QT_CONFIG(tooltip)
         self.label.setText(QCoreApplication.translate("MainWindow", u"Letzte Zeit / \u00b5s:", None))
         self.labelTimer.setText(QCoreApplication.translate("MainWindow", u"Timer:", None))
 #if QT_CONFIG(tooltip)

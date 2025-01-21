@@ -1,6 +1,6 @@
 import matplotlib
 import re
-from PySide6.QtWidgets import QStatusBar, QLabel
+from PySide6.QtWidgets import QStatusBar, QLabel, QMessageBox
 from PySide6.QtCore import QTimer
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -58,6 +58,26 @@ class MplCanvas(FigureCanvasQTAgg):
             spine.set_color('white')
 
 class PlotWidget(MplCanvas):
+    """
+    A widget for plotting data using Matplotlib.
+
+    Attributes:
+        _max_points (int): The maximum number of points to display on the plot.
+        _parent: The parent widget.
+        _plot_ref: A reference to the plot line.
+        xdata (list): The x-axis data points.
+        ydata (list): The y-axis data points.
+
+    Methods:
+        __init__(parent=None, max_plot_points: int = 50, **kwargs):
+            Initializes the PlotWidget with optional parent and maximum plot points.
+        
+        _setup_plot():
+            Sets up the initial plot with the initial x and y data.
+        
+        update_plot(new_ydata, new_xdata=None):
+            Updates the plot with new y data and optionally new x data.
+    """
     def __init__(self, parent=None, max_plot_points: int = 50, **kwargs):
         super().__init__(**kwargs)
         self._max_points = max_plot_points
@@ -132,3 +152,17 @@ class Statusbar():
 
     def _save_state(self):
         self.old_state = [self.statusbar.currentMessage(), self.statusbar.styleSheet()]
+
+class Helper():
+    @staticmethod
+    def close_event(parent, event):
+        reply = QMessageBox.question(parent,
+                    'Beenden',
+                    'Wollen Sie sicher das Programm schließen?',
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
