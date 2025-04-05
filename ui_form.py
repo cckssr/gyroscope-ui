@@ -16,12 +16,12 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QIcon, QImage, QKeySequence, QLinearGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
-from PySide6.QtWidgets import (QAbstractItemView, QApplication, QComboBox, QFormLayout,
-    QFrame, QGridLayout, QHBoxLayout, QLCDNumber,
-    QLabel, QLayout, QListWidget, QListWidgetItem,
-    QMainWindow, QMenu, QMenuBar, QPushButton,
-    QSizePolicy, QSpacerItem, QStatusBar, QTimeEdit,
-    QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QFormLayout, QFrame,
+    QGridLayout, QHBoxLayout, QLCDNumber, QLabel,
+    QLayout, QListWidget, QListWidgetItem, QMainWindow,
+    QMenu, QMenuBar, QPushButton, QSizePolicy,
+    QSpacerItem, QStatusBar, QTimeEdit, QVBoxLayout,
+    QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -153,37 +153,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalLayout.setSizeConstraint(QLayout.SizeConstraint.SetMaximumSize)
         self.horizontalLayout.setContentsMargins(-1, 0, -1, -1)
-        self.labelSerial = QLabel(self.centralwidget)
-        self.labelSerial.setObjectName(u"labelSerial")
-        self.labelSerial.setMinimumSize(QSize(90, 30))
-        self.labelSerial.setMaximumSize(QSize(80, 30))
-        self.labelSerial.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
-
-        self.horizontalLayout.addWidget(self.labelSerial)
-
-        self.comboSerial = QComboBox(self.centralwidget)
-        self.comboSerial.setObjectName(u"comboSerial")
-        self.comboSerial.setMinimumSize(QSize(300, 0))
-
-        self.horizontalLayout.addWidget(self.comboSerial)
-
-        self.buttonRefreshSerial = QPushButton(self.centralwidget)
-        self.buttonRefreshSerial.setObjectName(u"buttonRefreshSerial")
-        self.buttonRefreshSerial.setMaximumSize(QSize(35, 40))
-        icon1 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ViewRefresh))
-        self.buttonRefreshSerial.setIcon(icon1)
-
-        self.horizontalLayout.addWidget(self.buttonRefreshSerial)
-
-        self.buttonConnect = QPushButton(self.centralwidget)
-        self.buttonConnect.setObjectName(u"buttonConnect")
-        self.buttonConnect.setMinimumSize(QSize(100, 40))
-        self.buttonConnect.setMaximumSize(QSize(100, 40))
-        icon2 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.GoNext))
-        self.buttonConnect.setIcon(icon2)
-
-        self.horizontalLayout.addWidget(self.buttonConnect)
-
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
@@ -240,11 +209,7 @@ class Ui_MainWindow(object):
         MainWindow.setMenuBar(self.menuBar)
 #if QT_CONFIG(shortcut)
         self.labelTimer.setBuddy(self.inputTimer)
-        self.labelSerial.setBuddy(self.comboSerial)
 #endif // QT_CONFIG(shortcut)
-        QWidget.setTabOrder(self.comboSerial, self.buttonRefreshSerial)
-        QWidget.setTabOrder(self.buttonRefreshSerial, self.buttonConnect)
-        QWidget.setTabOrder(self.buttonConnect, self.inputTimer)
         QWidget.setTabOrder(self.inputTimer, self.buttonStart)
         QWidget.setTabOrder(self.buttonStart, self.buttonStop)
         QWidget.setTabOrder(self.buttonStop, self.buttonSave)
@@ -272,19 +237,6 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.inputTimer.setToolTip(QCoreApplication.translate("MainWindow", u"F\u00fcr die Messung kann ein Timer eingestellt werden.", None))
 #endif // QT_CONFIG(tooltip)
-        self.labelSerial.setText(QCoreApplication.translate("MainWindow", u"Serielle Ports:", None))
-#if QT_CONFIG(tooltip)
-        self.comboSerial.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Kommunikation mit dem Arduino erfolgt \u00fcber die serielle Schnittstelle. </p><p>Wenn Arduino nicht erkannt wird, die Verbindung pr\u00fcfen und evtl. Treiber installieren.</p></body></html>", None))
-#endif // QT_CONFIG(tooltip)
-        self.comboSerial.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Bitte Seriellen Port ausw\u00e4hlen", None))
-#if QT_CONFIG(tooltip)
-        self.buttonRefreshSerial.setToolTip(QCoreApplication.translate("MainWindow", u"Die Liste der Ports aktualisieren", None))
-#endif // QT_CONFIG(tooltip)
-        self.buttonRefreshSerial.setText("")
-#if QT_CONFIG(tooltip)
-        self.buttonConnect.setToolTip(QCoreApplication.translate("MainWindow", u"Nach Auswahl eines Ports kann eine Verbindung mit diesem hergestellt werden.", None))
-#endif // QT_CONFIG(tooltip)
-        self.buttonConnect.setText(QCoreApplication.translate("MainWindow", u"Verbinden", None))
 #if QT_CONFIG(tooltip)
         self.buttonStart.setToolTip(QCoreApplication.translate("MainWindow", u"Start der Messung", None))
 #endif // QT_CONFIG(tooltip)

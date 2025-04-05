@@ -12,13 +12,13 @@ class MplCanvas(FigureCanvasQTAgg):
     Attributes:
         axes (matplotlib.axes.Axes): The main axes of the figure.
     Methods:
-        __init__(width=5, height=4, dpi=100):
+        __init__(width=5, height=4, dpi=100, fontsize=10, xlabel='x', ylabel='y'):
             Initializes the canvas with a figure of specified width, height, and dpi.
-        _configure_axes(fontsize: int = 10, xlabel: str = 'x', ylabel: str = 'y'):
+        _configure_axes():
             Configures the appearance of the axes, including tick parameters, labels, and colors.
     """
 
-    def __init__(self, width=5, height=4, dpi=100, 
+    def __init__(self, width: int = 5, height: int = 4, dpi: int = 100, 
                  fontsize: int = 10, xlabel: str = 'x', ylabel: str = 'y'):
         """
         Initializes a new instance of the class.
@@ -69,13 +69,13 @@ class PlotWidget(MplCanvas):
         ydata (list): The y-axis data points.
 
     Methods:
-        __init__(parent=None, max_plot_points: int = 50, **kwargs):
+        __init__(parent=None, max_plot_points=50, **kwargs):
             Initializes the PlotWidget with optional parent and maximum plot points.
         
         _setup_plot():
             Sets up the initial plot with the initial x and y data.
         
-        update_plot(new_ydata, new_xdata=None):
+        update_plot(new_ydata: float, new_xdata: float = None):
             Updates the plot with new y data and optionally new x data.
     """
     def __init__(self, parent=None, max_plot_points: int = 50, **kwargs):
@@ -90,7 +90,7 @@ class PlotWidget(MplCanvas):
     def _setup_plot(self):
         self._plot_ref = self.axes.plot(self.xdata, self.ydata)
 
-    def update_plot(self, new_ydata, new_xdata=None):
+    def update_plot(self, new_ydata: float, new_xdata: float = None):
         self.ydata = self.ydata[-self._max_points:] + [new_ydata]
         # if new x data is provided, use it, otherwise increment the last x data by 1
         if new_xdata:
@@ -104,7 +104,24 @@ class PlotWidget(MplCanvas):
         self._plot_ref[0].axes.autoscale_view()
         self.draw()
 
-class Statusbar():
+class Statusbar:
+    """
+    A class to manage the status bar messages and styles.
+    Attributes:
+        statusbar (QStatusBar): The status bar widget.
+        old_state (list): The previous state of the status bar.
+    Methods:
+        __init__(statusbar: QStatusBar):
+            Initializes the Statusbar with the given QStatusBar widget.
+        temp_message(message: str, backcolor: str = None, duration: int = None):
+            Displays a temporary message on the status bar.
+        perm_message(message: str, index: int = 0, backcolor: str = None):
+            Displays a permanent message on the status bar.
+        _update_statusbar_style(backcolor: str):
+            Updates the style of the status bar.
+        _save_state():
+            Saves the current state of the status bar.
+    """
     def __init__(self, statusbar: QStatusBar):
         self.statusbar = statusbar
         self.old_state = None
@@ -131,7 +148,7 @@ class Statusbar():
         label.setText(message)
         self.statusbar.insertPermanentWidget(index, label)
 
-    def _update_statusbar_style(self, backcolor):
+    def _update_statusbar_style(self, backcolor: str):
         # get current state
         self._save_state()
 
@@ -153,7 +170,13 @@ class Statusbar():
     def _save_state(self):
         self.old_state = [self.statusbar.currentMessage(), self.statusbar.styleSheet()]
 
-class Helper():
+class Helper:
+    """
+    A helper class with static methods for common tasks.
+    Methods:
+        close_event(parent, event):
+            Handles the close event for a window.
+    """
     @staticmethod
     def close_event(parent, event):
         reply = QMessageBox.question(parent,

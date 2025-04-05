@@ -203,98 +203,13 @@
        </widget>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0,0,0,0,0">
+       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0">
         <property name="sizeConstraint">
          <enum>QLayout::SizeConstraint::SetMaximumSize</enum>
         </property>
         <property name="topMargin">
          <number>0</number>
         </property>
-        <item>
-         <widget class="QLabel" name="labelSerial">
-          <property name="minimumSize">
-           <size>
-            <width>90</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>80</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Serielle Ports:</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
-          </property>
-          <property name="buddy">
-           <cstring>comboSerial</cstring>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="comboSerial">
-          <property name="minimumSize">
-           <size>
-            <width>300</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kommunikation mit dem Arduino erfolgt über die serielle Schnittstelle. &lt;/p&gt;&lt;p&gt;Wenn Arduino nicht erkannt wird, die Verbindung prüfen und evtl. Treiber installieren.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-          </property>
-          <property name="placeholderText">
-           <string>Bitte Seriellen Port auswählen</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="buttonRefreshSerial">
-          <property name="maximumSize">
-           <size>
-            <width>35</width>
-            <height>40</height>
-           </size>
-          </property>
-          <property name="toolTip">
-           <string>Die Liste der Ports aktualisieren</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset theme="QIcon::ThemeIcon::ViewRefresh"/>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="buttonConnect">
-          <property name="minimumSize">
-           <size>
-            <width>100</width>
-            <height>40</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>100</width>
-            <height>40</height>
-           </size>
-          </property>
-          <property name="toolTip">
-           <string>Nach Auswahl eines Ports kann eine Verbindung mit diesem hergestellt werden.</string>
-          </property>
-          <property name="text">
-           <string>Verbinden</string>
-          </property>
-          <property name="icon">
-           <iconset theme="QIcon::ThemeIcon::GoNext"/>
-          </property>
-         </widget>
-        </item>
         <item>
          <spacer name="horizontalSpacer">
           <property name="maximumSize">
@@ -450,9 +365,6 @@
   </action>
  </widget>
  <tabstops>
-  <tabstop>comboSerial</tabstop>
-  <tabstop>buttonRefreshSerial</tabstop>
-  <tabstop>buttonConnect</tabstop>
   <tabstop>inputTimer</tabstop>
   <tabstop>buttonStart</tabstop>
   <tabstop>buttonStop</tabstop>

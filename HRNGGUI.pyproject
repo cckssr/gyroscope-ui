@@ -4,6 +4,7 @@
         "form.ui",
         "toolbox.ui",
         "alert.ui",
-        "control.ui"
+        "control.ui",
+        "connection.ui"
     ]
 }
