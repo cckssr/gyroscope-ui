@@ -10,18 +10,18 @@
  */
 
 // Global constants
-const int interruptPin = 2;               // Pin number for the interrupt source
-const unsigned long debounceTime = 10;    // Debounce time in microseconds to filter noise
-const bool debug = true;                 // Debug mode toggle
-const int MAX_LENGTH = 64;        // Maximum allowed length of a message line
+const int INTERRUPT_PIN = 2;            // Pin number for the interrupt source
+const unsigned long DEBOUNCE_TIME = 10; // Debounce time in microseconds to filter noise
+const bool DEBUG = true;                // Debug mode toggle
+const int MAX_LENGTH = 64;              // Maximum allowed length of a message line
 
 // Variable to store the time difference between consecutive pulses
-volatile unsigned long lastPulseTime = 0; // Timestamp of the last pulse (volatile because it's accessed from interrupt)
-volatile bool firstPulseOccurred = false; // Flag to identify the first pulse event
-volatile unsigned long currentDelta = 0; // Updated in the interrupt handler
+volatile unsigned long lastPulseTime = 0;    // Timestamp of the last pulse (volatile because it's accessed from interrupt)
+volatile bool firstPulseOccurred = false;    // Flag to identify the first pulse event
+volatile unsigned long currentDelta = 0;     // Updated in the interrupt handler
 volatile bool measurementInProgress = false; // Flag to indicate if a measurement is in progress
-volatile char message[MAX_LENGTH + 1];     // Buffer (+1 for null terminator)
-volatile int index = 0;                    // Current position in buffer
+volatile char message[MAX_LENGTH + 1];       // Buffer (+1 for null terminator)
+volatile int index = 0;                      // Current position in buffer
 
 /**
  * Interrupt handler function
@@ -34,7 +34,7 @@ void handleInterrupt()
 
     // If this is not the first pulse, and the debounce time has passed, calculate delta
     currentDelta = currentTime - lastPulseTime;
-    if (firstPulseOccurred && (currentDelta > debounceTime))
+    if (firstPulseOccurred && (currentDelta > DEBOUNCE_TIME))
     {
         // Print from the interrupt is generally discouraged, so store the value for loop processing.
         lastPulseTime = currentTime; // Update the time of the last pulse
@@ -85,17 +85,17 @@ bool validateMessage(volatile char *msg)
     int tempIndex = 0;   // Index for temporary number
     bool isValid = true;
 
-    if (debug)
+    if (DEBUG)
     {
         Serial.print("Complete message is ");
-        Serial.println((const char*)msg);
+        Serial.println((const char *)msg);
     }
 
     // Parse the message character by character
     for (int i = 0; msg[i] != '\0'; i++)
     {
         char currentChar = msg[i];
-        if (debug)
+        if (DEBUG)
         {
             Serial.print("Character " + String(i) + " is: ");
             Serial.println(currentChar);
@@ -103,7 +103,7 @@ bool validateMessage(volatile char *msg)
 
         if (currentChar == 0x0D)
         {
-            if (debug)
+            if (DEBUG)
                 Serial.println("\t Character is CR (ignored)");
             continue; // Skip CR character
         }
@@ -111,19 +111,19 @@ bool validateMessage(volatile char *msg)
         if ((currentChar >= '0' && currentChar <= '9') || currentChar == '-')
         {
             // Valid digit or minus sign
-            if (debug)
+            if (DEBUG)
                 Serial.println("\t Character is between '0' and '9' or '-'");
             temp[tempIndex++] = currentChar;
         }
         else if (currentChar == ',')
         {
-            if (debug)
+            if (DEBUG)
                 Serial.println("\t Character is comma");
 
             // Check the current number when a comma is encountered
             if (tempIndex == 0)
             {
-                if (debug)
+                if (DEBUG)
                     Serial.println("\t Number is empty");
                 isValid = false; // Empty numbers are invalid
                 break;
@@ -131,7 +131,7 @@ bool validateMessage(volatile char *msg)
             temp[tempIndex] = '\0'; // Add null terminator
             if (!isInteger(temp))
             {
-                if (debug)
+                if (DEBUG)
                     Serial.println("\t Not a valid integer");
                 isValid = false; // Invalid number
                 break;
@@ -141,7 +141,7 @@ bool validateMessage(volatile char *msg)
         }
         else
         {
-            if (debug)
+            if (DEBUG)
             {
                 Serial.println("\t Character is neither a digit nor a comma");
                 Serial.print("\t Character is: ");
@@ -173,44 +173,43 @@ void receiveMessage()
 {
     char receivedChar = Serial1.read();
 
-        // Check for end of message (newline)
-        if (receivedChar == '\n')
-        {
-            message[index] = '\0'; // Add null terminator
+    // Check for end of message (newline)
+    if (receivedChar == '\n')
+    {
+        message[index] = '\0'; // Add null terminator
 
-            // Validate message
-            if (validateMessage(message))
-            {
-                if (debug)
-                {
-                    Serial.print("Message is valid: ");
-                }
-                Serial.println((char*)message);
-            }
-            else
-            {
-                Serial.println("invalid");
-            }
-
-            // Reset buffer
-            index = 0;
-        }
-        // Check for buffer overflow
-        else if (index >= MAX_LENGTH - 1)
+        // Validate message
+        if (validateMessage(message))
         {
-            if (debug)
+            if (DEBUG)
             {
-                Serial.println("Error: Message too long, discarded.");
+                Serial.print("Message is valid: ");
             }
-            Serial.println("invalid");
-            index = 0; // Reset buffer
+            Serial.println((char *)message);
         }
-        // Store character in buffer
         else
         {
-            message[index++] = receivedChar;
+            Serial.println("invalid");
         }
-    
+
+        // Reset buffer
+        index = 0;
+    }
+    // Check for buffer overflow
+    else if (index >= MAX_LENGTH - 1)
+    {
+        if (DEBUG)
+        {
+            Serial.println("Error: Message too long, discarded.");
+        }
+        Serial.println("invalid");
+        index = 0; // Reset buffer
+    }
+    // Store character in buffer
+    else
+    {
+        message[index++] = receivedChar;
+    }
 }
 
 void sendMessage()
@@ -220,22 +219,23 @@ void sendMessage()
     command.trim(); // Remove whitespace and control characters
     if (command.length() > 0)
     {
-        if (debug)
+        if (DEBUG)
         {
             Serial.print("Sending: ");
             Serial.println(command);
         }
         Serial1.println(command); // Send command via Serial1
 
-        if (debug)
+        if (DEBUG)
         {
             Serial.println("Successfully sent.");
         }
     }
     // Handle measurement stop
-    if (command == "s0"){
+    if (command == "s0")
+    {
         measurementInProgress = false; // Stop measurement
-        if (debug)
+        if (DEBUG)
         {
             Serial.println("Measurement stopped.");
         }
@@ -243,7 +243,7 @@ void sendMessage()
     if (command == "s1")
     {
         measurementInProgress = true; // Start measurement
-        if (debug)
+        if (DEBUG)
         {
             Serial.println("Measurement started.");
         }
@@ -275,11 +275,11 @@ void handleTimer(unsigned long deltaToPrint = 0)
  */
 void setup()
 {
-    Serial.begin(115200);         // Initialize serial communication at 115200 baud
-    Serial1.begin(9600);          // Initialize second serial communication with GM-Counter
-    pinMode(interruptPin, INPUT); // Configure the interrupt pin as an input
+    Serial.begin(115200);          // Initialize serial communication at 115200 baud
+    Serial1.begin(9600);           // Initialize second serial communication with GM-Counter
+    pinMode(INTERRUPT_PIN, INPUT); // Configure the interrupt pin as an input
     // Attach interrupt to the pin, using RISING edge detection
-    attachInterrupt(digitalPinToInterrupt(interruptPin), handleInterrupt, RISING);
+    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), handleInterrupt, RISING);
 }
 
 /**
@@ -293,9 +293,10 @@ void loop()
     {
         // If measurement is in progress, handle the timer
         handleTimer();
-        
+
         // Check if measurement is stopped
-        if (Serial.available() > 0){
+        if (Serial.available() > 0)
+        {
             sendMessage();
         }
     }

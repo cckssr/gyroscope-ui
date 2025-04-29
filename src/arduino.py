@@ -12,75 +12,160 @@ Classes:
 
 Usage example:
     arduino = Arduino(port='/dev/ttyUSB0')
-    if arduino.status():
-        arduino.write('Hello, Arduino!')
-        print(arduino.read())
+    if arduino.connected:
+        arduino.send_command('Hello, Arduino!')
+        print(arduino.read_value())
 """
-from serial import Serial, SerialException
-from typing import Dict, Union
+import serial
+from time import sleep
+from typing import Optional, Union, Dict, Any
 
-def check_connection(func):
-    """
-    Decorator to check the status of the Arduino connection before executing a function.
-    
-    Returns None if the connection is not active.
-    """
-    def wrapper(self, *args, **kwargs):
-        if not self.status():
-            return None
-        return func(self, *args, **kwargs)
-    return wrapper
 
 class Arduino:
     """
-    A class to represent an Arduino connection.
-
-    Attributes:
-        port (str): The port to which the Arduino is connected.
-        rate (int): The baud rate for the serial communication (default is 115200).
-        arduino (Serial or None): The Serial object representing the connection to the Arduino.
-    Methods:
-        __init__(port: str, rate: int = 115200):
-            Initializes the Arduino connection with the specified port and baud rate.
-        reconnect():
-            Reconnects to the Arduino device.
-        status() -> bool:
-            Checks the status of the Arduino connection.
-        close():
-            Closes the connection to the Arduino.
-        read() -> str:
-            Reads a line from the Arduino serial connection.
-        write(value: str, encoding: str = "UTF-8"):
-            Writes a value to the Arduino device.
+    Class for communication with Arduino-based devices.
+    Manages serial connection and data exchange with hardware.
     """
-    def __init__(self, port: str, rate: int = 115200):
+
+    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 1.0):
+        """
+        Initialize Arduino connection.
+
+        Args:
+            port (str): Serial port identifier
+            baudrate (int, optional): Communication speed. Defaults to 9600.
+            timeout (float, optional): Read timeout in seconds. Defaults to 1.0.
+        """
         self.port = port
-        self.rate = rate
-        self.arduino = None
-        self.reconnect()
+        self.baudrate = baudrate
+        self.timeout = timeout
+        self.serial: Optional[serial.Serial] = None
+        self.connected = False
+        self._config: Dict[str, Any] = {}
 
-    def reconnect(self):
-        if self.arduino and self.arduino.isOpen():
-            self.arduino.close()
+    def reconnect(self) -> bool:
+        """
+        (Re-)establishes connection with the Arduino.
+
+        Returns:
+            bool: True if connection successful, False otherwise
+
+        Raises:
+            serial.SerialException: If connection fails
+        """
+        # Close existing connection if any
+        if self.serial and self.serial.is_open:
+            self.serial.close()
+            sleep(0.5)  # Give the port time to close properly
+
         try:
-            self.arduino = Serial(port=self.port, baudrate=self.rate)
-        except SerialException as e:
-            print(f"Error: Could not open port {self.port}. {e}")
-            self.arduino = None
+            self.serial = serial.Serial(
+                port=self.port, baudrate=self.baudrate, timeout=self.timeout
+            )
+            sleep(2.0)  # Allow Arduino to reset after connection
+            self.connected = True
+            return True
+        except serial.SerialException as e:
+            self.connected = False
+            raise e
 
-    def status(self) -> bool:
-        return self.arduino.isOpen() if self.arduino else False
+    def close(self) -> None:
+        """
+        Closes the connection to the Arduino.
+        """
+        if self.serial and self.serial.is_open:
+            self.serial.close()
+        self.connected = False
 
-    def close(self):
-        if self.arduino:
-            self.arduino.close()
+    def send_command(self, command: str) -> bool:
+        """
+        Sends a command to the Arduino.
 
-    def read(self) -> str:
-        return self.arduino.readline() if self.arduino else None
+        Args:
+            command (str): Command to send
 
-    def write(self, value: str, encoding: str = "UTF-8"):
-        if self.arduino:
-            self.arduino.write(value.encode(encoding))
+        Returns:
+            bool: True if command sent successfully, False otherwise
+        """
+        if not self.serial or not self.serial.is_open:
+            return False
+
+        try:
+            # Ensure command ends with a newline
+            if not command.endswith("\n"):
+                command += "\n"
+            self.serial.write(command.encode("utf-8"))
+            self.serial.flush()
+            return True
+        except Exception:
+            return False
+
+    def read_value(self) -> Union[int, float, str, None]:
+        """
+        Reads a single value from the Arduino, ensuring a complete line is read until a newline or carriage return.
+
+        Returns:
+            Union[int, float, str, None]: The value read, or None if reading failed
+        """
+        if not self.serial or not self.serial.is_open:
+            print("Error: Serial connection not open")
+            return None
+
+        try:
+            # Wait briefly to ensure data has arrived
+            sleep(0.2)
+
+            # Check if there is data available to read
+            if self.serial.in_waiting > 0:
+                # Read until newline or carriage return
+                response = self.serial.readline().decode("utf-8").strip()
+
+                # Debug output
+                print(f"Received raw data: '{response}'")
+
+                # Check if the response is empty or invalid
+                if not response:
+                    print("Warning: Empty response received")
+                    return None
+                if response.lower() == "invalid":
+                    print("Warning: 'invalid' response received")
+                    return None
+
+                # Return the raw response
+                return response
+            else:
+                print("Warning: No data available to read")
+                return None
+        except Exception as e:
+            print(f"Error reading value: {e}")
+            return None
+
+    def set_config(self, key: str, value: Any) -> bool:
+        """
+        Sets a configuration parameter for the Arduino.
+
+        Args:
+            key (str): Configuration parameter name
+            value (Any): Configuration parameter value
+
+        Returns:
+            bool: True if configuration was set successfully, False otherwise
+        """
+        self._config[key] = value
+        return self.send_command(f"CONFIG {key}={value}")
+
+    def get_config(self, key: str) -> Any:
+        """
+        Retrieves a configuration parameter.
+
+        Args:
+            key (str): Configuration parameter name
+
+        Returns:
+            Any: The configuration parameter value
+        """
+        return self._config.get(key, None)
+
 
 class GMCounter(Arduino):
     """
@@ -88,11 +173,11 @@ class GMCounter(Arduino):
 
     Inherits from the Arduino class and provides additional functionality specific to GM counters.
     """
-    def __init__(self, port: str, rate: int = 115200):
-        super().__init__(port, rate)
+
+    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 1.0):
+        super().__init__(port, baudrate, timeout)
         self.reconnect()
 
-    @check_connection
     def get_data(self) -> Dict[str, Union[int, bool]]:
         """
         Extracts data from the GM counter data string stream.
@@ -106,23 +191,51 @@ class GMCounter(Arduino):
             "counting_time": 0,
             "repeat": False,
             "progress": 0,
-            "voltage": 0
+            "voltage": 0,
         }
-        line = self.read()
+
+        # Clear buffer and request fresh data
+        if self.serial and self.serial.is_open:
+            self.serial.reset_input_buffer()
+            # Optionally request new data - uncomment if needed
+            # self.send_command("b2")  # Request data now
+
+        # Read data with logging
+        print("Attempting to read data from GMCounter...")
+        line = self.read_value()
+
         if line:
+            print(f"Processing data line: '{line}'")
             try:
-                parts = line.decode("UTF-8").strip().split(",")
-                for i, part in enumerate(parts):
-                    key = list(data.keys())[i]
-                    if key == "repeat":
-                        data[key] = bool(int(part))
-                    else:
-                        data[key] = int(part)
+                parts = str(line).split(",")
+                print(f"Split into {len(parts)} parts: {parts}")
+
+                # Only process data if we have the expected number of parts
+                if len(parts) == len(data):
+                    for i, part in enumerate(parts):
+                        key = list(data.keys())[i]
+                        try:
+                            if key == "repeat":
+                                data[key] = bool(int(part))
+                            else:
+                                data[key] = int(part)
+                        except ValueError as e:
+                            print(
+                                f"Error converting value '{part}' for key '{key}': {e}"
+                            )
+                            # Keep default value for this field
+                else:
+                    print(
+                        f"Warning: Received {len(parts)} values instead of {len(data)} expected values."
+                    )
             except ValueError as e:
-                print(f"Error parsing line: {line}. {e}")
+                print(f"Error parsing line: '{line}'. {e}")
+        else:
+            print("No data received from GMCounter")
+
+        print(f"Final data: {data}")
         return data
 
-    @check_connection
     def set_stream(self, value: int = 0):
         """
         Sets the stream value for the GM counter.
@@ -141,10 +254,9 @@ class GMCounter(Arduino):
             '7': Use a space as a separator between values.
             '8': Use a tab as a separator between values.
         """
-        self.write(f"b{value}")
+        self.send_command(f"b{value}")
         return True
 
-    @check_connection
     def get_information(self) -> Dict[str, str]:
         """
         Gets information from the GM counter.
@@ -152,30 +264,40 @@ class GMCounter(Arduino):
         Returns:
             dict: A dictionary containing the GM counter information.
         """
-        info = {
-            "copyright": "",
-            "version": ""
-        }
-        self.write("c")
-        line = self.read()
-        if line:
-            try:
-                info["copyright"] = line.decode("UTF-8").strip()
-            except ValueError as e:
-                print(f"Error parsing line: {line}. {e}")
-                info["copyright"] = "Error"
+        info = {"copyright": "", "version": ""}
 
-        self.write("v")
-        line = self.read()
+        print("Requesting copyright information...")
+        self.send_command("c")
+        # Give some time for the response
+        sleep(0.5)
+        line = self.read_value()
         if line:
             try:
-                info["version"] = line.decode("UTF-8").strip()
+                info["copyright"] = str(line)
+                print(f"Copyright info: {info['copyright']}")
             except ValueError as e:
-                print(f"Error parsing line: {line}. {e}")
+                print(f"Error parsing copyright line: {line}. {e}")
+                info["copyright"] = "Error"
+        else:
+            print("No copyright information received")
+
+        print("Requesting version information...")
+        self.send_command("v")
+        # Give some time for the response
+        sleep(0.5)
+        line = self.read_value()
+        if line:
+            try:
+                info["version"] = str(line)
+                print(f"Version info: {info['version']}")
+            except ValueError as e:
+                print(f"Error parsing version line: {line}. {e}")
                 info["version"] = "Error"
+        else:
+            print("No version information received")
+
         return info
 
-    @check_connection
     def set_voltage(self, value: int = 500):
         """
         Sets the voltage for the GM counter.
@@ -186,10 +308,9 @@ class GMCounter(Arduino):
         if not 300 <= value <= 700:
             print("Error: Voltage must be between 300 and 700.")
             return None
-        self.write(f"j{value}")
+        self.send_command(f"j{value}")
         return True
 
-    @check_connection
     def set_repeat(self, value: bool = False):
         """
         Sets the repeat mode for the GM counter.
@@ -197,10 +318,9 @@ class GMCounter(Arduino):
         Args:
             value (bool): True to enable repeat mode, False to disable it.
         """
-        self.write(f"o{int(value)}")
+        self.send_command(f"o{int(value)}")
         return True
 
-    @check_connection
     def set_counting(self, value: bool = False):
         """
         Starts or stops the counting process of the GM counter.
@@ -208,10 +328,9 @@ class GMCounter(Arduino):
         Args:
             value (bool): True to start counting, False to stop it.
         """
-        self.write(f"s{int(value)}")
+        self.send_command(f"s{int(value)}")
         return True
 
-    @check_connection
     def set_speaker(self, gm: bool = False, ready: bool = False):
         """
         Sets the speaker settings for the GM counter.
@@ -225,10 +344,9 @@ class GMCounter(Arduino):
             gm (bool): True to enable GM sound, False to disable it.
             ready (bool): True to enable ready sound, False to disable it.
         """
-        self.write(f"U{int(gm) + 2 * int(ready)}")
+        self.send_command(f"U{int(gm) + 2 * int(ready)}")
         return True
 
-    @check_connection
     def set_counting_time(self, value: int = 0):
         """
         Sets the counting time for the GM counter.
@@ -247,5 +365,5 @@ class GMCounter(Arduino):
         if not 0 <= value <= 5:
             print("Error: Counting time must be between 0 and 5.")
             return None
-        self.write(f"f{value}")
+        self.send_command(f"f{value}")
         return True

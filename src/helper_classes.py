@@ -1,108 +1,124 @@
 import matplotlib
 import re
+from threading import Thread, Event
 from PySide6.QtWidgets import QStatusBar, QLabel, QMessageBox
 from PySide6.QtCore import QTimer
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
-matplotlib.use('Qt5Agg')
+from .arduino import Arduino
 
-class MplCanvas(FigureCanvasQTAgg):
+matplotlib.use("Qt5Agg")
+
+
+class DeviceManager:
     """
-    A custom Matplotlib canvas for embedding plots in a PyQt application.
-    Attributes:
-        axes (matplotlib.axes.Axes): The main axes of the figure.
-    Methods:
-        __init__(width=5, height=4, dpi=100, fontsize=10, xlabel='x', ylabel='y'):
-            Initializes the canvas with a figure of specified width, height, and dpi.
-        _configure_axes():
-            Configures the appearance of the axes, including tick parameters, labels, and colors.
+    Manages device connections and data acquisition.
+    Separates hardware logic from UI components.
     """
 
-    def __init__(self, width: int = 5, height: int = 4, dpi: int = 100, 
-                 fontsize: int = 10, xlabel: str = 'x', ylabel: str = 'y'):
+    def __init__(self, status_callback=None, data_callback=None):
         """
-        Initializes a new instance of the class.
-        Parameters:
-            width (int): The width of the figure in inches. Default is 5.
-            height (int): The height of the figure in inches. Default is 4.
-            dpi (int): The resolution of the figure in dots per inch. Default is 100.
-            fontsize (int): The font size for the axis labels and tick labels. Default is 10.
-            xlabel (str): The label for the x-axis. Default is 'x'.
-            ylabel (str): The label for the y-axis. Default is 'y'.
+        Initialize the DeviceManager.
+
+        Args:
+            status_callback (Callable[[str, str, int], None], optional): Callback for status messages.
+                Function that takes message text, color, and timeout.
+            data_callback (Callable[[int, float], None], optional): Callback for data updates.
+                Function that takes the index and value of new data points.
         """
-        self.fontsize = fontsize
-        self.xlabel = xlabel
-        self.ylabel = ylabel
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        fig.subplots_adjust(left=0.1, right=0.95, top=0.95, bottom=0.1)
-        fig.patch.set_facecolor('none')
-        fig.patch.set_edgecolor('none')
-        self.axes = fig.add_subplot(111)
-        self._configure_axes()
-        super().__init__(fig)
+        self.arduino = None
+        self.connected: bool = False
+        self.port: str = None
+        self.status_callback = status_callback
+        self.data_callback = data_callback
+        self.running: bool = False
+        self.stop_event = Event()
+        self.acquire_thread = None
 
-    def _configure_axes(self):
+    def connect(self, port):
         """
-        Configures the appearance of the axes in the plot.
-        This method sets the font size and color for the x and y axis labels, 
-        sets the face color of the axes to transparent, and changes the color 
-        of the tick labels and the axes spines to white.
+        Connects to the specified device port.
+
+        Args:
+            port (str): The port to connect to
+
+        Returns:
+            bool: True if connection successful, False otherwise
         """
-        self.axes.tick_params(labelsize=self.fontsize)
-        self.axes.set_xlabel(self.xlabel, fontsize=self.fontsize, color='white')
-        self.axes.set_ylabel(self.ylabel, fontsize=self.fontsize, color='white')
-        self.axes.set_facecolor('none')
-        self.axes.tick_params(colors='white')
-        # set axes color to white
-        for spine in self.axes.spines.values():
-            spine.set_color('white')
+        self.port = port
 
-class PlotWidget(MplCanvas):
-    """
-    A widget for plotting data using Matplotlib.
+        if port == "/dev/ttymock":
+            if self.status_callback:
+                self.status_callback(f"Connected to mock device: {port}", "orange")
+            self.connected = True
+            return True
 
-    Attributes:
-        _max_points (int): The maximum number of points to display on the plot.
-        _parent: The parent widget.
-        _plot_ref: A reference to the plot line.
-        xdata (list): The x-axis data points.
-        ydata (list): The y-axis data points.
+        try:
+            self.arduino = Arduino(port=port)
+            self.arduino.reconnect()
+            if self.status_callback:
+                self.status_callback(f"Connected: {port}", "green")
+            self.connected = True
+            return True
 
-    Methods:
-        __init__(parent=None, max_plot_points=50, **kwargs):
-            Initializes the PlotWidget with optional parent and maximum plot points.
-        
-        _setup_plot():
-            Sets up the initial plot with the initial x and y data.
-        
-        update_plot(new_ydata: float, new_xdata: float = None):
-            Updates the plot with new y data and optionally new x data.
-    """
-    def __init__(self, parent=None, max_plot_points: int = 50, **kwargs):
-        super().__init__(**kwargs)
-        self._max_points = max_plot_points
-        self._parent = parent
-        self._plot_ref = None
-        self.xdata = [0]
-        self.ydata = [0]
-        self._setup_plot()
+        except Exception as e:
+            if self.status_callback:
+                self.status_callback(f"Error connecting to {port}: {e}", "red")
+            self.connected = False
+            return False
 
-    def _setup_plot(self):
-        self._plot_ref = self.axes.plot(self.xdata, self.ydata)
+    def start_acquisition(self):
+        """
+        Starts the data acquisition thread.
+        """
+        if not self.connected:
+            return False
 
-    def update_plot(self, new_ydata: float, new_xdata: float = None):
-        self.ydata = self.ydata[-self._max_points:] + [new_ydata]
-        # if new x data is provided, use it, otherwise increment the last x data by 1
-        if new_xdata:
-            self.xdata = self.xdata[-self._max_points:] + [new_xdata]
-        else:
-            self.xdata = self.xdata[-self._max_points:] + [self.xdata[-1] + 1]
+        self.stop_event.clear()
+        self.running = True
+        self.acquire_thread = Thread(target=self._acquisition_loop)
+        self.acquire_thread.daemon = True
+        self.acquire_thread.start()
+        return True
 
-        # self.ydata = self.ydata[-self._max_points:] + [random.randint(100, 500)]
-        self._plot_ref[0].set_data(self.xdata, self.ydata)
-        self._plot_ref[0].axes.relim()
-        self._plot_ref[0].axes.autoscale_view()
-        self.draw()
+    def stop_acquisition(self):
+        """
+        Stops the data acquisition thread.
+        """
+        self.running = False
+        self.stop_event.set()
+        if self.acquire_thread and self.acquire_thread.is_alive():
+            self.acquire_thread.join(timeout=1.0)
+
+    def _acquisition_loop(self):
+        """
+        Main acquisition loop that runs in a separate thread.
+        For mock device, generates random data.
+        For real device, reads from Arduino.
+        """
+        k = 0
+        while self.running and not self.stop_event.is_set():
+            try:
+                if self.port == "/dev/ttymock":
+                    # Mock data generation
+                    value = random.randint(50, 1500)
+                    # Callback mit dem generierten Wert
+                    if self.data_callback:
+                        self.data_callback(k, value)
+                    k += 1
+                    # Simulate processing time
+                    time.sleep(value / 1000)
+                else:
+                    # Real data acquisition from Arduino
+                    if self.arduino:
+                        value = self.arduino.read_value()
+                        # Callback nur wenn gültiger Wert
+                        if value is not None and self.data_callback:
+                            self.data_callback(k, value)
+                            k += 1
+            except Exception as e:
+                if self.status_callback:
+                    self.status_callback(f"Acquisition error: {e}", "red")
+                break
+
 
 class Statusbar:
     """
@@ -122,6 +138,7 @@ class Statusbar:
         _save_state():
             Saves the current state of the status bar.
     """
+
     def __init__(self, statusbar: QStatusBar):
         self.statusbar = statusbar
         self.old_state = None
@@ -136,8 +153,12 @@ class Statusbar:
         if duration:
             self.statusbar.showMessage(message, duration)
             # reset to old state after duration
-            QTimer.singleShot(duration, lambda: self.statusbar.setStyleSheet(self.old_state[1]))
-            QTimer.singleShot(duration, lambda: self.statusbar.showMessage(self.old_state[0]))
+            QTimer.singleShot(
+                duration, lambda: self.statusbar.setStyleSheet(self.old_state[1])
+            )
+            QTimer.singleShot(
+                duration, lambda: self.statusbar.showMessage(self.old_state[0])
+            )
         else:
             self.statusbar.showMessage(message)
 
@@ -157,8 +178,10 @@ class Statusbar:
             if "background-color:" in self.old_state[1]:
                 # if old style had backcolor, replace it with the new one
                 new_style = self.old_state[1].replace(
-                    re.search(r"background-color:\s*[^;]+;", self.old_state[1]).group(0),
-                    f"background-color: {backcolor};"
+                    re.search(r"background-color:\s*[^;]+;", self.old_state[1]).group(
+                        0
+                    ),
+                    f"background-color: {backcolor};",
                 )
             else:
                 # otherwise append the new backcolor
@@ -170,6 +193,7 @@ class Statusbar:
     def _save_state(self):
         self.old_state = [self.statusbar.currentMessage(), self.statusbar.styleSheet()]
 
+
 class Helper:
     """
     A helper class with static methods for common tasks.
@@ -177,13 +201,16 @@ class Helper:
         close_event(parent, event):
             Handles the close event for a window.
     """
+
     @staticmethod
     def close_event(parent, event):
-        reply = QMessageBox.question(parent,
-                    'Beenden',
-                    'Wollen Sie sicher das Programm schließen?',
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No)
+        reply = QMessageBox.question(
+            parent,
+            "Beenden",
+            "Wollen Sie sicher das Programm schließen?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
 
         if reply == QMessageBox.Yes:
             event.accept()

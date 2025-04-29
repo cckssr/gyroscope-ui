@@ -1,10 +1,11 @@
 {
     "files": [
         "mainwindow.py",
-        "form.ui",
-        "toolbox.ui",
-        "alert.ui",
-        "control.ui",
-        "connection.ui"
+        "pyqt/form.ui",
+        "pyqt/toolbox.ui",
+        "pyqt/alert.ui",
+        "pyqt/control.ui",
+        "pyqt/connection.ui",
+        "pyqt/main_template.ui"
     ]
 }

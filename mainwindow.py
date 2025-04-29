@@ -1,6 +1,7 @@
 import sys
 import random
 import time
+import csv
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -9,119 +10,19 @@ from PySide6.QtWidgets import (
     QWidget,
     QMessageBox,
     QDialogButtonBox,
+    QLabel,
+    QLCDNumber,
+    QListWidget,
+    QFileDialog,
 )
-from PySide6.QtCore import QTimer, Signal, QObject
+from PySide6.QtCore import QTimer, Qt
 from serial.tools import list_ports
-from threading import Thread, Event
-from src.arduino import Arduino
-from src.helper_classes import PlotWidget, Statusbar, Helper
-from ui_form import Ui_MainWindow
-from ui_alert import Ui_Dialog
-from ui_control import Ui_Form
-from ui_connection import Ui_Dialog as Ui_Connection
-
-
-class DeviceManager:
-    """
-    Manages device connections and data acquisition.
-    Separates hardware logic from UI components.
-    """
-
-    def __init__(self, status_callback=None, data_callback=None):
-        self.arduino = None
-        self.connected = False
-        self.port = None
-        self.status_callback = status_callback
-        self.data_callback = data_callback
-        self.running = False
-        self.stop_event = Event()
-        self.acquire_thread = None
-
-    def connect(self, port):
-        """
-        Connects to the specified device port.
-
-        Args:
-            port (str): The port to connect to
-
-        Returns:
-            bool: True if connection successful, False otherwise
-        """
-        self.port = port
-
-        if port == "/dev/ttymock":
-            if self.status_callback:
-                self.status_callback(f"Connected to mock device: {port}", "orange")
-            self.connected = True
-            return True
-
-        try:
-            self.arduino = Arduino(port=port)
-            self.arduino.reconnect()
-            if self.status_callback:
-                self.status_callback(f"Connected: {port}", "green")
-            self.connected = True
-            return True
-
-        except Exception as e:
-            if self.status_callback:
-                self.status_callback(f"Error connecting to {port}: {e}", "red")
-            self.connected = False
-            return False
-
-    def start_acquisition(self):
-        """
-        Starts the data acquisition thread.
-        """
-        if not self.connected:
-            return False
-
-        self.stop_event.clear()
-        self.running = True
-        self.acquire_thread = Thread(target=self._acquisition_loop)
-        self.acquire_thread.daemon = True
-        self.acquire_thread.start()
-        return True
-
-    def stop_acquisition(self):
-        """
-        Stops the data acquisition thread.
-        """
-        self.running = False
-        self.stop_event.set()
-        if self.acquire_thread and self.acquire_thread.is_alive():
-            self.acquire_thread.join(timeout=1.0)
-
-    def _acquisition_loop(self):
-        """
-        Main acquisition loop that runs in a separate thread.
-        For mock device, generates random data.
-        For real device, reads from Arduino.
-        """
-        k = 0
-        while self.running and not self.stop_event.is_set():
-            try:
-                if self.port == "/dev/ttymock":
-                    # Mock data generation
-                    value = random.randint(100, 1000)
-                    # Simulate processing time
-                    time.sleep(1 / value)
-                else:
-                    # Real data acquisition from Arduino
-                    if self.arduino:
-                        value = (
-                            self.arduino.read_value()
-                        )  # Implement this in Arduino class
-                    else:
-                        value = 0
-
-                if self.data_callback:
-                    self.data_callback(k, value)
-                k += 1
-            except Exception as e:
-                if self.status_callback:
-                    self.status_callback(f"Acquisition error: {e}", "red")
-                break
+from src.helper_classes import Statusbar, DeviceManager
+from src.plot import PlotWidget
+from pyqt.ui_form import Ui_MainWindow
+from pyqt.ui_alert import Ui_Dialog
+from pyqt.ui_control import Ui_Form
+from pyqt.ui_connection import Ui_Dialog as Ui_Connection
 
 
 class DataController:
@@ -129,7 +30,12 @@ class DataController:
     Manages measurement data and plot updates.
     """
 
-    def __init__(self, plot_widget, display_widget=None, history_widget=None):
+    def __init__(
+        self,
+        plot_widget: PlotWidget,
+        display_widget: QLCDNumber = None,
+        history_widget: QListWidget = None,
+    ):
         self.plot = plot_widget
         self.display = display_widget
         self.history = history_widget
@@ -156,9 +62,11 @@ class DataController:
         if self.display:
             self.display.display(value)
 
-        # Update history list
+        # Update history list with correct format
         if self.history:
-            self.history.insertItem(0, f"{index}: {value}")
+            self.history.insertItem(0, f"{value} µs : {index}")
+            self.history.item(0).setTextAlignment(Qt.AlignRight)
+            # Limit history size
             while self.history.count() > self.max_history:
                 self.history.takeItem(self.history.count() - 1)
 
@@ -206,22 +114,13 @@ class ConnectionWindow(QDialog):
         self.ui.buttonRefreshSerial.clicked.connect(self._update_ports)
         self.combo.currentIndexChanged.connect(self._update_port_description)
 
-        # Status message (may need to be added to UI)
-        if not hasattr(self.ui, "statusLabel"):
-            from PySide6.QtWidgets import QLabel
-
-            self.ui.statusLabel = QLabel("Select a device and click OK to connect")
-            if hasattr(self.ui, "verticalLayout"):
-                self.ui.verticalLayout.addWidget(self.ui.statusLabel)
-
-    def status_message(self, message, color="black", timeout=0):
+    def status_message(self, message, color="white", timeout=0):
         """
         Updates the status message in the connection dialog.
         """
-        if hasattr(self.ui, "statusLabel"):
-            self.ui.statusLabel.setText(message)
-            self.ui.statusLabel.setStyleSheet(f"color: {color};")
-            QApplication.processEvents()  # Process events to update UI immediately
+        self.ui.status_msg.setText(message)
+        self.ui.status_msg.setStyleSheet(f"color: {color};")
+        QApplication.processEvents()  # Process events to update UI immediately
 
     def _update_ports(self):
         """
@@ -369,6 +268,9 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
+        # Track if current measurement is saved
+        self.measurement_saved = True
+
         # Create status bar first for early feedback
         self.statusbar = Statusbar(self.ui.statusBar)
         self.statusbar.temp_message("Initializing application...")
@@ -404,8 +306,8 @@ class MainWindow(QMainWindow):
         self._setup_timer()
 
         # Connect signals
-        if hasattr(self.ui, "demoMode"):
-            self.ui.demoMode.toggled.connect(self._toggle_demo_mode)
+        # if hasattr(self.ui, "demoMode"):
+        #     self.ui.demoMode.toggled.connect(self._toggle_demo_mode)
 
         # Initialize the current connected port display if available
         if hasattr(self.ui, "labelConnectedPort"):
@@ -428,6 +330,8 @@ class MainWindow(QMainWindow):
             value (float): The measured value
         """
         self.data_controller.add_data_point(index, value)
+        # Mark data as unsaved when new data arrives
+        self.measurement_saved = False
 
     def _open_alert(self):
         """
@@ -444,22 +348,86 @@ class MainWindow(QMainWindow):
         if checked:
             self.ui.buttonStart.setEnabled(False)
             self.ui.buttonStop.setEnabled(True)
+            # Change status to orange during measurement
+            self.statusbar.temp_message("Measurement in progress...", "orange")
             self.device_manager.start_acquisition()
         else:
             self.ui.buttonStart.setEnabled(True)
             self.ui.buttonStop.setEnabled(False)
             self.device_manager.stop_acquisition()
+            self.statusbar.temp_message("Measurement stopped.", "red", 1500)
+            self.statusbar.temp_message(
+                "Measurement completed. Ready to save or start a new measurement.",
+                "green",
+            )
+            # Enable save button if we have data to save
+            if (
+                hasattr(self.ui, "buttonSave")
+                and len(self.data_controller.data_points) > 0
+            ):
+                self.ui.buttonSave.setEnabled(True)
 
-    def _toggle_demo_mode(self, checked: bool):
+    def _start_measurement(self):
         """
-        Toggles the demo mode based on the given value.
+        Checks if the current data is saved before starting a new measurement.
         """
-        if checked:
-            self.statusbar.temp_message("Demo mode enabled", "orange")
-            self.ui.comboSerial.addItem("/dev/ttymock", "Mock Serial Port")
-            self.ui.comboSerial.setCurrentText("/dev/ttymock")
+        if not self.measurement_saved and len(self.data_controller.data_points) > 0:
+            # Ask the user if they want to override unsaved data
+            reply = QMessageBox.question(
+                self,
+                "Unsaved Data",
+                "You have unsaved measurement data. Do you want to discard it and start a new measurement?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+
+            if reply == QMessageBox.Yes:
+                # Clear old data
+                self.data_controller.clear_data()
+                self._update_measurement(True)
+            # No action if user chooses not to override
         else:
-            print("Demo mode disabled")
+            # No unsaved data, start measurement directly
+            self.data_controller.clear_data()
+            self._update_measurement(True)
+
+    def _save_measurement(self):
+        """
+        Saves the current measurement data to a CSV file.
+        """
+        if len(self.data_controller.data_points) == 0:
+            QMessageBox.information(
+                self,
+                "No Data",
+                "No measurement data available to save.",
+                QMessageBox.Ok,
+            )
+            return
+
+        # Open file dialog to select save location
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Measurement Data", "", "CSV Files (*.csv);;All Files (*)"
+        )
+
+        if file_path:
+            try:
+                with open(file_path, "w", newline="") as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(["Index", "Value (µs)"])
+                    for idx, value in self.data_controller.data_points:
+                        writer.writerow([idx, value])
+
+                self.measurement_saved = True
+                self.statusbar.temp_message(f"Data saved to {file_path}", "green")
+
+                # Disable save button after successful save
+                if hasattr(self.ui, "buttonSave"):
+                    self.ui.buttonSave.setEnabled(False)
+
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Save Error", f"Error saving data: {str(e)}", QMessageBox.Ok
+                )
 
     def _setup_control(self) -> ControlWindow:
         """
@@ -474,14 +442,29 @@ class MainWindow(QMainWindow):
 
     def _setup_buttons(self):
         """
-        Connects the buttons to their respective functions.
+        Connects the buttons to their respective functions and initializes their states.
         """
-        # self.ui.buttonRefreshSerial.clicked.connect(self._open_alert)
-        # # Update the Connect button to use the existing connection or reconnect if needed
-        # if hasattr(self.ui, 'buttonConnect'):
-        #     self.ui.buttonConnect.clicked.connect(self._reconnect_device)
-        self.ui.buttonStart.clicked.connect(lambda: self._update_measurement(True))
+        # Connect the alert button if needed
+        if hasattr(self.ui, "buttonRefreshSerial"):
+            self.ui.buttonRefreshSerial.clicked.connect(self._open_alert)
+
+        # Enable reconnection functionality
+        if hasattr(self.ui, "buttonConnect"):
+            self.ui.buttonConnect.clicked.connect(self._reconnect_device)
+
+        # Connect measurement control buttons
+        self.ui.buttonStart.clicked.connect(self._start_measurement)
         self.ui.buttonStop.clicked.connect(lambda: self._update_measurement(False))
+
+        # Connect save button if it exists
+        if hasattr(self.ui, "buttonSave"):
+            self.ui.buttonSave.clicked.connect(self._save_measurement)
+            # Initially disable save button until we have data
+            self.ui.buttonSave.setEnabled(False)
+
+        # Initialize button states
+        self.ui.buttonStart.setEnabled(True)
+        self.ui.buttonStop.setEnabled(False)
 
     def _reconnect_device(self):
         """
@@ -542,9 +525,7 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-    """
-    Starts the application.
-    """
+    # Starts the application.
     app = QApplication(sys.argv)
 
     # Make sure application exits properly when main window is closed

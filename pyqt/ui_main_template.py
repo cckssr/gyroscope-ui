@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'form.ui'
+## Form generated from reading UI file 'main_template.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.8.0
 ##
@@ -16,12 +16,10 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QIcon, QImage, QKeySequence, QLinearGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
-from PySide6.QtWidgets import (QAbstractItemView, QApplication, QFormLayout, QFrame,
-    QGridLayout, QHBoxLayout, QLCDNumber, QLabel,
-    QLayout, QListWidget, QListWidgetItem, QMainWindow,
-    QMenu, QMenuBar, QPushButton, QSizePolicy,
-    QSpacerItem, QStatusBar, QTimeEdit, QVBoxLayout,
-    QWidget)
+from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QHBoxLayout,
+    QLayout, QMainWindow, QMenu, QMenuBar,
+    QPushButton, QSizePolicy, QSpacerItem, QStatusBar,
+    QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -66,79 +64,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addWidget(self.widgetPlot)
 
-        self.line_4 = QFrame(self.centralwidget)
-        self.line_4.setObjectName(u"line_4")
-        self.line_4.setFrameShape(QFrame.Shape.VLine)
-        self.line_4.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.horizontalLayout_2.addWidget(self.line_4)
-
-        self.framePlot = QFrame(self.centralwidget)
-        self.framePlot.setObjectName(u"framePlot")
-        self.framePlot.setFrameShape(QFrame.Shape.Box)
-        self.framePlot.setFrameShadow(QFrame.Shadow.Raised)
-        self.framePlot.setLineWidth(0)
-        self.verticalLayout_4 = QVBoxLayout(self.framePlot)
-        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
-        self.label = QLabel(self.framePlot)
-        self.label.setObjectName(u"label")
-        self.label.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-
-        self.verticalLayout_4.addWidget(self.label)
-
-        self.currentData = QLCDNumber(self.framePlot)
-        self.currentData.setObjectName(u"currentData")
-        self.currentData.setEnabled(False)
-        self.currentData.setMinimumSize(QSize(0, 40))
-        self.currentData.setDigitCount(6)
-        self.currentData.setSegmentStyle(QLCDNumber.SegmentStyle.Filled)
-        self.currentData.setProperty(u"value", 30.000000000000000)
-        self.currentData.setProperty(u"intValue", 30)
-
-        self.verticalLayout_4.addWidget(self.currentData)
-
-        self.lastData = QListWidget(self.framePlot)
-        self.lastData.setObjectName(u"lastData")
-        self.lastData.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.lastData.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.lastData.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        self.lastData.setItemAlignment(Qt.AlignmentFlag.AlignLeading)
-
-        self.verticalLayout_4.addWidget(self.lastData)
-
-        self.line = QFrame(self.framePlot)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShape(QFrame.Shape.HLine)
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.verticalLayout_4.addWidget(self.line)
-
-        self.formLayout = QFormLayout()
-        self.formLayout.setObjectName(u"formLayout")
-        self.formLayout.setContentsMargins(-1, 0, -1, -1)
-        self.labelTimer = QLabel(self.framePlot)
-        self.labelTimer.setObjectName(u"labelTimer")
-
-        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.labelTimer)
-
-        self.inputTimer = QTimeEdit(self.framePlot)
-        self.inputTimer.setObjectName(u"inputTimer")
-
-        self.formLayout.setWidget(0, QFormLayout.FieldRole, self.inputTimer)
-
-
-        self.verticalLayout_4.addLayout(self.formLayout)
-
-        self.verticalLayout_4.setStretch(0, 1)
-        self.verticalLayout_4.setStretch(1, 1)
-        self.verticalLayout_4.setStretch(2, 15)
-        self.verticalLayout_4.setStretch(3, 1)
-        self.verticalLayout_4.setStretch(4, 1)
-
-        self.horizontalLayout_2.addWidget(self.framePlot)
-
         self.horizontalLayout_2.setStretch(0, 15)
-        self.horizontalLayout_2.setStretch(2, 1)
 
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
@@ -207,18 +133,12 @@ class Ui_MainWindow(object):
         self.menuTK47 = QMenu(self.menuBar)
         self.menuTK47.setObjectName(u"menuTK47")
         MainWindow.setMenuBar(self.menuBar)
-#if QT_CONFIG(shortcut)
-        self.labelTimer.setBuddy(self.inputTimer)
-#endif // QT_CONFIG(shortcut)
-        QWidget.setTabOrder(self.inputTimer, self.buttonStart)
         QWidget.setTabOrder(self.buttonStart, self.buttonStop)
         QWidget.setTabOrder(self.buttonStop, self.buttonSave)
-        QWidget.setTabOrder(self.buttonSave, self.lastData)
 
         self.menuBar.addAction(self.menuTK47.menuAction())
         self.menuTK47.addAction(self.controlWindow)
         self.menuTK47.addSeparator()
-        self.menuTK47.addAction(self.demoMode)
 
         self.retranslateUi(MainWindow)
 
@@ -231,11 +151,6 @@ class Ui_MainWindow(object):
         self.controlWindow.setText(QCoreApplication.translate("MainWindow", u"Kontroll-Fenster", None))
 #if QT_CONFIG(tooltip)
         self.controlWindow.setToolTip(QCoreApplication.translate("MainWindow", u"\u00d6ffnet ein neues Kontroll-Fenster", None))
-#endif // QT_CONFIG(tooltip)
-        self.label.setText(QCoreApplication.translate("MainWindow", u"Letzte Zeit / \u00b5s:", None))
-        self.labelTimer.setText(QCoreApplication.translate("MainWindow", u"Timer:", None))
-#if QT_CONFIG(tooltip)
-        self.inputTimer.setToolTip(QCoreApplication.translate("MainWindow", u"F\u00fcr die Messung kann ein Timer eingestellt werden.", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(tooltip)
         self.buttonStart.setToolTip(QCoreApplication.translate("MainWindow", u"Start der Messung", None))

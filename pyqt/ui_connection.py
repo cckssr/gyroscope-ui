@@ -39,7 +39,7 @@ class Ui_Dialog(object):
         self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Open)
 
-        self.gridLayout.addWidget(self.buttonBox, 7, 0, 1, 1)
+        self.gridLayout.addWidget(self.buttonBox, 8, 0, 1, 1)
 
         self.label_5 = QLabel(Dialog)
         self.label_5.setObjectName(u"label_5")
@@ -121,7 +121,14 @@ class Ui_Dialog(object):
         self.verticalLayout.addLayout(self.horizontalLayout_3)
 
 
-        self.gridLayout.addLayout(self.verticalLayout, 2, 0, 1, 1)
+        self.gridLayout.addLayout(self.verticalLayout, 3, 0, 1, 1)
+
+        self.line = QFrame(Dialog)
+        self.line.setObjectName(u"line")
+        self.line.setFrameShape(QFrame.Shape.HLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout.addWidget(self.line, 2, 0, 1, 1)
 
         self.formLayout = QFormLayout()
         self.formLayout.setObjectName(u"formLayout")
@@ -180,14 +187,13 @@ class Ui_Dialog(object):
         self.formLayout.setWidget(2, QFormLayout.FieldRole, self.device_desc)
 
 
-        self.gridLayout.addLayout(self.formLayout, 4, 0, 1, 1)
+        self.gridLayout.addLayout(self.formLayout, 5, 0, 1, 1)
 
-        self.line = QFrame(Dialog)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShape(QFrame.Shape.HLine)
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+        self.status_msg = QLabel(Dialog)
+        self.status_msg.setObjectName(u"status_msg")
+        self.status_msg.setWordWrap(True)
 
-        self.gridLayout.addWidget(self.line, 1, 0, 1, 1)
+        self.gridLayout.addWidget(self.status_msg, 1, 0, 1, 1)
 
 
         self.retranslateUi(Dialog)
@@ -225,5 +231,6 @@ class Ui_Dialog(object):
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Name", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Beschreibung", None))
         self.device_desc.setPlaceholderText("")
+        self.status_msg.setText("")
     # retranslateUi
 
