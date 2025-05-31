@@ -75,3 +75,7 @@ CMakeLists.txt.user*
 *.dll
 *.exe
 
+# Logs and backups
+logs/
+backup/
+__pycache__/
