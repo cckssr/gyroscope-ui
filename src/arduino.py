@@ -16,9 +16,10 @@ Usage example:
         arduino.send_command('Hello, Arduino!')
         print(arduino.read_value())
 """
-import serial
-from time import sleep
 from typing import Optional, Union, Dict, Any
+from time import sleep
+import serial
+from src.debug_utils import Debug
 
 
 class Arduino:
@@ -56,17 +57,21 @@ class Arduino:
         # Close existing connection if any
         if self.serial and self.serial.is_open:
             self.serial.close()
+            Debug.debug(f"Closed existing connection to {self.port}")
             sleep(0.5)  # Give the port time to close properly
 
         try:
+            Debug.info(f"Attempting to connect to {self.port} at {self.baudrate} baud")
             self.serial = serial.Serial(
                 port=self.port, baudrate=self.baudrate, timeout=self.timeout
             )
             sleep(2.0)  # Allow Arduino to reset after connection
             self.connected = True
+            Debug.info(f"Successfully connected to {self.port}")
             return True
         except serial.SerialException as e:
             self.connected = False
+            Debug.error(f"Failed to connect to {self.port}: {e}")
             raise e
 
     def close(self) -> None:
@@ -75,6 +80,7 @@ class Arduino:
         """
         if self.serial and self.serial.is_open:
             self.serial.close()
+            Debug.debug(f"Connection to {self.port} closed")
         self.connected = False
 
     def send_command(self, command: str) -> bool:
@@ -88,6 +94,7 @@ class Arduino:
             bool: True if command sent successfully, False otherwise
         """
         if not self.serial or not self.serial.is_open:
+            Debug.error("Cannot send command: Serial connection not open")
             return False
 
         try:
@@ -96,19 +103,24 @@ class Arduino:
                 command += "\n"
             self.serial.write(command.encode("utf-8"))
             self.serial.flush()
+            Debug.debug(f"Command sent: {command.strip()}")
             return True
-        except Exception:
+        except Exception as e:
+            Debug.error(
+                f"Error sending command '{command.strip()}': {e}", exc_info=True
+            )
             return False
 
     def read_value(self) -> Union[int, float, str, None]:
         """
-        Reads a single value from the Arduino, ensuring a complete line is read until a newline or carriage return.
+        Reads a single value from the Arduino,
+        ensuring a complete line is read until a newline or carriage return.
 
         Returns:
             Union[int, float, str, None]: The value read, or None if reading failed
         """
         if not self.serial or not self.serial.is_open:
-            print("Error: Serial connection not open")
+            Debug.error("Error: Serial connection not open")
             return None
 
         try:
@@ -121,23 +133,23 @@ class Arduino:
                 response = self.serial.readline().decode("utf-8").strip()
 
                 # Debug output
-                print(f"Received raw data: '{response}'")
+                Debug.info(f"Received raw data: '{response}'")
 
                 # Check if the response is empty or invalid
                 if not response:
-                    print("Warning: Empty response received")
+                    Debug.info("Empty response received")
                     return None
                 if response.lower() == "invalid":
-                    print("Warning: 'invalid' response received")
+                    Debug.info("'invalid' response received")
                     return None
 
                 # Return the raw response
                 return response
             else:
-                print("Warning: No data available to read")
+                Debug.info("No data available to read")
                 return None
         except Exception as e:
-            print(f"Error reading value: {e}")
+            Debug.error(f"Error reading value: {e}", exc_info=True)
             return None
 
     def set_config(self, key: str, value: Any) -> bool:
@@ -201,14 +213,16 @@ class GMCounter(Arduino):
             # self.send_command("b2")  # Request data now
 
         # Read data with logging
-        print("Attempting to read data from GMCounter...")
+        Debug.debug("Attempting to read data from GMCounter...")
         line = self.read_value()
 
         if line:
-            print(f"Processing data line: '{line}'")
+            Debug.debug(f"Processing data line: '{line}'")
             try:
                 parts = str(line).split(",")
-                print(f"Split into {len(parts)} parts: {parts}")
+                if parts[-1] == "":  # Remove empty last part if present
+                    parts = parts[:-1]
+                Debug.debug(f"Split into {len(parts)} parts: {parts}")
 
                 # Only process data if we have the expected number of parts
                 if len(parts) == len(data):
@@ -220,20 +234,20 @@ class GMCounter(Arduino):
                             else:
                                 data[key] = int(part)
                         except ValueError as e:
-                            print(
+                            Debug.error(
                                 f"Error converting value '{part}' for key '{key}': {e}"
                             )
                             # Keep default value for this field
                 else:
-                    print(
+                    Debug.info(
                         f"Warning: Received {len(parts)} values instead of {len(data)} expected values."
                     )
             except ValueError as e:
-                print(f"Error parsing line: '{line}'. {e}")
+                Debug.error(f"Error parsing line: '{line}'. {e}")
         else:
-            print("No data received from GMCounter")
+            Debug.info("No data received from GMCounter")
 
-        print(f"Final data: {data}")
+        Debug.debug(f"Final data: {data}")
         return data
 
     def set_stream(self, value: int = 0):
@@ -266,7 +280,7 @@ class GMCounter(Arduino):
         """
         info = {"copyright": "", "version": ""}
 
-        print("Requesting copyright information...")
+        Debug.info("Requesting copyright information...")
         self.send_command("c")
         # Give some time for the response
         sleep(0.5)
@@ -274,14 +288,14 @@ class GMCounter(Arduino):
         if line:
             try:
                 info["copyright"] = str(line)
-                print(f"Copyright info: {info['copyright']}")
+                Debug.info(f"Copyright info: {info['copyright']}")
             except ValueError as e:
-                print(f"Error parsing copyright line: {line}. {e}")
+                Debug.error(f"Error parsing copyright line: {line}. {e}")
                 info["copyright"] = "Error"
         else:
-            print("No copyright information received")
+            Debug.info("No copyright information received")
 
-        print("Requesting version information...")
+        Debug.info("Requesting version information...")
         self.send_command("v")
         # Give some time for the response
         sleep(0.5)
@@ -289,12 +303,12 @@ class GMCounter(Arduino):
         if line:
             try:
                 info["version"] = str(line)
-                print(f"Version info: {info['version']}")
+                Debug.info(f"Version info: {info['version']}")
             except ValueError as e:
-                print(f"Error parsing version line: {line}. {e}")
+                Debug.error(f"Error parsing version line: {line}. {e}", exc_info=True)
                 info["version"] = "Error"
         else:
-            print("No version information received")
+            Debug.info("No version information received")
 
         return info
 
@@ -306,7 +320,7 @@ class GMCounter(Arduino):
             value (int): The voltage value in volt to set (default is 500).
         """
         if not 300 <= value <= 700:
-            print("Error: Voltage must be between 300 and 700.")
+            Debug.error("Error: Voltage must be between 300 and 700.")
             return None
         self.send_command(f"j{value}")
         return True
@@ -363,7 +377,7 @@ class GMCounter(Arduino):
             'f5': 300 seconds
         """
         if not 0 <= value <= 5:
-            print("Error: Counting time must be between 0 and 5.")
+            Debug.error("Error: Counting time key must be between 0 and 5.")
             return None
         self.send_command(f"f{value}")
         return True

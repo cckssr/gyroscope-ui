@@ -1,8 +1,9 @@
+from typing import Tuple, Optional
+import numpy as np
 import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-import numpy as np
-from typing import Tuple, Optional
+from src.debug_utils import Debug
 
 matplotlib.use("Qt5Agg")
 
@@ -37,50 +38,60 @@ class PlotWidget(FigureCanvasQTAgg):
             ylabel (str): Label for the y-axis
             title (str): Title of the plot
         """
-        # Set up the figure and axes for the plot
-        self.fig = Figure(figsize=(width / dpi, height / dpi), dpi=dpi)
-        self.axes = self.fig.add_subplot(111)
+        # Debugging für Plot-Initialisierung
+        try:
+            Debug.info(
+                f"Initializing PlotWidget with max_points={max_plot_points}, title={title}"
+            )
 
-        # Initialize the canvas
-        super().__init__(self.fig)
+            # Set up the figure and axes for the plot
+            self.fig = Figure(figsize=(width / dpi, height / dpi), dpi=dpi)
+            self.axes = self.fig.add_subplot(111)
 
-        # Configure plot settings
-        self.max_plot_points = max_plot_points
-        self.fontsize = fontsize
-        self.axes.tick_params(labelsize=self.fontsize)
+            # Initialize the canvas
+            super().__init__(self.fig)
 
-        # Initialize data arrays with pre-allocated buffers for efficiency
-        self._x_data = np.zeros(max_plot_points)
-        self._y_data = np.zeros(max_plot_points)
-        self._data_count = 0
+            # Configure plot settings
+            self.max_plot_points = max_plot_points
+            self.fontsize = fontsize
+            self.axes.tick_params(labelsize=self.fontsize)
 
-        # Set up the plot line with increased visibility
-        (self.line,) = self.axes.plot(
-            [], [], "w-", linewidth=1.5, marker="o", markersize=3
-        )
+            # Initialize data arrays with pre-allocated buffers for efficiency
+            self._x_data = np.zeros(max_plot_points)
+            self._y_data = np.zeros(max_plot_points)
+            self._data_count = 0
 
-        # Configure axes labels and appearance
-        self.axes.set_xlabel(xlabel, fontsize=fontsize)
-        self.axes.set_ylabel(ylabel, fontsize=fontsize)
-        self.axes.set_title(title, fontsize=fontsize + 2)
-        self.axes.grid(True, alpha=0.3)
+            # Set up the plot line with increased visibility
+            (self.line,) = self.axes.plot(
+                [], [], "w-", linewidth=1.5, marker="o", markersize=3
+            )
 
-        # Make background transparent to match application theme
-        self.fig.patch.set_alpha(0.0)
-        self.axes.patch.set_alpha(0.0)
-        for spine in ["top", "bottom", "left", "right"]:
-            self.axes.spines[spine].set_color("white")
-        self.axes.tick_params(colors="white")
-        self.axes.yaxis.label.set_color("white")
-        self.axes.xaxis.label.set_color("white")
-        self.axes.title.set_color("white")
+            # Configure axes labels and appearance
+            self.axes.set_xlabel(xlabel, fontsize=fontsize)
+            self.axes.set_ylabel(ylabel, fontsize=fontsize)
+            self.axes.set_title(title, fontsize=fontsize + 2)
+            self.axes.grid(True, alpha=0.3)
 
-        # Initial plot appearance
-        # self.fig.tight_layout()
-        self.axes.autoscale(enable=True, axis="both", tight=True)
+            # Make background transparent to match application theme
+            self.fig.patch.set_alpha(0.0)
+            self.axes.patch.set_alpha(0.0)
+            for spine in ["top", "bottom", "left", "right"]:
+                self.axes.spines[spine].set_color("white")
+            self.axes.tick_params(colors="white")
+            self.axes.yaxis.label.set_color("white")
+            self.axes.xaxis.label.set_color("white")
+            self.axes.title.set_color("white")
 
-        # Store plot configuration
-        self._plot_config = {"xlabel": xlabel, "ylabel": ylabel, "title": title}
+            # Initial plot appearance
+            # self.fig.tight_layout()
+            self.axes.autoscale(enable=True, axis="both", tight=True)
+
+            # Store plot configuration
+            self._plot_config = {"xlabel": xlabel, "ylabel": ylabel, "title": title}
+
+            Debug.info("PlotWidget initialization complete")
+        except Exception as e:
+            Debug.error(f"Error initializing PlotWidget: {e}")
 
     def update_plot(self, new_point: Tuple[float, float]) -> None:
         """

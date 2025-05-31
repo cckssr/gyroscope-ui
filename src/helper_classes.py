@@ -1,123 +1,15 @@
-import matplotlib
 import re
-from threading import Thread, Event
-from PySide6.QtWidgets import QStatusBar, QLabel, QMessageBox
+from PySide6.QtWidgets import (
+    QStatusBar,
+    QLabel,
+    QMessageBox,
+    QDialog,
+    QWidget,
+    QDialogButtonBox,
+)
 from PySide6.QtCore import QTimer
-from .arduino import Arduino
-
-matplotlib.use("Qt5Agg")
-
-
-class DeviceManager:
-    """
-    Manages device connections and data acquisition.
-    Separates hardware logic from UI components.
-    """
-
-    def __init__(self, status_callback=None, data_callback=None):
-        """
-        Initialize the DeviceManager.
-
-        Args:
-            status_callback (Callable[[str, str, int], None], optional): Callback for status messages.
-                Function that takes message text, color, and timeout.
-            data_callback (Callable[[int, float], None], optional): Callback for data updates.
-                Function that takes the index and value of new data points.
-        """
-        self.arduino = None
-        self.connected: bool = False
-        self.port: str = None
-        self.status_callback = status_callback
-        self.data_callback = data_callback
-        self.running: bool = False
-        self.stop_event = Event()
-        self.acquire_thread = None
-
-    def connect(self, port):
-        """
-        Connects to the specified device port.
-
-        Args:
-            port (str): The port to connect to
-
-        Returns:
-            bool: True if connection successful, False otherwise
-        """
-        self.port = port
-
-        if port == "/dev/ttymock":
-            if self.status_callback:
-                self.status_callback(f"Connected to mock device: {port}", "orange")
-            self.connected = True
-            return True
-
-        try:
-            self.arduino = Arduino(port=port)
-            self.arduino.reconnect()
-            if self.status_callback:
-                self.status_callback(f"Connected: {port}", "green")
-            self.connected = True
-            return True
-
-        except Exception as e:
-            if self.status_callback:
-                self.status_callback(f"Error connecting to {port}: {e}", "red")
-            self.connected = False
-            return False
-
-    def start_acquisition(self):
-        """
-        Starts the data acquisition thread.
-        """
-        if not self.connected:
-            return False
-
-        self.stop_event.clear()
-        self.running = True
-        self.acquire_thread = Thread(target=self._acquisition_loop)
-        self.acquire_thread.daemon = True
-        self.acquire_thread.start()
-        return True
-
-    def stop_acquisition(self):
-        """
-        Stops the data acquisition thread.
-        """
-        self.running = False
-        self.stop_event.set()
-        if self.acquire_thread and self.acquire_thread.is_alive():
-            self.acquire_thread.join(timeout=1.0)
-
-    def _acquisition_loop(self):
-        """
-        Main acquisition loop that runs in a separate thread.
-        For mock device, generates random data.
-        For real device, reads from Arduino.
-        """
-        k = 0
-        while self.running and not self.stop_event.is_set():
-            try:
-                if self.port == "/dev/ttymock":
-                    # Mock data generation
-                    value = random.randint(50, 1500)
-                    # Callback mit dem generierten Wert
-                    if self.data_callback:
-                        self.data_callback(k, value)
-                    k += 1
-                    # Simulate processing time
-                    time.sleep(value / 1000)
-                else:
-                    # Real data acquisition from Arduino
-                    if self.arduino:
-                        value = self.arduino.read_value()
-                        # Callback nur wenn gültiger Wert
-                        if value is not None and self.data_callback:
-                            self.data_callback(k, value)
-                            k += 1
-            except Exception as e:
-                if self.status_callback:
-                    self.status_callback(f"Acquisition error: {e}", "red")
-                break
+from pyqt.ui_alert import Ui_Dialog
+from src.debug_utils import Debug
 
 
 class Statusbar:
@@ -139,12 +31,14 @@ class Statusbar:
             Saves the current state of the status bar.
     """
 
-    def __init__(self, statusbar: QStatusBar):
+    def __init__(self, statusbar: QStatusBar) -> None:
         self.statusbar = statusbar
-        self.old_state = None
+        self.old_state: list[str] = []
         self._save_state()
 
-    def temp_message(self, message: str, backcolor: str = None, duration: int = None):
+    def temp_message(
+        self, message: str, backcolor: str = "", duration: int = 0
+    ) -> None:
         new_style = self._update_statusbar_style(backcolor)
         # set statusbar style
         self.statusbar.setStyleSheet(new_style)
@@ -152,6 +46,7 @@ class Statusbar:
         # Set new message and if duration is provided, reset after the duration elapses
         if duration:
             self.statusbar.showMessage(message, duration)
+            Debug.info(f"Statusbar message: {message} with duration: {duration}")
             # reset to old state after duration
             QTimer.singleShot(
                 duration, lambda: self.statusbar.setStyleSheet(self.old_state[1])
@@ -161,15 +56,17 @@ class Statusbar:
             )
         else:
             self.statusbar.showMessage(message)
+            Debug.info(f"Permanent Statusbar message: {message}")
 
-    def perm_message(self, message: str, index: int = 0, backcolor: str = None):
+    def perm_message(self, message: str, index: int = 0, backcolor: str = "") -> None:
         new_style = self._update_statusbar_style(backcolor)
         self.statusbar.setStyleSheet(new_style)
         label = QLabel()
         label.setText(message)
         self.statusbar.insertPermanentWidget(index, label)
+        Debug.info(f"Permanent Statusbar message: {message} at index: {index}")
 
-    def _update_statusbar_style(self, backcolor: str):
+    def _update_statusbar_style(self, backcolor: str) -> str:
         # get current state
         self._save_state()
 
@@ -183,15 +80,48 @@ class Statusbar:
                     ),
                     f"background-color: {backcolor};",
                 )
+                Debug.info(
+                    f"Statusbar background color updated: {self.old_state[1]} -> {new_style}"
+                )
             else:
                 # otherwise append the new backcolor
                 new_style = self.old_state[1] + f"background-color: {backcolor};"
+                Debug.info(f"Statusbar background color set: {new_style}")
         else:
             new_style = self.old_state[1]
+            Debug.info("No background color change")
         return new_style
 
     def _save_state(self):
         self.old_state = [self.statusbar.currentMessage(), self.statusbar.styleSheet()]
+
+
+class AlertWindow(QDialog):
+    """
+    Initializes the alert window with customizable buttons and messages.
+    """
+
+    def __init__(
+        self,
+        parent: QWidget = None,
+        message: str = "Alert",
+        title: str = "Warning",
+        buttons: list[tuple[str, QDialogButtonBox.ButtonRole]] = None,
+    ) -> None:
+        super().__init__(parent)
+        self.ui = Ui_Dialog()
+        self.ui.setupUi(self)
+        self.setWindowTitle(title)
+
+        # Set message if the UI has a message label
+        if hasattr(self.ui, "labelMessage"):
+            self.ui.labelMessage.setText(message)
+
+        # Configure buttons if provided
+        if buttons and hasattr(self.ui, "buttonBox"):
+            self.ui.buttonBox.clear()
+            for button_text, role in buttons:
+                self.ui.buttonBox.addButton(button_text, role)
 
 
 class Helper:
@@ -204,6 +134,8 @@ class Helper:
 
     @staticmethod
     def close_event(parent, event):
+        # Debug-Logging hinzufügen
+        print("Schließen-Event wurde ausgelöst - frage Benutzer nach Bestätigung")
         reply = QMessageBox.question(
             parent,
             "Beenden",
@@ -213,6 +145,8 @@ class Helper:
         )
 
         if reply == QMessageBox.Yes:
+            print("Benutzer hat bestätigt - Programm wird beendet")
             event.accept()
         else:
+            print("Benutzer hat abgebrochen - Programm läuft weiter")
             event.ignore()
