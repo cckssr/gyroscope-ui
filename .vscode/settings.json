@@ -1,14 +1,12 @@
 {
-  "python.pythonPath": "./.qtcreator/Python_3_9_6venv/bin/python3",
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "editor.formatOnSave": true,
   "code-runner.executorMap": {
-    "python": "./.qtcreator/Python_3_9_6venv/bin/python3 -u"
+    "python": "./.qtcreator/Python_3_9_6venv/bin/python3 -u main.py"
   },
   "python.testing.unittestEnabled": true,
   "python.testing.pytestEnabled": false,
-  "python.testing.nosetestsEnabled": false,
   "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "*_test.py"]
 }

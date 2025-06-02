@@ -1,5 +1,6 @@
 import re
-from PySide6.QtWidgets import (
+import json
+from PySide6.QtWidgets import (  # pylint: disable=import-error
     QStatusBar,
     QLabel,
     QMessageBox,
@@ -7,7 +8,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QDialogButtonBox,
 )
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer  # pylint: disable=import-error
 from pyqt.ui_alert import Ui_Dialog
 from src.debug_utils import Debug
 
@@ -103,7 +104,7 @@ class AlertWindow(QDialog):
 
     def __init__(
         self,
-        parent: QWidget = None,
+        parent: QWidget,
         message: str = "Alert",
         title: str = "Warning",
         buttons: list[tuple[str, QDialogButtonBox.ButtonRole]] = None,
@@ -150,3 +151,22 @@ class Helper:
         else:
             print("Benutzer hat abgebrochen - Programm läuft weiter")
             event.ignore()
+
+
+def import_config():
+    """
+    Imports the configuration from config.json.
+    Returns:
+        dict: The configuration dictionary.
+    """
+    try:
+        with open("config.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        Debug.error(
+            "config.json not found. Please ensure it exists in the project root."
+        )
+        return {}
+    except json.JSONDecodeError as e:
+        Debug.error(f"Error decoding JSON from config.json: {e}")
+        return {}

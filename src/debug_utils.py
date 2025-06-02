@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 import sys
 import traceback
+import inspect
 
 
 class Debug:
@@ -106,6 +107,11 @@ class Debug:
             message: Die zu loggende Fehlermeldung
             exc_info: Exception-Information (optional)
         """
+        # Klassennamen und Funktionsnamen ermitteln
+        if cls.DEBUG_LEVEL >= cls.DEBUG_VERBOSE:
+            prefix = cls._get_caller_info()
+            message = f"{prefix} {message}"
+
         if not cls.logger:
             print(f"FEHLER: {message}")
             return
@@ -123,6 +129,11 @@ class Debug:
         Args:
             message: Die zu loggende Information
         """
+        # Klassennamen und Funktionsnamen ermitteln
+        if cls.DEBUG_LEVEL >= cls.DEBUG_VERBOSE:
+            prefix = cls._get_caller_info()
+            message = f"{prefix} {message}"
+
         if not cls.logger:
             if cls.DEBUG_LEVEL >= cls.DEBUG_INFO:
                 print(f"INFO: {message}")
@@ -138,6 +149,11 @@ class Debug:
         Args:
             message: Die zu loggende Debug-Information
         """
+        # Klassennamen und Funktionsnamen ermitteln
+        if cls.DEBUG_LEVEL >= cls.DEBUG_VERBOSE:
+            prefix = cls._get_caller_info()
+            message = f"{prefix} {message}"
+
         if not cls.logger:
             if cls.DEBUG_LEVEL >= cls.DEBUG_VERBOSE:
                 print(f"DEBUG: {message}")
@@ -153,6 +169,11 @@ class Debug:
         Args:
             message: Die zu loggende kritische Fehlermeldung
         """
+        # Klassennamen und Funktionsnamen ermitteln
+        if cls.DEBUG_LEVEL >= cls.DEBUG_VERBOSE:
+            prefix = cls._get_caller_info()
+            message = f"{prefix} {message}"
+
         if not cls.logger:
             print(f"KRITISCH: {message}")
             return
@@ -177,3 +198,38 @@ class Debug:
 
         # Standardbehandlung von Ausnahmen
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
+
+    @classmethod
+    def _get_caller_info(cls):
+        """
+        Ermittelt Informationen über den Aufrufer (Klasse und Funktion).
+
+        Returns:
+            str: Formatierte Information über den Aufrufer im Format [Klasse.Funktion]
+        """
+        # Inspiziere den Stack, um Aufruferinformationen zu erhalten
+        stack = inspect.stack()
+
+        # Position 0 ist diese Methode selbst
+        # Position 1 ist die aufrufende Debug-Methode (debug, info, error, etc.)
+        # Position 2 ist der tatsächliche Aufrufer, den wir identifizieren möchten
+        if len(stack) > 2:
+            caller = stack[2]
+            frame = caller.frame
+
+            # Versuche den Klassennamen zu ermitteln
+            class_name = ""
+            if "self" in frame.f_locals:
+                instance = frame.f_locals["self"]
+                class_name = instance.__class__.__name__
+
+            # Hole den Funktionsnamen
+            function_name = caller.function
+
+            # Erzeuge die formatierte Aufruferinformation
+            if class_name:
+                return f"[{class_name}.{function_name}]"
+            else:
+                return f"[{function_name}]"
+
+        return ""  # Fallback, falls Aufruferinformationen nicht ermittelt werden können

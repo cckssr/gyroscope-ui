@@ -1,6 +1,6 @@
 {
     "files": [
-        "mainwindow.py",
+        "main.py",
         "pyqt/form.ui",
         "pyqt/toolbox.ui",
         "pyqt/alert.ui",

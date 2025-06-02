@@ -133,7 +133,7 @@ class Arduino:
                 response = self.serial.readline().decode("utf-8").strip()
 
                 # Debug output
-                Debug.info(f"Received raw data: '{response}'")
+                Debug.debug(f"Received raw data: '{response}'")
 
                 # Check if the response is empty or invalid
                 if not response:
@@ -148,7 +148,7 @@ class Arduino:
             else:
                 Debug.info("No data available to read")
                 return None
-        except Exception as e:
+        except (serial.SerialException, UnicodeDecodeError) as e:
             Debug.error(f"Error reading value: {e}", exc_info=True)
             return None
 
@@ -181,7 +181,8 @@ class Arduino:
 
 class GMCounter(Arduino):
     """
-    A class to represent a GM counter connected to an Arduino.
+    A class to represent a GM counter connected to an Arduino. 
+    Class only for communication with GM counters and basic validity checks.
 
     Inherits from the Arduino class and provides additional functionality specific to GM counters.
     """
@@ -190,7 +191,7 @@ class GMCounter(Arduino):
         super().__init__(port, baudrate, timeout)
         self.reconnect()
 
-    def get_data(self) -> Dict[str, Union[int, bool]]:
+    def get_data(self, request: bool = True) -> Dict[str, Union[int, bool]]:
         """
         Extracts data from the GM counter data string stream.
 
@@ -206,11 +207,9 @@ class GMCounter(Arduino):
             "voltage": 0,
         }
 
-        # Clear buffer and request fresh data
-        if self.serial and self.serial.is_open:
-            self.serial.reset_input_buffer()
-            # Optionally request new data - uncomment if needed
-            # self.send_command("b2")  # Request data now
+        if request:
+            Debug.info("Requesting data from GMCounter...")
+            self.send_command("b2")  # Request single data read
 
         # Read data with logging
         Debug.debug("Attempting to read data from GMCounter...")
@@ -256,17 +255,15 @@ class GMCounter(Arduino):
 
         Args:
             value (int): The stream value to set.
-
-        Streaming settings:
-            '0': Stop streaming.
-            '1': Send streaming data when the measurement is ready.
-            '2': Send streaming data now.
-            '3': Send data now and continue when ready ('2' + '1').
-            '4': Send data every 50 ms.
-            '5': Use a comma as a separator between values.
-            '6': Use a semicolon as a separator between values.
-            '7': Use a space as a separator between values.
-            '8': Use a tab as a separator between values.
+                '0': Stop streaming.
+                '1': Send streaming data when the measurement is ready.
+                '2': Send streaming data now.
+                '3': Send data now and continue when ready ('2' + '1').
+                '4': Send data every 50 ms.
+                '5': Use a comma as a separator between values.
+                '6': Use a semicolon as a separator between values.
+                '7': Use a space as a separator between values.
+                '8': Use a tab as a separator between values.
         """
         self.send_command(f"b{value}")
         return True
@@ -296,6 +293,7 @@ class GMCounter(Arduino):
             Debug.info("No copyright information received")
 
         Debug.info("Requesting version information...")
+
         self.send_command("v")
         # Give some time for the response
         sleep(0.5)

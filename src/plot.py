@@ -1,9 +1,10 @@
 from typing import Tuple, Optional
 import numpy as np
 import matplotlib
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from src.debug_utils import Debug
+from PySide6.QtCore import Qt
 
 matplotlib.use("Qt5Agg")
 
@@ -48,8 +49,10 @@ class PlotWidget(FigureCanvasQTAgg):
             self.fig = Figure(figsize=(width / dpi, height / dpi), dpi=dpi)
             self.axes = self.fig.add_subplot(111)
 
-            # Initialize the canvas
+            # Initialize the canvas with transparent background
             super().__init__(self.fig)
+            # Setze den Hintergrund des Canvas auf transparent
+            self.setStyleSheet("background-color: transparent;")
 
             # Configure plot settings
             self.max_plot_points = max_plot_points
@@ -73,8 +76,16 @@ class PlotWidget(FigureCanvasQTAgg):
             self.axes.grid(True, alpha=0.3)
 
             # Make background transparent to match application theme
+            self.fig.patch.set_facecolor("none")  # Explizit transparent setzen
+            self.axes.patch.set_facecolor("none")  # Explizit transparent setzen
             self.fig.patch.set_alpha(0.0)
             self.axes.patch.set_alpha(0.0)
+
+            # Setze explizit clear=True für FigureCanvasQTAgg, um Transparenz zu ermöglichen
+            self.fig.set_facecolor("none")
+            self.fig.tight_layout(pad=1.0)
+
+            # Achsen und Text in Weiß für bessere Sichtbarkeit
             for spine in ["top", "bottom", "left", "right"]:
                 self.axes.spines[spine].set_color("white")
             self.axes.tick_params(colors="white")
@@ -149,8 +160,8 @@ class PlotWidget(FigureCanvasQTAgg):
         )
 
         # Add margin to the limits (5% on each side)
-        x_margin = max(0.5, (x_max - x_min) * 0.05)
-        y_margin = max(0.5, (y_max - y_min) * 0.05)
+        x_margin = np.float64(max(0.5, (x_max - x_min) * 0.05))
+        y_margin = np.float64(max(0.5, (y_max - y_min) * 0.05))
 
         # Get current view limits
         curr_x_min, curr_x_max = self.axes.get_xlim()

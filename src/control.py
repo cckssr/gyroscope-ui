@@ -1,66 +1,50 @@
 import time
-from PySide6.QtWidgets import QWidget  # pylint: disable=no-name-in-module
-from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
-from pyqt.ui_control import Ui_Form
-from src.arduino import GMCounter
+from typing import Union
 from src.debug_utils import Debug
+from src.connection import DeviceManager
+from src.helper_classes import import_config
+
+CONFIG = import_config()
 
 
-class ControlWindow(QWidget):
-    def __init__(self, device_manager=None, parent=None):
+class ControlWidget:
+    def __init__(self, device_manager: DeviceManager):
         """
-        Initializes the control window.
+        Initializes the hardware control widget to display and set GM counter parameters.
 
         Args:
             device_manager: The device manager for controlling the GM counter
-            parent: Parent widget
         """
-        super().__init__(parent)
-        self.ui = Ui_Form()
-        self.ui.setupUi(self)
-
         # Store device manager reference
         self.device_manager = device_manager
-        self.gm_counter = None
+        self.gm_counter = device_manager.device
+        self.measurement_active = False
 
-        # Initialize GM counter if device manager is available
-        if self.device_manager and hasattr(self.device_manager, "arduino"):
-            if self.device_manager.port != "/dev/ttymock":
-                try:
-                    # If device_manager.arduino is already a GMCounter, use that
-                    if isinstance(self.device_manager.arduino, GMCounter):
-                        self.gm_counter = self.device_manager.arduino
-                    else:
-                        # Otherwise create a new GMCounter with the same port
-                        self.gm_counter = GMCounter(self.device_manager.port)
-                except Exception as e:
-                    Debug.error(
-                        f"Fehler beim Initialisieren des GM-Zählers: {e}", exc_info=e
-                    )
+        if not self.device_manager:
+            Debug.error("Device manager is not available.")
+            return
 
-        # Connect UI controls to actions
-        self.ui.controlButton.clicked.connect(self._apply_settings)
-
-        self.update_timer = QTimer(self)
-        self.update_timer.timeout.connect(self._update_display)
-        self.update_timer.start(1000)  # Update every second
-
-        # Initial UI update
-        self._update_display()
-
-    def _apply_settings(self):
+    def apply_settings(self, settings: dict[str, Union[bool, int]]) -> bool:
         """
         Apply all settings to the GM counter.
         """
-        if not self.gm_counter:
-            return
-
         try:
             # Get values from UI
-            repeat = self.ui.sModeMulti.isChecked()
-            auto_query = self.ui.sQModeAuto.isChecked()
-            duration_index = self.ui.sDuration.currentIndex()
-            voltage = self.ui.sVoltage.value()
+            repeat = settings.get("repeat", False)
+            auto_query = settings.get("auto_query", False)
+            duration = settings.get("duration", 0)  # duration as integer
+            voltage = settings.get("voltage", 500)
+
+            Debug.debug(
+                f"Einstellungen: repeat={repeat}, auto_query={auto_query}, "
+                f"duration={duration}, voltage={voltage}"
+            )
+            # Convert duration time to index
+            # Invert the count_time_map to map duration -> index
+            duration_map = {
+                v: int(k) for k, v in CONFIG["gm_counter"]["count_time_map"].items()
+            }
+            duration_index = duration_map.get(duration, 0)  # Default to 0 if not found
 
             # Apply to GM counter
             self.gm_counter.set_repeat(repeat)
@@ -70,86 +54,67 @@ class ControlWindow(QWidget):
 
             time.sleep(0.2)  # Wait for settings to apply
 
-            # Update UI to reflect the changes
-            self._update_display()
-
             # Show confirmation message
-            Debug.info("Einstellungen erfolgreich angewendet.")
+            Debug.debug("Einstellungen erfolgreich angewendet.")
+
+            return True
 
         except Exception as e:
             Debug.error(f"Fehler beim Anwenden der Einstellungen: {e}", exc_info=e)
+            return False
 
-    def _update_display(self):
+    def get_settings(self) -> dict[str, Union[bool, int]]:
         """
-        Update the UI display with current settings from the GM counter.
-        """
-        if not self.gm_counter:
-            return
+        Retrieve the current settings from the GM counter.
 
+        Returns:
+            dict[str, Union[bool, int]]: Die aktuellen Einstellungen des GM-Zählers.
+        """
         try:
-            # Frische Daten vom GM-Counter anfordern
-            # Get current data if available
             data = self.gm_counter.get_data()
-
-            # Update device information (nicht zu oft, um Netzwerkverkehr zu reduzieren)
-            if not hasattr(self, "_info_updated") or self._info_updated <= 0:
-                info = self.gm_counter.get_information()
-                self.ui.cVersion.setText(info.get("version", "unbekannt"))
-                self._info_updated = 10  # Info nur jede 10. Aktualisierung holen
-            else:
-                self._info_updated -= 1
-
-            # Update voltage display and spinner
-            voltage = data.get("voltage", 500)
-            self.ui.cVoltage.display(voltage)
-
-            # Count time based on index values
-            counting_time = data.get("counting_time", 0)
-            count_time_map = {0: 999, 1: 1, 2: 10, 3: 60, 4: 100, 5: 300}
-            count_time = count_time_map.get(counting_time, 999)
-            self.ui.cDuration.display(count_time)
-
-            # Update query mode based on stream setting
-            stream_mode = data.get("stream", 0)
-            stream_mode_map = {
-                0: "Keine Abfrage",
-                1: "Wenn fertig",
-                2: "Einmalig",
-                3: "Einmalig und Fertig",
-                4: "Automatisch",
-            }
-            auto_query = stream_mode_map.get(stream_mode, "Unbekannt")
-            self.ui.cQueryMode.setText(auto_query)
-
-            # Update mode displays and radio buttons
-            is_repeat = data.get("repeat", False)
-            self.ui.cMode.setText("Wiederholung" if is_repeat else "Einzel")
-
-            # Update measurement values (use direct member references for dynamically created displays)
-            # if hasattr(self, "cCurrentCount"):
-            #     last_count = data.get("last_count", 0)
-            #     self.cCurrentCount.display(last_count)
-
-            # if hasattr(self, "cProgress"):
-            #     progress = data.get("progress", 0)
-            #     self.cProgress.display(progress)
+            if not data:
+                Debug.error("Keine Daten vom GM-Counter erhalten.")
+                return {}
+            
+            # Check if measurement is active (started from hardware)
+            if not self.measurement_active and data["progress"] > 0:
+                self.measurement_active = True
+                Debug.info("Messung wurde gestartet.")
+            return data
 
         except Exception as e:
-            Debug.error(f"Fehler beim Aktualisieren der Anzeige: {e}", exc_info=e)
+            Debug.error(f"Fehler beim Abrufen der Einstellungen: {e}", exc_info=e)
+            return {}
 
-    def enable_controls(self, enabled=True):
+    def reset_settings(self) -> bool:
         """
-        Enable or disable the control button based on measurement state.
+        Reset the GM counter settings to default values.
+        """
+        try:
+            # Reset to default values
+            self.gm_counter.set_repeat(False)
+            self.gm_counter.set_stream(0)  # No streaming
+            self.gm_counter.set_counting_time(0)  # Unbegrenzt
+            self.gm_counter.set_voltage(500)  # Default voltage
 
-        Args:
-            enabled (bool): True to enable controls, False to disable
-        """
-        self.ui.controlButton.setEnabled(enabled)
+            time.sleep(0.2)  # Wait for reset to apply
 
-    def closeEvent(self, event):
+            Debug.debug("Einstellungen erfolgreich zurückgesetzt.")
+            return True
+
+        except Exception as e:
+            Debug.error(f"Fehler beim Zurücksetzen der Einstellungen: {e}", exc_info=e)
+            return False
+
+    def get_device_info(self) -> dict:
         """
-        Stop the timer when the window is closed.
+        Retrieve device information from the GM counter.
         """
-        if hasattr(self, "update_timer"):
-            self.update_timer.stop()
-        event.accept()
+        try:
+            info = self.gm_counter.get_information()
+            Debug.debug(f"Geräteinformationen abgerufen: {info}")
+            return info
+
+        except Exception as e:
+            Debug.error(f"Fehler beim Abrufen der Geräteinformationen: {e}", exc_info=e)
+            return {}
