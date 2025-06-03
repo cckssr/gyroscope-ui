@@ -12,11 +12,13 @@ import time
 from pathlib import Path
 import unittest
 import threading
+import pytest
 
 # Sicherstellen, dass das Hauptverzeichnis im Python-Pfad ist
-ROOT_DIR = Path(__file__).parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+ROOT_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT_DIR))
+
+pytest.importorskip("PySide6.QtWidgets")
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt, QTimer

@@ -7,11 +7,41 @@ DataController-Modul zum Verwalten von Messdaten und Plotaktualisierungen.
 
 from typing import Optional, List, Tuple, Dict, Union
 
-from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
-    QLCDNumber,
-    QListWidget,
-)
-from PySide6.QtCore import Qt  # pylint: disable=no-name-in-module
+try:  # pragma: no cover - optional dependency for headless testing
+    from PySide6.QtWidgets import QLCDNumber, QListWidget  # type: ignore
+    from PySide6.QtCore import Qt  # type: ignore
+except Exception:  # ImportError or missing Qt libraries
+    class QLCDNumber:  # pragma: no cover - fallback stub
+        def display(self, *args, **kwargs):
+            pass
+
+    class QListWidget:  # pragma: no cover - fallback stub
+        def insertItem(self, *args, **kwargs):
+            pass
+
+        def item(self, *args, **kwargs):
+            class _Item:
+                def setTextAlignment(self, *a, **k):
+                    pass
+
+            return _Item()
+
+        def count(self) -> int:
+            return 0
+
+        def takeItem(self, *args, **kwargs):
+            pass
+
+        def clear(self):
+            pass
+
+    class _Alignment:
+        AlignRight = 0
+
+    class _Qt:
+        AlignmentFlag = _Alignment
+
+    Qt = _Qt()
 
 from src.plot import PlotWidget
 from src.debug_utils import Debug

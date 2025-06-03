@@ -100,3 +100,11 @@ Verfügbare Tests:
 ### Manueller Testplan
 
 Der Datei `testplan.md` enthält einen strukturierten Plan für manuelle Tests mit verschiedenen Testszenarien und Checklisten. Dieser sollte nach größeren Änderungen durchlaufen werden, um sicherzustellen, dass alle Funktionen korrekt arbeiten.
+
+Zur komfortablen Durchführung dieser Checkliste kann das Skript `manual_checklist.py` verwendet werden:
+
+```bash
+python manual_checklist.py --file tests/testplan.md --output checklist_results.json
+```
+
+Das Skript liest alle Aufgaben aus der Markdown-Datei, fragt sie nacheinander ab und speichert die Ergebnisse im angegebenen JSON-File.
