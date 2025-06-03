@@ -1,11 +1,15 @@
 from typing import Tuple, Optional
 import numpy as np
 import matplotlib
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+try:  # pragma: no cover - optional Qt backend for headless tests
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+    matplotlib.use("Qt5Agg")
+except Exception:  # If no Qt backend is available fall back to Agg
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasQTAgg
+    matplotlib.use("Agg")
+
 from matplotlib.figure import Figure
 from src.debug_utils import Debug
-
-matplotlib.use("Qt5Agg")
 
 
 class PlotWidget(FigureCanvasQTAgg):

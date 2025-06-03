@@ -5,11 +5,17 @@
 Unit-Tests für die MainWindow-Klasse.
 """
 
+import sys
+from pathlib import Path
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 import os
 import tempfile
+import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+pytest.importorskip("PySide6.QtWidgets")
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 
