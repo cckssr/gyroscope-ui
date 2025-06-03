@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 14.0.2, 2025-06-02T17:59:43. -->
+<!-- Written by QtCreator 14.0.2, 2025-06-02T21:42:44. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -96,7 +96,7 @@
    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">{a758a2ff-ecbe-46be-a14e-25d53d7e5bc6}</value>
    <value type="qlonglong" key="ProjectExplorer.Target.ActiveBuildConfiguration">0</value>
    <value type="qlonglong" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
-   <value type="qlonglong" key="ProjectExplorer.Target.ActiveRunConfiguration">0</value>
+   <value type="qlonglong" key="ProjectExplorer.Target.ActiveRunConfiguration">2</value>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.BuildConfiguration.0">
     <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/.qtcreator/Python_3_9_6venv</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
@@ -186,11 +186,11 @@
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="bool" key="PE.EnvironmentAspect.PrintOnRun">false</value>
     <value type="QString" key="PerfRecordArgsId">-e cpu-cycles --call-graph dwarf,4096 -F 250</value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">/Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/mainw.py</value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/mainw.py</value>
-    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/mainw.py</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">main.py</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/main.py</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/main.py</value>
     <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
-    <value type="QString" key="PythonEditor.RunConfiguation.Script">/Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/mainw.py</value>
+    <value type="QString" key="PythonEditor.RunConfiguation.Script">/Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/main.py</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
     <value type="QString" key="RunConfiguration.WorkingDirectory.default">/Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI</value>

@@ -3,7 +3,8 @@
 
 import random
 import time
-from typing import Union, Dict
+import math
+from typing import Union
 from threading import Thread, Event
 from PySide6.QtWidgets import QWidget  # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
@@ -151,42 +152,46 @@ class ConnectionWindow(QDialog):
             Debug.error(
                 f"Connection attempt failed for port: {self.combo.currentText()}"
             )
-            exit(1)  # Exit the application with an error code
 
-            # Show error dialog with retry options TODO: Correct alert dialog
-            # error_msg = f"Failed to connect to {self.combo.currentText()}"
-            # alert = AlertWindow(
-            #     self,
-            #     message=f"{error_msg}\n\nPlease check if the device is connected properly and try again.",
-            #     title="Connection Error",
-            #     buttons=[
-            #         ("Retry", QDialogButtonBox.ButtonRole.ResetRole),
-            #         ("Select Another Port", QDialogButtonBox.ButtonRole.ActionRole),
-            #         ("Cancel", QDialogButtonBox.ButtonRole.RejectRole),
-            #     ],
-            # )
+            # Show error dialog with retry options
+            error_msg = f"Failed to connect to {self.combo.currentText()}"
+            alert = AlertWindow(
+                self,
+                message=f"{error_msg}\n\nPlease check if the device is connected properly and try again.",
+                title="Connection Error",
+                buttons=[
+                    ("Retry", QDialogButtonBox.ButtonRole.ResetRole),
+                    ("Select Another Port", QDialogButtonBox.ButtonRole.ActionRole),
+                    ("Cancel", QDialogButtonBox.ButtonRole.RejectRole),
+                ],
+            )
 
-            # alert.exec()
+            # Dialog anzeigen und auf Benutzeraktion warten
+            result = alert.exec()
 
-            # # Handle user choice
-            # if hasattr(alert.ui, "buttonBox"):
-            #     clicked_button = alert.ui.buttonBox.
-            #     button_role = alert.ui.buttonBox.buttonRole(clicked_button)
-            #     if button_role == QDialogButtonBox.ButtonRole.RejectRole:  # Cancel
-            #         # Reject the dialog, which will terminate the application in the main loop
-            #         return super().reject()
+            # Benutzerentscheidung verarbeiten
+            role = alert.get_clicked_role()
 
-            #     elif (
-            #         button_role == QDialogButtonBox.ButtonRole.ActionRole
-            #     ):  # Select Another Port
-            #         # Just keep the dialog open to let user select another port
-            #         return
+            if (
+                role == QDialogButtonBox.ButtonRole.RejectRole
+                or result == QDialog.Rejected
+            ):
+                # Benutzer hat "Abbrechen" gewählt oder Dialog abgebrochen
+                Debug.info("User canceled connection attempt")
+                return super().reject()
 
-            #     elif button_role == QDialogButtonBox.ButtonRole.ResetRole:  # Retry
-            #         # Try again with the same port
-            #         self.accept()
+            elif role == QDialogButtonBox.ButtonRole.ActionRole:
+                # Benutzer möchte einen anderen Port auswählen
+                Debug.info("User chose to select another port")
+                return False  # Dialog offen lassen
 
-            # return False
+            elif role == QDialogButtonBox.ButtonRole.ResetRole:
+                # Erneut mit demselben Port versuchen
+                Debug.info(f"Retrying connection with port: {self.combo.currentText()}")
+                return self.accept()  # Rekursiver Aufruf
+
+            # Fallback, wenn kein Button erfasst wurde
+            return False
 
 
 class DeviceManager:
@@ -221,132 +226,251 @@ class DeviceManager:
 
     def connect(self, port):
         """
-        Connects to the specified device port.
+        Verbindet mit dem angegebenen Geräteport und startet automatisch die Datenerfassung.
+        Verbesserte Implementierung mit detaillierten Diagnosen und automatischem Thread-Start.
 
         Args:
-            port (str): The port to connect to
+            port (str): Der Port, mit dem verbunden werden soll
 
         Returns:
-            bool: True if connection successful, False otherwise
+            bool: True wenn die Verbindung erfolgreich war, False sonst
         """
         self.port = port
-        Debug.info(f"DeviceManager: Attempting to connect to device on port: {port}")
+        Debug.info(f"DeviceManager: Versuche Verbindung mit Gerät an Port: {port}")
 
+        # Zuerst sicherstellen, dass keine aktive Datenerfassung läuft
+        self.stop_acquisition()
+
+        # Existierende Verbindungen zuerst schließen
+        if hasattr(self, "device") and self.device:
+            try:
+                Debug.info("Schließe eventuell vorhandene Verbindung")
+                self.device.close()
+            except Exception as e:
+                Debug.error(f"Fehler beim Schließen der vorherigen Verbindung: {e}")
+
+        # Mock-Modus für Demonstrationszwecke
         if port == "/dev/ttymock":
-            Debug.info(f"Using mock device on port: {port}")
+            Debug.info(f"Verwende Mock-Gerät an Port: {port}")
             if self.status_callback:
                 self.status_callback(f"Verbunden mit Mock-Gerät: {port}", "orange")
             self.connected = True
             self.is_gm_counter = False
+
+            # Automatisch Datenerfassung starten
+            self.start_acquisition()
             return True
 
         try:
+            # Informiere über den Verbindungsversuch
+            Debug.info(f"Versuche, mit GM-Zähler am Port {port} zu verbinden...")
+            if self.status_callback:
+                self.status_callback(f"Verbinde mit GM-Zähler an {port}...", "blue")
+
             # GM-Counter ist obligatorisch, kein Fallback mehr auf einfachen Arduino
-            Debug.info(f"Attempting to connect to GM counter device on port: {port}")
-            self.device: GMCounter = GMCounter(port=port)
+            self.device = GMCounter(port=port)
             self.is_gm_counter = True
 
+            # Prüfe, ob die Verbindung erfolgreich war
             if self.device and self.device.connected:
                 self.connected = True
+                Debug.info(f"Erfolgreich mit GM-Zähler an Port {port} verbunden")
 
-                if self.status_callback:
-                    self.status_callback(f"GM-Zähler verbunden an {port}", "green")
-                Debug.info(f"Successfully connected to GM counter on port: {port}")
+                # Hole Geräteinformationen für bessere Diagnose
+                try:
+                    device_info = self.device.get_information()
+                    Debug.info(
+                        f"GM-Zähler Version: {device_info.get('version', 'unbekannt')}"
+                    )
+                    Debug.info(
+                        f"GM-Zähler Copyright: {device_info.get('copyright', 'unbekannt')}"
+                    )
+
+                    if self.status_callback:
+                        version_text = device_info.get("version", "unbekannt")
+                        self.status_callback(
+                            f"GM-Zähler verbunden an {port} (Version: {version_text})",
+                            "green",
+                        )
+
+                except Exception as e:
+                    Debug.error(
+                        f"Warnung: Geräteinformationen konnten nicht abgerufen werden: {e}"
+                    )
+                    if self.status_callback:
+                        self.status_callback(f"GM-Zähler verbunden an {port}", "green")
+
+                # Automatisch Datenerfassung starten
+                self.start_acquisition()
                 return True
             else:
-                Debug.error(f"Failed to initialize GM counter on {port}")
+                Debug.error(f"GM-Zähler an {port} konnte nicht initialisiert werden")
                 self.connected = False
+                self.is_gm_counter = False
+                if self.status_callback:
+                    self.status_callback(
+                        f"Konnte GM-Zähler an {port} nicht initialisieren", "red"
+                    )
                 return False
 
         except Exception as e:
-            Debug.error(f"Failed to connect to device on {port}: {e}", exc_info=True)
-            if self.status_callback:
-                self.status_callback(f"Fehler beim Verbinden mit {port}: {e}", "red")
+            Debug.error(
+                f"Fehler beim Verbinden mit Gerät an {port}: {e}", exc_info=True
+            )
             self.connected = False
+            self.is_gm_counter = False
+
+            # Gib zusätzliche Informationen zum Fehler
+            error_message = str(e)
+            if "Permission denied" in error_message:
+                error_hint = f"Fehlende Zugriffsrechte für {port}. Überprüfen Sie die Berechtigungen."
+            elif "Device or resource busy" in error_message:
+                error_hint = (
+                    f"Port {port} wird bereits von einem anderen Programm verwendet."
+                )
+            elif "No such file or directory" in error_message:
+                error_hint = f"Port {port} existiert nicht oder ist nicht verfügbar."
+            else:
+                error_hint = error_message
+
+            if self.status_callback:
+                self.status_callback(f"Verbindungsfehler: {error_hint}", "red")
+
             return False
 
     def start_acquisition(self):
         """
-        Starts the data acquisition thread.
+        Startet den Datenerfassungs-Thread.
+        Verbesserte Implementierung mit mehr Sicherheitsprüfungen und Status-Updates.
+
+        Returns:
+            bool: True wenn die Datenerfassung gestartet wurde, False bei Fehlern
         """
+        # Sicherheitsprüfung: Ist das Gerät verbunden?
         if not self.is_connected():
             Debug.error("Cannot start acquisition: device not connected")
+            if self.status_callback:
+                self.status_callback(
+                    "Datenerfassung nicht möglich: Gerät nicht verbunden", "red"
+                )
             return False
 
+        # Sicherheitsprüfung: Läuft bereits ein Thread?
+        if self.running and self.acquire_thread and self.acquire_thread.is_alive():
+            Debug.info("Data acquisition already running")
+            return True  # Bereits aktiv, kein Problem
+
         Debug.info("Starting data acquisition")
-        self.stop_event.clear()
+        self.stop_event.clear()  # Event zurücksetzen
         self.running = True
-        self.acquire_thread = Thread(target=self._acquisition_loop)
-        self.acquire_thread.daemon = True
+
+        # Thread erstellen und starten
+        self.acquire_thread = Thread(
+            target=self._acquisition_loop, name="DataAcquisition"
+        )
+        self.acquire_thread.daemon = True  # Als Daemon-Thread markieren
         self.acquire_thread.start()
+
+        # Erfolgsstatus zurückmelden
         Debug.debug(f"Acquisition thread started: {self.acquire_thread.name}")
+        if self.status_callback:
+            self.status_callback("Datenerfassung gestartet", "green")
         return True
 
     def stop_acquisition(self):
         """
-        Stops the data acquisition thread.
+        Stoppt den Datenerfassungs-Thread sauber.
+        Verbesserte Implementierung mit besserer Thread-Beendigung und Status-Feedback.
+
+        Returns:
+            bool: True wenn die Datenerfassung erfolgreich gestoppt wurde
         """
+        # Wenn kein Thread läuft oder running bereits False, nichts tun
+        if (
+            not self.running
+            or not self.acquire_thread
+            or not self.acquire_thread.is_alive()
+        ):
+            Debug.info("No acquisition running, nothing to stop")
+            return True
+
         Debug.info("Stopping data acquisition")
         self.running = False
-        self.stop_event.set()
+        self.stop_event.set()  # Event setzen, um Thread zu benachrichtigen
+
+        # Auf das Ende des Threads warten, mit Timeout
         if self.acquire_thread and self.acquire_thread.is_alive():
             Debug.debug(
                 f"Waiting for acquisition thread to terminate: {self.acquire_thread.name}"
             )
-            self.acquire_thread.join(timeout=1.0)
+
+            # Warten mit höherem Timeout für saubereres Beenden
+            self.acquire_thread.join(timeout=2.0)
+
+            # Prüfen, ob der Thread tatsächlich beendet wurde
             if self.acquire_thread.is_alive():
                 Debug.info(
                     f"Acquisition thread did not terminate within timeout: {self.acquire_thread.name}"
                 )
+                if self.status_callback:
+                    self.status_callback(
+                        "Datenerfassung wurde nicht sauber beendet", "orange"
+                    )
+                return False
+
+        # Thread erfolgreich beendet
+        if self.status_callback:
+            self.status_callback("Datenerfassung gestoppt", "blue")
+        return True
 
     def _generate_mock_data(self, index: int) -> tuple:
         """
-        Generiert Mock-Daten für den Demo-Modus.
+        Generiert Mock-Daten für den Demo-Modus mit realistischen Zufallswerten.
+        Implementiert verschiedene Verteilungsmuster für ein realistischeres Demoverhalten.
 
         Args:
             index: Der aktuelle Index für die Callback-Funktion
 
         Returns:
-            tuple: (neuer_index, Wartezeit)
+            tuple: (neuer_index, Wartezeit) - Der inkrementierte Index und die simulierte Wartezeit
         """
-        value = random.randint(50, 1500)
-        Debug.debug(f"Generated mock value: {value}")
+        # Verschiedene Simulationsmodi für unterschiedliche Verhaltensweisen
+        simulation_mode = index % 300  # Ändert das Verhalten alle 300 Datenpunkte
+
+        if simulation_mode < 100:
+            # Normaler Zufallsbereich
+            base_value = random.randint(50, 150)
+            value = base_value * 10  # Werte im Bereich 500-1500 μs
+        elif simulation_mode < 200:
+            # Sinusförmiges Muster mit Rauschen
+            base_value = 100 + 50 * math.sin(index / 20)
+            noise = random.randint(-20, 20)
+            value = int((base_value + noise) * 10)
+        else:
+            # Gelegentliche Ausreißer
+            if random.random() < 0.05:  # 5% Chance für Ausreißer
+                value = random.randint(2000, 3000)
+            else:
+                value = random.randint(500, 1500)
+
+        # Sicherstellen, dass der Wert im gültigen Bereich liegt
+        value = max(50, min(3000, value))
+
+        Debug.debug(f"Generated mock value: {value} μs")
 
         if self.data_callback:
             self.data_callback(index, value)
 
-        # Simulate processing time and return wait time
-        wait_time = value / 1000
+        # Simulation der Verarbeitungszeit mit realistischerer Verzögerung
+        wait_time = max(0.05, (value / 10000) + random.uniform(0.01, 0.1))
         return index + 1, wait_time
-
-    # def _read_from_gm_counter(self) -> Union[int, float, None]:
-    #     """
-    #     Liest Daten vom GM-Zähler.
-
-    #     Returns:
-    #         Union[int, float, None]: Der gelesene Wert oder None bei Fehler
-    #     """
-    #     Debug.debug("Reading data from GM counter")
-
-    #     if self.device is None:
-    #         return None
-
-    #     # Wir wissen, dass das Gerät ein GMCounter ist
-    #     data = self.device.get_data()
-    #     value = data.get("last_count", 0)
-    #     Debug.debug(f"Received GM counter value: {value}")
-
-    #     # Auch Stream-Modus setzen
-    #     self.device.set_stream(3)
-    #     return value
-
-    # Methode _read_from_arduino entfernt, da nur noch GM-Counter unterstützt werden
 
     def _convert_value_if_needed(
         self, value: Union[int, float, str, None]
     ) -> Union[int, float, str, None]:
         """
         Konvertiert Zeichenketten in Zahlen, wenn nötig.
+        Verbesserte Implementierung mit zusätzlicher Validierung.
 
         Args:
             value: Der zu konvertierende Wert
@@ -357,23 +481,49 @@ class DeviceManager:
         if value is None:
             return None
 
+        if isinstance(value, (int, float)):
+            return value  # Bereits ein numerischer Wert, keine Konvertierung notwendig
+
         if isinstance(value, str):
+            # Entferne Leerzeichen und ersetze Kommas durch Punkte (für deutsche Zahlenformate)
+            cleaned_value = value.strip().replace(",", ".")
+
             try:
-                converted = float(value)
-                Debug.debug(f"Converted string to number: {converted}")
+                # Versuche zuerst, als Integer zu konvertieren
+                if "." not in cleaned_value:
+                    converted = int(cleaned_value)
+                else:
+                    # Andernfalls als Float konvertieren
+                    converted = float(cleaned_value)
+
+                Debug.debug(
+                    f"Konvertiert '{value}' zu {type(converted).__name__}: {converted}"
+                )
                 return converted
             except (ValueError, TypeError) as e:
-                Debug.error(f"Could not convert value to number: {e}")
+                Debug.error(
+                    f"Konnte Wert '{value}' nicht in eine Zahl konvertieren: {e}"
+                )
 
-        return value
+        return value  # Rückgabe des Originalwerts, wenn keine Konvertierung möglich ist
 
     def _acquisition_loop(self):
         """
         Main acquisition loop that runs in a separate thread.
         For mock device, generates random data.
         For real device, reads from Arduino.
+
+        Implementiert ein robustes Fehlerbehandlungs- und Backoff-System,
+        um eine zuverlässige Datenerfassung zu gewährleisten.
+
+        Die Schleife läuft kontinuierlich im Hintergrund und versucht automatisch,
+        die Verbindung wiederherzustellen, wenn Probleme auftreten.
         """
         k = 0
+        consecutive_errors = 0
+        reconnect_attempts = 0
+        backoff_time = 0.1  # Initial backoff time in seconds
+        max_backoff_time = 5.0  # Maximum backoff time
         Debug.info("Starting data acquisition loop")
 
         while self.running and not self.stop_event.is_set():
@@ -382,144 +532,85 @@ class DeviceManager:
                 if self.port == "/dev/ttymock":
                     k, wait_time = self._generate_mock_data(k)
                     time.sleep(wait_time)
+                    # Reset error counter in successful mock operation
+                    consecutive_errors = 0
+                    reconnect_attempts = 0
+                    backoff_time = 0.1
                     continue
 
-                # Echtes Gerät
-                if not self.is_connected():
-                    time.sleep(1.0)  # Warte und prüfe erneut
+                # Prüfen der Verbindung zum Gerät mit automatischer Wiederverbindung
+                if not self.monitor_connection(attempt_reconnect=True):
+                    Debug.info("Gerät nicht verbunden. Warte und prüfe erneut.")
+                    time.sleep(backoff_time)
+
+                    # Nach mehreren Fehlern Auto-Reconnect versuchen
+                    reconnect_attempts += 1
+                    if reconnect_attempts >= 3 and reconnect_attempts % 3 == 0:
+                        if self.auto_reconnect():
+                            reconnect_attempts = 0
+                            consecutive_errors = 0
+                            backoff_time = 0.1
                     continue
 
-                # Lesen vom GM-Counter (nur dieser wird unterstützt)
-                value = self._read_from_gm_counter()
+                # Bei erfolgreicher Verbindung Reset der Reconnect-Versuche
+                reconnect_attempts = 0
 
-                if value is None:
+                # Lesen vom GM-Counter
+                data = self.device.get_data(False)
+
+                if data is None or not isinstance(data, dict):
+                    Debug.debug("Keine gültigen Daten empfangen, versuche erneut.")
                     time.sleep(0.5)
                     continue
 
-                # Konvertiere und sende den Wert
-                converted_value = self._convert_value_if_needed(value)
+                # Extrahiere den Count-Wert aus dem Dictionary
+                value = data.get("count")
 
                 # Callback nur wenn gültiger Wert
-                if converted_value is not None and self.data_callback:
-                    self.data_callback(k, converted_value)
+                if value is not None and self.data_callback:
+                    self.data_callback(k, value)
                     k += 1
+                    # Reset bei erfolgreicher Datenabfrage
+                    consecutive_errors = 0
+                    backoff_time = 0.1
 
             except Exception as e:
-                Debug.error(f"Error in acquisition loop: {e}", exc_info=True)
-                if self.status_callback:
-                    self.status_callback(f"Messfehler: {e}", "red")
-                break
+                consecutive_errors += 1
+                # Exponentielles Backoff bei wiederholten Fehlern
+                backoff_time = min(max_backoff_time, backoff_time * 1.5)
+
+                error_msg = f"Fehler in Datenerfassungsschleife: {e}"
+
+                # Detailliertes Logging nur bei nicht zu häufigen Fehlern
+                if consecutive_errors < 5 or consecutive_errors % 10 == 0:
+                    Debug.error(error_msg, exc_info=True)
+                    if self.status_callback:
+                        self.status_callback(f"Messfehler: {e}", "red")
+                else:
+                    Debug.debug(
+                        f"{error_msg} (wiederholter Fehler {consecutive_errors})"
+                    )
+
+                # Warten mit exponentieller Backoff-Zeit
+                time.sleep(backoff_time)
+
+                # Überprüfen, ob die Schleife fortgesetzt werden soll
+                if consecutive_errors > 100:
+                    Debug.critical(
+                        "Zu viele Fehler in der Datenerfassungsschleife, Erfassung wird angehalten."
+                    )
+                    self.running = False
+                    if self.status_callback:
+                        self.status_callback(
+                            "Datenerfassung wegen zu vieler Fehler gestoppt", "red"
+                        )
+                    break
 
         Debug.info("Acquisition loop terminated")
 
-    # #
-    # # Delegierte Methoden für einheitlichen Gerätezugriff
-    # #
-
-    # def send_command(self, command: str) -> bool:
-    #     """
-    #     Sendet einen Befehl an das verbundene Gerät.
-
-    #     Args:
-    #         command: Der zu sendende Befehl
-
-    #     Returns:
-    #         bool: True bei Erfolg, False sonst
-    #     """
-    #     if not self.is_connected():
-    #         Debug.error("Cannot send command: no device connected")
-    #         return False
-
-    #     return self.device.send_command(command)
-
-    # def read_value(self) -> Union[int, float, str, None]:
-    #     """
-    #     Liest einen Wert vom verbundenen Gerät.
-
-    #     Returns:
-    #         Union[int, float, str, None]: Der gelesene Wert oder None bei Fehler
-    #     """
-    #     if not self.is_connected():
-    #         Debug.error("Cannot read value: no device connected")
-    #         return None
-
-    #     return self.device.read_value()
-
-    # def get_data(self) -> Dict[str, Union[int, bool]]:
-    #     """
-    #     Extrahiert Daten vom GM-Zähler.
-
-    #     Returns:
-    #         dict: Ein Dictionary mit den extrahierten Daten.
-    #     """
-    #     if not self.is_connected():
-    #         return {}
-
-    #     return self.device.get_data()
-
-    # def set_stream(self, value: int = 0) -> bool:
-    #     """
-    #     Setzt den Stream-Modus des GM-Zählers.
-
-    #     Args:
-    #         value: Der Stream-Modus (0-3)
-
-    #     Returns:
-    #         bool: True bei Erfolg, False sonst
-    #     """
-    #     if not self.is_connected():
-    #         return False
-
-    #     self.device.set_stream(value)
-    #     return True
-
-    # def set_counting(self, value: bool = False) -> bool:
-    #     """
-    #     Aktiviert oder deaktiviert den Zählmodus des GM-Zählers.
-
-    #     Args:
-    #         value: True zum Aktivieren, False zum Deaktivieren
-
-    #     Returns:
-    #         bool: True bei Erfolg, False sonst
-    #     """
-    #     if not self.is_connected():
-    #         return False
-
-    #     self.device.set_counting(value)
-    #     return True
-
-    # def set_voltage(self, value: int = 500) -> bool:
-    #     """
-    #     Setzt die Spannung des GM-Zählers.
-
-    #     Args:
-    #         value: Die Spannung in Volt (meist 400-900)
-
-    #     Returns:
-    #         bool: True bei Erfolg, False sonst
-    #     """
-    #     if not self.is_connected():
-    #         return False
-
-    #     self.device.set_voltage(value)
-    #     return True
-
-    # def get_information(self) -> Dict[str, str]:
-    #     """
-    #     Ruft Informationen vom GM-Zähler ab.
-
-    #     Returns:
-    #         Dict[str, str]: Ein Dictionary mit Geräteinformationen
-    #     """
-    #     if not self.is_connected():
-    #         return {}
-
-    #     return self.device.get_information()
-
     def is_connected(self) -> bool:
         """
-        Prüft die Verbindung zum Gerät.
+        Prüft die Verbindung zum Gerät mit detaillierten Diagnostikinformationen.
 
         Returns:
             bool: True, wenn das Gerät verbunden ist, False sonst
@@ -527,6 +618,11 @@ class DeviceManager:
         Notes:
             Bei False gibt die Methode automatisch eine entsprechende Fehlermeldung aus.
         """
+        # Mock-Geräte sind immer verbunden
+        if self.port == "/dev/ttymock":
+            return self.connected
+
+        # Prüfschritte für reale Geräte
         if not self.device:
             Debug.error("Kein Gerät vorhanden")
             return False
@@ -539,4 +635,180 @@ class DeviceManager:
             Debug.error("Kein GM-Zähler verbunden")
             return False
 
+        # Optional: Bei echtem Gerät kann hier eine aktive Verbindungsprüfung stattfinden
+        if hasattr(self.device, "serial") and self.device.serial:
+            try:
+                # Prüfen, ob die serielle Verbindung noch aktiv ist
+                if not self.device.serial.is_open:
+                    Debug.error("Serielle Verbindung wurde getrennt")
+                    self.connected = False
+                    return False
+            except Exception as e:
+                Debug.error(f"Fehler bei der Verbindungsprüfung: {e}")
+                self.connected = False
+                return False
+
         return True
+
+    def monitor_connection(self, attempt_reconnect=True) -> bool:
+        """
+        Überwacht die Verbindung zum Gerät und versucht bei Bedarf eine Wiederherstellung.
+        Diese Methode wird vom Acquisition Thread aufgerufen, um die Verbindungsstabilität zu gewährleisten.
+
+        Args:
+            attempt_reconnect (bool): Ob bei unterbrochener Verbindung eine Wiederverbindung versucht werden soll
+
+        Returns:
+            bool: True wenn die Verbindung aktiv ist oder wiederhergestellt wurde, sonst False
+        """
+        # Mock-Geräte benötigen keine Überwachung
+        if self.port == "/dev/ttymock":
+            return True
+
+        # Wenn kein Gerät existiert, können wir nichts tun
+        if not hasattr(self, "device") or not self.device:
+            Debug.error("Kein Gerät für Verbindungsüberwachung vorhanden")
+            return False
+
+        try:
+            # Verbindung prüfen
+            if not self.is_connected():
+                Debug.info("Gerät nicht verbunden bei Verbindungsüberwachung")
+
+                # Wenn Wiederverbindung nicht gewünscht, hier abbrechen
+                if not attempt_reconnect:
+                    return False
+
+                # Wiederverbindung versuchen
+                Debug.info("Versuche Wiederverbindung zum Gerät...")
+                if hasattr(self.device, "reconnect"):
+                    try:
+                        # Status-Update vor dem Verbindungsversuch
+                        if self.status_callback:
+                            self.status_callback(
+                                "Verbindung wird wiederhergestellt...", "blue"
+                            )
+
+                        reconnect_success = self.device.reconnect()
+                        self.connected = reconnect_success
+
+                        if reconnect_success:
+                            Debug.info(
+                                "Wiederverbindung zum Gerät erfolgreich hergestellt"
+                            )
+                            if self.status_callback:
+                                self.status_callback(
+                                    f"Verbindung wiederhergestellt zu {self.port}",
+                                    "green",
+                                )
+                            return True
+                        else:
+                            Debug.error("Wiederverbindung zum Gerät fehlgeschlagen")
+                            if self.status_callback:
+                                self.status_callback(
+                                    "Verbindung konnte nicht wiederhergestellt werden",
+                                    "red",
+                                )
+                            return False
+                    except Exception as reconnect_error:
+                        Debug.error(
+                            f"Fehler bei Wiederverbindungsversuch: {reconnect_error}",
+                            exc_info=True,
+                        )
+                        if self.status_callback:
+                            self.status_callback(
+                                f"Wiederverbindungsfehler: {reconnect_error}", "red"
+                            )
+                        return False
+                else:
+                    Debug.error("Gerät unterstützt keine Wiederverbindung")
+                    return False
+
+            # Aktiven seriellen Port überprüfen
+            if hasattr(self.device, "serial") and self.device.serial:
+                try:
+                    if not self.device.serial.is_open:
+                        Debug.info(
+                            "Serielle Verbindung ist geschlossen, versuche neu zu öffnen"
+                        )
+                        self.device.serial.open()
+                        if self.device.serial.is_open:
+                            Debug.info(
+                                "Serielle Verbindung erfolgreich wieder geöffnet"
+                            )
+                            return True
+                        else:
+                            Debug.error(
+                                "Konnte serielle Verbindung nicht wieder öffnen"
+                            )
+                            return False
+                except Exception as serial_error:
+                    Debug.error(
+                        f"Fehler bei Überprüfung/Öffnung des seriellen Ports: {serial_error}"
+                    )
+                    return False
+
+            return True  # Verbindung ist intakt
+
+        except Exception as e:
+            Debug.error(f"Fehler bei der Verbindungsüberwachung: {e}", exc_info=True)
+            self.connected = False
+            return False
+
+    def auto_reconnect(self):
+        """
+        Versucht automatisch, die Verbindung wiederherzustellen, wenn sie unterbrochen wurde.
+        Diese Methode kann vom Acquisition Thread aufgerufen werden, wenn Verbindungsprobleme erkannt werden.
+
+        Returns:
+            bool: True wenn die Wiederverbindung erfolgreich war, False sonst
+        """
+        if self.port == "None" or self.port == "/dev/ttymock":
+            return False
+
+        Debug.info(f"Automatische Wiederverbindung mit {self.port} wird versucht...")
+        if self.status_callback:
+            self.status_callback(f"Versuche Verbindung wiederherzustellen...", "blue")
+
+        # Stop any running acquisition
+        self.stop_acquisition()
+
+        # Attempt to close any existing connection
+        if hasattr(self, "device") and self.device:
+            try:
+                self.device.close()
+            except Exception as e:
+                Debug.error(f"Fehler beim Schließen der Verbindung für Reconnect: {e}")
+
+        # Try to reconnect
+        try:
+            self.device = GMCounter(port=self.port)
+            self.is_gm_counter = True
+
+            if self.device and self.device.connected:
+                self.connected = True
+                Debug.info(f"Wiederverbindung mit {self.port} erfolgreich")
+
+                if self.status_callback:
+                    self.status_callback(f"Verbindung wiederhergestellt", "green")
+
+                # Restart acquisition
+                self.start_acquisition()
+                return True
+            else:
+                Debug.error(
+                    f"Wiederverbindung fehlgeschlagen: Gerät konnte nicht initialisiert werden"
+                )
+                self.connected = False
+                return False
+
+        except Exception as e:
+            Debug.error(
+                f"Fehler bei automatischer Wiederverbindung: {e}", exc_info=True
+            )
+            self.connected = False
+
+            if self.status_callback:
+                self.status_callback(f"Wiederverbindung fehlgeschlagen", "red")
+
+            return False

@@ -1,18 +1,15 @@
 import json
-from PySide6.QtWidgets import (  # pylint: disable=import-error
+from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QMainWindow,
     QVBoxLayout,
-    QCompleter,
-    QWidget,
-    QApplication,
 )
-from src.connection import ConnectionWindow, DeviceManager
+from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
+from src.connection import DeviceManager
 from src.control import ControlWidget
 from src.plot import PlotWidget
 from src.debug_utils import Debug
 from src.helper_classes import import_config, Statusbar
 from src.data_controller import DataController
-from PySide6.QtCore import Qt, QTimer  # pylint: disable=import-error
 from pyqt.ui_mainwindow import Ui_MainWindow
 
 
@@ -67,7 +64,7 @@ class MainWindow(QMainWindow):
         self._setup_timers()
 
         # # Erste Aktualisierung der UI
-        # self._update_control_display()
+        self._update_control_display()
 
         # Erfolgsmeldung anzeigen
         self.statusbar.temp_message(
@@ -128,7 +125,7 @@ class MainWindow(QMainWindow):
         # self.ui.buttonStart.clicked.connect(self._start_measurement)
         # self.ui.buttonStop.clicked.connect(lambda: self._update_measurement(False))
         # self.ui.buttonSave.clicked.connect(self._save_measurement)
-        # self.ui.buttonSetting.clicked.connect(self._apply_settings)
+        self.ui.buttonSetting.clicked.connect(self._apply_settings)
 
         # Anfangszustand der Schaltflächen
         self.ui.buttonStart.setEnabled(True)
@@ -157,17 +154,15 @@ class MainWindow(QMainWindow):
     def _setup_timers(self):
         """
         Richtet alle Timer für die Anwendung ein.
+        Die Datenerfassung erfolgt nun automatisch im Hintergrund durch den DeviceManager,
+        daher werden nur noch UI-bezogene Timer benötigt.
         """
-        # Haupt-Timer einrichten
-        self.timer = QTimer(self)
-        self.timer.setInterval(1000)
-
         # Timer für Steuerelemente-Updates
         self.control_update_timer = QTimer(self)
         self.control_update_timer.timeout.connect(self._update_control_display)
         self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
 
-        # Timer für Statistik-Updates
+        # Timer für Statistik-Updates (nur noch für UI-Aktualisierung)
         self.stats_timer = QTimer(self)
         self.stats_timer.timeout.connect(self._update_statistics)
         self.stats_timer.start(CONFIG["timers"]["statistics_update_interval"])
@@ -267,3 +262,63 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             Debug.error(f"Fehler bei der Aktualisierung der Anzeige: {e}")
+
+    def _apply_settings(self):
+        """
+        Applies the current settings from the UI to the GM-Counter.
+        """
+        try:
+            settings = {
+                "voltage": int(self.ui.sVoltage.value()),
+                "counting_time": int(self.ui.sDuration.currentIndex()),
+                "repeat": self.ui.cMode.text() == "Repeat On",
+                # "auto_query": self.ui.cQueryMode.text() == "Auto On",
+            }
+            self.control.apply_settings(settings)
+            self.statusbar.temp_message(
+                CONFIG["messages"]["settings_applied"],
+                CONFIG["colors"]["green"],
+            )
+            Debug.info(
+                "Einstellungen erfolgreich angewendet: " + str(settings.values())
+            )
+        except Exception as e:
+            Debug.error(f"Fehler beim Anwenden der Einstellungen: {e}")
+
+    def closeEvent(self, event):
+        """
+        Wird aufgerufen, wenn das Fenster geschlossen wird.
+        Sorgt für ein sauberes Herunterfahren aller Komponenten.
+
+        Args:
+            event: Das Close-Event
+        """
+        Debug.info("Anwendung wird geschlossen, fahre Komponenten herunter...")
+
+        # Stoppe die Datenerfassung im DeviceManager
+        if hasattr(self, "device_manager"):
+            try:
+                Debug.info("Stoppe Datenerfassung...")
+                self.device_manager.stop_acquisition()
+
+                # Wenn ein echtes Gerät verbunden ist, schließe die Verbindung
+                if (
+                    hasattr(self.device_manager, "device")
+                    and self.device_manager.device
+                ):
+                    Debug.info("Schließe Geräteverbindung...")
+                    self.device_manager.device.close()
+            except Exception as e:
+                Debug.error(f"Fehler beim Herunterfahren des DeviceManagers: {e}")
+
+        # Stoppe alle Timer
+        for timer_attr in ["control_update_timer", "stats_timer"]:
+            if hasattr(self, timer_attr):
+                timer = getattr(self, timer_attr)
+                if timer.isActive():
+                    Debug.debug(f"Stoppe Timer: {timer_attr}")
+                    timer.stop()
+
+        # Event weitergeben
+        Debug.info("Anwendung wird geschlossen")
+        event.accept()

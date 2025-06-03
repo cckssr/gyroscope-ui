@@ -4,7 +4,6 @@ import matplotlib
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from src.debug_utils import Debug
-from PySide6.QtCore import Qt
 
 matplotlib.use("Qt5Agg")
 
