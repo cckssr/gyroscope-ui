@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.0
+## Created by: Qt User Interface Compiler version 6.9.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -120,12 +120,12 @@ class Ui_MainWindow(object):
         self.labelTimer = QLabel(self.framePlot)
         self.labelTimer.setObjectName(u"labelTimer")
 
-        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.labelTimer)
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.labelTimer)
 
         self.inputTimer = QTimeEdit(self.framePlot)
         self.inputTimer.setObjectName(u"inputTimer")
 
-        self.formLayout.setWidget(0, QFormLayout.FieldRole, self.inputTimer)
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.inputTimer)
 
 
         self.verticalLayout_4.addLayout(self.formLayout)

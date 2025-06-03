@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'control.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.0
+## Created by: Qt User Interface Compiler version 6.9.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -58,7 +58,7 @@ class Ui_Form(object):
         sizePolicy1.setHeightForWidth(self.mode_label.sizePolicy().hasHeightForWidth())
         self.mode_label.setSizePolicy(sizePolicy1)
 
-        self.formLayout_3.setWidget(0, QFormLayout.LabelRole, self.mode_label)
+        self.formLayout_3.setWidget(0, QFormLayout.ItemRole.LabelRole, self.mode_label)
 
         self.sMode = QHBoxLayout()
         self.sMode.setObjectName(u"sMode")
@@ -87,14 +87,14 @@ class Ui_Form(object):
         self.sMode.addWidget(self.sModeMulti)
 
 
-        self.formLayout_3.setLayout(0, QFormLayout.FieldRole, self.sMode)
+        self.formLayout_3.setLayout(0, QFormLayout.ItemRole.FieldRole, self.sMode)
 
         self.query_label = QLabel(Form)
         self.query_label.setObjectName(u"query_label")
         sizePolicy1.setHeightForWidth(self.query_label.sizePolicy().hasHeightForWidth())
         self.query_label.setSizePolicy(sizePolicy1)
 
-        self.formLayout_3.setWidget(1, QFormLayout.LabelRole, self.query_label)
+        self.formLayout_3.setWidget(1, QFormLayout.ItemRole.LabelRole, self.query_label)
 
         self.sQueryMode = QHBoxLayout()
         self.sQueryMode.setObjectName(u"sQueryMode")
@@ -119,14 +119,14 @@ class Ui_Form(object):
         self.sQueryMode.addWidget(self.sQModeAuto)
 
 
-        self.formLayout_3.setLayout(1, QFormLayout.FieldRole, self.sQueryMode)
+        self.formLayout_3.setLayout(1, QFormLayout.ItemRole.FieldRole, self.sQueryMode)
 
         self.duration_label = QLabel(Form)
         self.duration_label.setObjectName(u"duration_label")
         sizePolicy1.setHeightForWidth(self.duration_label.sizePolicy().hasHeightForWidth())
         self.duration_label.setSizePolicy(sizePolicy1)
 
-        self.formLayout_3.setWidget(2, QFormLayout.LabelRole, self.duration_label)
+        self.formLayout_3.setWidget(2, QFormLayout.ItemRole.LabelRole, self.duration_label)
 
         self.sDuration = QComboBox(Form)
         self.sDuration.addItem("")
@@ -142,14 +142,14 @@ class Ui_Form(object):
         sizePolicy3.setHeightForWidth(self.sDuration.sizePolicy().hasHeightForWidth())
         self.sDuration.setSizePolicy(sizePolicy3)
 
-        self.formLayout_3.setWidget(2, QFormLayout.FieldRole, self.sDuration)
+        self.formLayout_3.setWidget(2, QFormLayout.ItemRole.FieldRole, self.sDuration)
 
         self.volt_label = QLabel(Form)
         self.volt_label.setObjectName(u"volt_label")
         sizePolicy1.setHeightForWidth(self.volt_label.sizePolicy().hasHeightForWidth())
         self.volt_label.setSizePolicy(sizePolicy1)
 
-        self.formLayout_3.setWidget(3, QFormLayout.LabelRole, self.volt_label)
+        self.formLayout_3.setWidget(3, QFormLayout.ItemRole.LabelRole, self.volt_label)
 
         self.sVolt = QHBoxLayout()
         self.sVolt.setObjectName(u"sVolt")
@@ -182,7 +182,7 @@ class Ui_Form(object):
         self.sVolt.addWidget(self.voltDial)
 
 
-        self.formLayout_3.setLayout(3, QFormLayout.FieldRole, self.sVolt)
+        self.formLayout_3.setLayout(3, QFormLayout.ItemRole.FieldRole, self.sVolt)
 
 
         self.gridLayout.addLayout(self.formLayout_3, 7, 0, 1, 1)
@@ -206,62 +206,62 @@ class Ui_Form(object):
         self.label_8 = QLabel(Form)
         self.label_8.setObjectName(u"label_8")
 
-        self.formLayout_2.setWidget(1, QFormLayout.LabelRole, self.label_8)
+        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_8)
 
         self.cVoltage = QLCDNumber(Form)
         self.cVoltage.setObjectName(u"cVoltage")
         self.cVoltage.setMinimumSize(QSize(0, 30))
         self.cVoltage.setDigitCount(3)
 
-        self.formLayout_2.setWidget(1, QFormLayout.FieldRole, self.cVoltage)
+        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.FieldRole, self.cVoltage)
 
         self.label_9 = QLabel(Form)
         self.label_9.setObjectName(u"label_9")
 
-        self.formLayout_2.setWidget(2, QFormLayout.LabelRole, self.label_9)
+        self.formLayout_2.setWidget(2, QFormLayout.ItemRole.LabelRole, self.label_9)
 
         self.cDuration = QLCDNumber(Form)
         self.cDuration.setObjectName(u"cDuration")
         self.cDuration.setMinimumSize(QSize(0, 30))
         self.cDuration.setDigitCount(3)
 
-        self.formLayout_2.setWidget(2, QFormLayout.FieldRole, self.cDuration)
+        self.formLayout_2.setWidget(2, QFormLayout.ItemRole.FieldRole, self.cDuration)
 
         self.label_10 = QLabel(Form)
         self.label_10.setObjectName(u"label_10")
         self.label_10.setMinimumSize(QSize(0, 20))
 
-        self.formLayout_2.setWidget(3, QFormLayout.LabelRole, self.label_10)
+        self.formLayout_2.setWidget(3, QFormLayout.ItemRole.LabelRole, self.label_10)
 
         self.label = QLabel(Form)
         self.label.setObjectName(u"label")
         self.label.setMinimumSize(QSize(0, 20))
 
-        self.formLayout_2.setWidget(5, QFormLayout.LabelRole, self.label)
+        self.formLayout_2.setWidget(5, QFormLayout.ItemRole.LabelRole, self.label)
 
         self.cVersion = QLabel(Form)
         self.cVersion.setObjectName(u"cVersion")
         self.cVersion.setMinimumSize(QSize(0, 20))
 
-        self.formLayout_2.setWidget(5, QFormLayout.FieldRole, self.cVersion)
+        self.formLayout_2.setWidget(5, QFormLayout.ItemRole.FieldRole, self.cVersion)
 
         self.cQueryMode = QLabel(Form)
         self.cQueryMode.setObjectName(u"cQueryMode")
         self.cQueryMode.setMinimumSize(QSize(0, 20))
 
-        self.formLayout_2.setWidget(3, QFormLayout.FieldRole, self.cQueryMode)
+        self.formLayout_2.setWidget(3, QFormLayout.ItemRole.FieldRole, self.cQueryMode)
 
         self.label_12 = QLabel(Form)
         self.label_12.setObjectName(u"label_12")
         self.label_12.setMinimumSize(QSize(0, 20))
 
-        self.formLayout_2.setWidget(4, QFormLayout.LabelRole, self.label_12)
+        self.formLayout_2.setWidget(4, QFormLayout.ItemRole.LabelRole, self.label_12)
 
         self.cMode = QLabel(Form)
         self.cMode.setObjectName(u"cMode")
         self.cMode.setMinimumSize(QSize(0, 20))
 
-        self.formLayout_2.setWidget(4, QFormLayout.FieldRole, self.cMode)
+        self.formLayout_2.setWidget(4, QFormLayout.ItemRole.FieldRole, self.cMode)
 
 
         self.gridLayout.addLayout(self.formLayout_2, 1, 0, 1, 1)

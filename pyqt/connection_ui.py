@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'connection.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.0
+## Created by: Qt User Interface Compiler version 6.9.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -138,7 +138,7 @@ class Ui_Dialog(object):
         self.label = QLabel(Dialog)
         self.label.setObjectName(u"label")
 
-        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.label)
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label)
 
         self.device_address = QLineEdit(Dialog)
         self.device_address.setObjectName(u"device_address")
@@ -156,12 +156,12 @@ class Ui_Dialog(object):
         self.device_address.setFrame(False)
         self.device_address.setReadOnly(True)
 
-        self.formLayout.setWidget(0, QFormLayout.FieldRole, self.device_address)
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.device_address)
 
         self.label_2 = QLabel(Dialog)
         self.label_2.setObjectName(u"label_2")
 
-        self.formLayout.setWidget(1, QFormLayout.LabelRole, self.label_2)
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_2)
 
         self.device_name = QLineEdit(Dialog)
         self.device_name.setObjectName(u"device_name")
@@ -170,12 +170,12 @@ class Ui_Dialog(object):
         self.device_name.setFrame(False)
         self.device_name.setReadOnly(True)
 
-        self.formLayout.setWidget(1, QFormLayout.FieldRole, self.device_name)
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.device_name)
 
         self.label_3 = QLabel(Dialog)
         self.label_3.setObjectName(u"label_3")
 
-        self.formLayout.setWidget(2, QFormLayout.LabelRole, self.label_3)
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.label_3)
 
         self.device_desc = QLineEdit(Dialog)
         self.device_desc.setObjectName(u"device_desc")
@@ -184,7 +184,7 @@ class Ui_Dialog(object):
         self.device_desc.setFrame(False)
         self.device_desc.setReadOnly(True)
 
-        self.formLayout.setWidget(2, QFormLayout.FieldRole, self.device_desc)
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.device_desc)
 
 
         self.gridLayout.addLayout(self.formLayout, 5, 0, 1, 1)
