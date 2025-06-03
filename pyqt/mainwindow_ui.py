@@ -586,7 +586,7 @@ class Ui_MainWindow(object):
 
         self.buttonSetting.setDefault(False)
         self.radSample.setCurrentIndex(-1)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
