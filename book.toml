@@ -1,0 +1,6 @@
+[book]
+authors = ["cckssr <cedric.kessler@me.com>"]
+language = "de"
+multilingual = false
+src = "docs"
+title = "GMCounter"
