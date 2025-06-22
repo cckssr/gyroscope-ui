@@ -4,14 +4,17 @@
 import random
 import time
 import math
+import os
 from typing import Union
 from threading import Thread, Event
-from PySide6.QtWidgets import QWidget  # pylint: disable=no-name-in-module
+from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
+    QWidget,
     QApplication,
     QDialog,
     QDialogButtonBox,
 )
+from tempfile import gettempdir
 from serial.tools import list_ports
 from pyqt.ui_connection import Ui_Dialog as Ui_Connection
 from src.helper_classes import AlertWindow
@@ -24,6 +27,7 @@ class ConnectionWindow(QDialog):
         self,
         parent: QWidget = None,
         demo_mode: bool = False,
+        default_device: str = "None",
     ):
         """
         Initializes the connection window.
@@ -31,15 +35,21 @@ class ConnectionWindow(QDialog):
         Args:
             parent (QWidget, optional): Parent widget for the dialog. Defaults to None.
             demo_mode (bool, optional): If True, uses a mock port for demonstration purposes.
+            default_device (str, optional): The default device to connect to. Defaults to "None".
         """
         self.device_manager = DeviceManager(status_callback=self.status_message)
         self.connection_successful = False
-        self.demo_mode = demo_mode
-        self.mock_port = [
-            "/dev/ttymock",
-            "Mock Device",
-            "Virtual device for demonstration purposes",
-        ]
+        self.default_device = default_device
+        self.ports = []  # List to hold available ports
+
+        # Check if demo mode is active and mock port is available
+        mock_port = self.check_mock_port()
+        self.demo_mode = demo_mode and mock_port is not None
+        Debug.debug(f"Demo mode is {'enabled' if self.demo_mode else 'disabled'}")
+        if self.demo_mode:
+            self.ports.append(
+                [mock_port, "Mock Device", "Virtual device for demonstration purposes"]
+            )
 
         # Initialize parent and connection windows
         super().__init__(parent)
@@ -51,6 +61,21 @@ class ConnectionWindow(QDialog):
         # Attach functions to UI elements
         self.ui.buttonRefreshSerial.clicked.connect(self._update_ports)
         self.combo.currentIndexChanged.connect(self._update_port_description)
+
+    def check_mock_port(self) -> Union[str, None]:
+        """
+        Checks if the mock virtual port is available.
+        Returns:
+            str: The mock port name if available, otherwise None.
+        """
+        path = os.path.join(gettempdir(), "virtual_serial_port.txt")
+        Debug.debug(f"Checking for mock port at: {path}")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                port = f.read().strip()
+                Debug.debug(f"Mock port found: {port}")
+                return port
+        return None
 
     def status_message(self, message, color="white"):
         """
@@ -68,20 +93,30 @@ class ConnectionWindow(QDialog):
         self.ui.comboSerial.clear()
         for field in [self.ui.device_name, self.ui.device_address, self.ui.device_desc]:
             field.clear()
+        if self.demo_mode:
+            self.ports = self.ports[:1]  # Clear all but the mock port
+        else:
+            self.ports = []
+
+        Debug.info(f"Resetting available ports to {self.ports}")
 
         # Get available ports
-        self.ports = list_ports.comports()
-        arduino_index = -1
+        ports = list_ports.comports()
+        arduino_index = -1  # Index if the default device is found
 
-        for i, port in enumerate(self.ports):
-            self.combo.addItem(port.device, port.description)
-            # Prüfen, ob in der Beschreibung "UNO" vorkommt und es das erste ist
-            if "UNO" in port.description and arduino_index == -1:
-                arduino_index = i
+        for i, port in enumerate(ports):
+            Debug.debug(f"Found port: {port.device} - {port.description}")
+            self.ports.append(
+                [port.name, port.device, port.description]
+            )  # Store port object for later use
+            # Check if the port matches the default device
+            if self.default_device in port.description and arduino_index == -1:
+                arduino_index = i + int(self.demo_mode)
 
-        # Add mock port if demo mode is active
-        if self.demo_mode:
-            self.combo.addItem(self.mock_port[0], self.mock_port[1])
+        Debug.debug(f"Available ports updated: {self.ports}")
+        # Add ports to the combo box
+        for port in self.ports:
+            self.combo.addItem(port[0], port[2])
 
         # Setze Arduino-Port als vorausgewählt, wenn gefunden
         if arduino_index != -1:
@@ -93,25 +128,18 @@ class ConnectionWindow(QDialog):
         Updates the port description based on the selected port.
         """
         index = self.combo.currentIndex()
-        # Check if demo mode is active and set mock port details
-        if self.demo_mode and index == self.combo.count() - 1:
-            name = self.mock_port[1]
-            address = self.mock_port[0]
-            description = self.mock_port[2]
-            return
-        # check if index is valid
-        elif index >= 0:
+        if index >= 0:
             port = self.ports[index]
-            name = port.name
-            address = port.device
-            description = port.description
+            device = port[1]
+            description = port[2]
+            address = port[0]
         # If no valid index, clear the fields
         else:
-            name = ""
+            device = ""
             address = ""
             description = ""
 
-        self.ui.device_name.setText(name)
+        self.ui.device_name.setText(device)
         self.ui.device_address.setText(address)
         self.ui.device_desc.setText(description)
 
@@ -223,6 +251,9 @@ class DeviceManager:
         self.running: bool = False
         self.stop_event = Event()
         self.acquire_thread = None
+        self.poll_timer = None
+        self.is_fast_mode = False
+        self.measurement_active = False
 
     def connect(self, port):
         """
@@ -257,8 +288,7 @@ class DeviceManager:
             self.connected = True
             self.is_gm_counter = False
 
-            # Automatisch Datenerfassung starten
-            self.start_acquisition()
+            # Nicht mehr automatisch Datenerfassung starten
             return True
 
         try:
@@ -300,8 +330,7 @@ class DeviceManager:
                     if self.status_callback:
                         self.status_callback(f"GM-Zähler verbunden an {port}", "green")
 
-                # Automatisch Datenerfassung starten
-                self.start_acquisition()
+                # Nicht mehr automatisch Datenerfassung starten
                 return True
             else:
                 Debug.error(f"GM-Zähler an {port} konnte nicht initialisiert werden")
@@ -513,6 +542,10 @@ class DeviceManager:
         For mock device, generates random data.
         For real device, reads from Arduino.
 
+        Unterstützt zwei Modi:
+        1. Standard-Modus: Normale Datenerfassung wie bisher für den Idle-Zustand
+        2. Fast-Modus: Schnelle Zeitwert-Erfassung für Messungen mit read_time_fast
+
         Implementiert ein robustes Fehlerbehandlungs- und Backoff-System,
         um eine zuverlässige Datenerfassung zu gewährleisten.
 
@@ -555,24 +588,66 @@ class DeviceManager:
                 # Bei erfolgreicher Verbindung Reset der Reconnect-Versuche
                 reconnect_attempts = 0
 
-                # Lesen vom GM-Counter
-                data = self.device.get_data(False)
+                if self.is_fast_mode:
+                    # Fast-Modus: Nur Zeitmessungen mit read_time_fast
+                    try:
+                        # Schnelles Lesen der Zeitmessung in Mikrosekunden
+                        value = self.device.read_time_fast()
 
-                if data is None or not isinstance(data, dict):
-                    Debug.debug("Keine gültigen Daten empfangen, versuche erneut.")
-                    time.sleep(0.5)
-                    continue
+                        # Callback nur wenn gültiger Wert (als Integer konvertiert)
+                        if value is not None and self.data_callback:
+                            try:
+                                # Konvertiere zu Integer oder Float
+                                if isinstance(value, str):
+                                    # Versuche als Integer zu konvertieren
+                                    try:
+                                        time_value = int(value)
+                                    except ValueError:
+                                        # Falls nicht möglich, als Float versuchen
+                                        try:
+                                            time_value = float(value)
+                                        except ValueError:
+                                            Debug.error(
+                                                f"Kann Wert '{value}' nicht konvertieren"
+                                            )
+                                            continue
+                                else:
+                                    time_value = value
 
-                # Extrahiere den Count-Wert aus dem Dictionary
-                value = data.get("count")
+                                # Wert an Callback übergeben
+                                self.data_callback(k, time_value)
+                                k += 1
+                                # Reset bei erfolgreicher Datenabfrage
+                                consecutive_errors = 0
+                                backoff_time = 0.1
+                            except (ValueError, TypeError) as e:
+                                Debug.error(
+                                    f"Ungültiger Zeitwert empfangen: {value}, {e}"
+                                )
+                    except Exception as e:
+                        Debug.error(f"Fehler beim schnellen Lesen der Zeit: {e}")
+                        consecutive_errors += 1
+                else:
+                    # Standard-Modus: Normale Datenabfrage (einmaliger Versuch)
+                    data = self.device.get_data(False)
 
-                # Callback nur wenn gültiger Wert
-                if value is not None and self.data_callback:
-                    self.data_callback(k, value)
-                    k += 1
-                    # Reset bei erfolgreicher Datenabfrage
-                    consecutive_errors = 0
-                    backoff_time = 0.1
+                    if data is None or not isinstance(data, dict):
+                        Debug.debug(
+                            "Keine gültigen Daten empfangen oder Spannung = 0, überspringe."
+                        )
+                        # Überspringen anstatt zu warten und erneut zu versuchen
+                        continue
+
+                    # Extrahiere den Count-Wert aus dem Dictionary
+                    value = data.get("count")
+
+                    # Callback nur wenn gültiger Wert
+                    if value is not None and self.data_callback:
+                        self.data_callback(k, value)
+                        k += 1
+                        # Reset bei erfolgreicher Datenabfrage
+                        consecutive_errors = 0
+                        backoff_time = 0.1
 
             except Exception as e:
                 consecutive_errors += 1
@@ -812,3 +887,146 @@ class DeviceManager:
                 self.status_callback(f"Wiederverbindung fehlgeschlagen", "red")
 
             return False
+
+    def start_standard_mode(self):
+        """
+        Startet den Standard-Datenerfassungsmodus mit Timer-basiertem Polling alle 0,5 Sekunden.
+        Dieser Modus wird verwendet, wenn keine Messung aktiv ist.
+
+        Returns:
+            bool: True wenn der Standardmodus gestartet wurde, False bei Fehlern
+        """
+        # Sicherheitsprüfung: Ist das Gerät verbunden?
+        if not self.is_connected():
+            Debug.error("Cannot start standard mode: device not connected")
+            if self.status_callback:
+                self.status_callback(
+                    "Standard-Datenerfassung nicht möglich: Gerät nicht verbunden",
+                    "red",
+                )
+            return False
+
+        # Stoppe ggf. laufende Thread-basierte Erfassung
+        self.stop_acquisition()
+
+        # Fast-Modus deaktivieren
+        self.is_fast_mode = False
+        self.measurement_active = False
+
+        # Timer für regelmäßiges Polling erstellen
+        if hasattr(self, "poll_timer") and self.poll_timer:
+            self.poll_timer.stop()
+
+        try:
+            self.poll_timer = QTimer()
+            self.poll_timer.timeout.connect(self._poll_data)
+            self.poll_timer.start(500)  # 0.5 Sekunden Intervall
+
+            Debug.info("Standard data acquisition mode started (timer-based polling)")
+            if self.status_callback:
+                self.status_callback("Standard-Datenerfassung gestartet", "green")
+            return True
+        except Exception as e:
+            Debug.error(f"Error starting standard mode: {e}", exc_info=True)
+            return False
+
+    def _poll_data(self):
+        """
+        Timer-Callback für die Standardmodus-Datenabfrage.
+        Wird alle 0,5 Sekunden aufgerufen, um Daten vom Gerät abzufragen.
+        Im Standard-Modus werden die Daten nur für die Einstellungs-Anzeige verwendet,
+        nicht für die Datenaufzeichnung.
+        """
+        if not self.is_connected():
+            return
+
+        try:
+            # Mock-Modus
+            if self.port == "/dev/ttymock":
+                # Verwende den statischen k-Wert für die Mock-Daten
+                if not hasattr(self, "_mock_k"):
+                    self._mock_k = 0
+                self._mock_k, _ = self._generate_mock_data(self._mock_k)
+                return
+
+            # Normaler GM-Counter-Modus
+            # Es wird nur ein einziger Leseversuch gemacht
+            data = self.device.get_data(False)
+
+            # Prüfe, ob gültige Daten mit Spannung > 0 empfangen wurden
+            if data and isinstance(data, dict):
+                value = data.get("count")
+
+                # Callback nur wenn gültiger Wert
+                if value is not None and self.data_callback:
+                    # Im Standard-Modus wird der Wert nur für die Anzeige verwendet,
+                    # keine Datenaufzeichnung oder Plotting
+                    self.data_callback(-1, value)  # Index -1 bedeutet "nur für Anzeige"
+            else:
+                Debug.debug(
+                    "Keine gültigen Daten im Standard-Modus empfangen oder Spannung = 0"
+                )
+
+        except Exception as e:
+            Debug.error(f"Error in data polling: {e}", exc_info=True)
+
+    def start_fast_mode(self):
+        """
+        Startet den schnellen Datenerfassungsmodus mit Thread-basierter kontinuierlicher Erfassung.
+        Dieser Modus wird verwendet, wenn eine Messung aktiv ist.
+
+        Returns:
+            bool: True wenn der schnelle Modus gestartet wurde, False bei Fehlern
+        """
+        # Sicherheitsprüfung: Ist das Gerät verbunden?
+        if not self.is_connected():
+            Debug.error("Cannot start fast mode: device not connected")
+            if self.status_callback:
+                self.status_callback(
+                    "Schnelle Datenerfassung nicht möglich: Gerät nicht verbunden",
+                    "red",
+                )
+            return False
+
+        # Timer-basiertes Polling stoppen, falls aktiv
+        if hasattr(self, "poll_timer") and self.poll_timer:
+            self.poll_timer.stop()
+
+        # Fast-Modus aktivieren
+        self.is_fast_mode = True
+        self.measurement_active = True
+
+        # Thread-basierte Erfassung starten
+        result = self.start_acquisition()
+
+        if result and self.status_callback:
+            self.status_callback("Schnelle Datenerfassung gestartet", "green")
+
+        return result
+
+    def stop_all_acquisition(self):
+        """
+        Stoppt alle Arten der Datenerfassung (sowohl Timer als auch Thread).
+
+        Returns:
+            bool: True wenn alle Datenerfassung erfolgreich gestoppt wurde
+        """
+        # Timer stoppen, falls vorhanden
+        if hasattr(self, "poll_timer") and self.poll_timer:
+            try:
+                self.poll_timer.stop()
+                Debug.info("Stopped timer-based data acquisition")
+            except Exception as e:
+                Debug.error(f"Error stopping timer: {e}")
+
+        # Thread stoppen, falls vorhanden
+        thread_stopped = self.stop_acquisition()
+
+        # Modi zurücksetzen
+        self.is_fast_mode = False
+        self.measurement_active = False
+
+        if self.status_callback:
+            self.status_callback("Datenerfassung gestoppt", "blue")
+
+        return thread_stopped
