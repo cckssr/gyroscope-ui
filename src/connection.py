@@ -4,10 +4,12 @@
 from typing import Union
 from PySide6.QtWidgets import QWidget  # pylint: disable=no-name-in-module
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
+    QWidget,
     QApplication,
     QDialog,
     QDialogButtonBox,
 )
+from tempfile import gettempdir
 from serial.tools import list_ports
 from pyqt.ui_connection import Ui_Dialog as Ui_Connection
 from src.helper_classes import AlertWindow
@@ -20,6 +22,7 @@ class ConnectionWindow(QDialog):
         self,
         parent: QWidget = None,
         demo_mode: bool = False,
+        default_device: str = "None",
     ):
         """
         Initializes the connection window.
@@ -27,15 +30,21 @@ class ConnectionWindow(QDialog):
         Args:
             parent (QWidget, optional): Parent widget for the dialog. Defaults to None.
             demo_mode (bool, optional): If True, uses a mock port for demonstration purposes.
+            default_device (str, optional): The default device to connect to. Defaults to "None".
         """
         self.device_manager = DeviceManager(status_callback=self.status_message)
         self.connection_successful = False
-        self.demo_mode = demo_mode
-        self.mock_port = [
-            "/dev/ttymock",
-            "Mock Device",
-            "Virtual device for demonstration purposes",
-        ]
+        self.default_device = default_device
+        self.ports = []  # List to hold available ports
+
+        # Check if demo mode is active and mock port is available
+        mock_port = self.check_mock_port()
+        self.demo_mode = demo_mode and mock_port is not None
+        Debug.debug(f"Demo mode is {'enabled' if self.demo_mode else 'disabled'}")
+        if self.demo_mode:
+            self.ports.append(
+                [mock_port, "Mock Device", "Virtual device for demonstration purposes"]
+            )
 
         # Initialize parent and connection windows
         super().__init__(parent)
@@ -47,6 +56,21 @@ class ConnectionWindow(QDialog):
         # Attach functions to UI elements
         self.ui.buttonRefreshSerial.clicked.connect(self._update_ports)
         self.combo.currentIndexChanged.connect(self._update_port_description)
+
+    def check_mock_port(self) -> Union[str, None]:
+        """
+        Checks if the mock virtual port is available.
+        Returns:
+            str: The mock port name if available, otherwise None.
+        """
+        path = os.path.join(gettempdir(), "virtual_serial_port.txt")
+        Debug.debug(f"Checking for mock port at: {path}")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                port = f.read().strip()
+                Debug.debug(f"Mock port found: {port}")
+                return port
+        return None
 
     def status_message(self, message, color="white"):
         """
@@ -64,20 +88,30 @@ class ConnectionWindow(QDialog):
         self.ui.comboSerial.clear()
         for field in [self.ui.device_name, self.ui.device_address, self.ui.device_desc]:
             field.clear()
+        if self.demo_mode:
+            self.ports = self.ports[:1]  # Clear all but the mock port
+        else:
+            self.ports = []
+
+        Debug.info(f"Resetting available ports to {self.ports}")
 
         # Get available ports
-        self.ports = list_ports.comports()
-        arduino_index = -1
+        ports = list_ports.comports()
+        arduino_index = -1  # Index if the default device is found
 
-        for i, port in enumerate(self.ports):
-            self.combo.addItem(port.device, port.description)
-            # Prüfen, ob in der Beschreibung "UNO" vorkommt und es das erste ist
-            if "UNO" in port.description and arduino_index == -1:
-                arduino_index = i
+        for i, port in enumerate(ports):
+            Debug.debug(f"Found port: {port.device} - {port.description}")
+            self.ports.append(
+                [port.name, port.device, port.description]
+            )  # Store port object for later use
+            # Check if the port matches the default device
+            if self.default_device in port.description and arduino_index == -1:
+                arduino_index = i + int(self.demo_mode)
 
-        # Add mock port if demo mode is active
-        if self.demo_mode:
-            self.combo.addItem(self.mock_port[0], self.mock_port[1])
+        Debug.debug(f"Available ports updated: {self.ports}")
+        # Add ports to the combo box
+        for port in self.ports:
+            self.combo.addItem(port[0], port[2])
 
         # Setze Arduino-Port als vorausgewählt, wenn gefunden
         if arduino_index != -1:
@@ -89,25 +123,18 @@ class ConnectionWindow(QDialog):
         Updates the port description based on the selected port.
         """
         index = self.combo.currentIndex()
-        # Check if demo mode is active and set mock port details
-        if self.demo_mode and index == self.combo.count() - 1:
-            name = self.mock_port[1]
-            address = self.mock_port[0]
-            description = self.mock_port[2]
-            return
-        # check if index is valid
-        elif index >= 0:
+        if index >= 0:
             port = self.ports[index]
-            name = port.name
-            address = port.device
-            description = port.description
+            device = port[1]
+            description = port[2]
+            address = port[0]
         # If no valid index, clear the fields
         else:
-            name = ""
+            device = ""
             address = ""
             description = ""
 
-        self.ui.device_name.setText(name)
+        self.ui.device_name.setText(device)
         self.ui.device_address.setText(address)
         self.ui.device_desc.setText(description)
 
@@ -188,5 +215,3 @@ class ConnectionWindow(QDialog):
 
             # Fallback, wenn kein Button erfasst wurde
             return False
-
-
