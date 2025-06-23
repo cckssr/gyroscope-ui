@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'connection.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.0
+## Created by: Qt User Interface Compiler version 6.9.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -24,6 +24,7 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
+        Dialog.resize(500, 320)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -36,6 +37,7 @@ class Ui_Dialog(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.buttonBox = QDialogButtonBox(Dialog)
         self.buttonBox.setObjectName(u"buttonBox")
+        self.buttonBox.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Open)
 
@@ -97,7 +99,8 @@ class Ui_Dialog(object):
         sizePolicy3.setVerticalStretch(0)
         sizePolicy3.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
         self.label_4.setSizePolicy(sizePolicy3)
-        self.label_4.setMinimumSize(QSize(0, 20))
+        self.label_4.setMinimumSize(QSize(90, 20))
+        self.label_4.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
         self.horizontalLayout_3.addWidget(self.label_4)
 
@@ -137,8 +140,10 @@ class Ui_Dialog(object):
         self.formLayout.setContentsMargins(8, -1, -1, -1)
         self.label = QLabel(Dialog)
         self.label.setObjectName(u"label")
+        self.label.setMinimumSize(QSize(90, 0))
+        self.label.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.label)
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label)
 
         self.device_address = QLineEdit(Dialog)
         self.device_address.setObjectName(u"device_address")
@@ -156,12 +161,14 @@ class Ui_Dialog(object):
         self.device_address.setFrame(False)
         self.device_address.setReadOnly(True)
 
-        self.formLayout.setWidget(0, QFormLayout.FieldRole, self.device_address)
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.device_address)
 
         self.label_2 = QLabel(Dialog)
         self.label_2.setObjectName(u"label_2")
+        self.label_2.setMinimumSize(QSize(90, 0))
+        self.label_2.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.formLayout.setWidget(1, QFormLayout.LabelRole, self.label_2)
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_2)
 
         self.device_name = QLineEdit(Dialog)
         self.device_name.setObjectName(u"device_name")
@@ -170,12 +177,14 @@ class Ui_Dialog(object):
         self.device_name.setFrame(False)
         self.device_name.setReadOnly(True)
 
-        self.formLayout.setWidget(1, QFormLayout.FieldRole, self.device_name)
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.device_name)
 
         self.label_3 = QLabel(Dialog)
         self.label_3.setObjectName(u"label_3")
+        self.label_3.setMinimumSize(QSize(90, 0))
+        self.label_3.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.formLayout.setWidget(2, QFormLayout.LabelRole, self.label_3)
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.label_3)
 
         self.device_desc = QLineEdit(Dialog)
         self.device_desc.setObjectName(u"device_desc")
@@ -184,7 +193,7 @@ class Ui_Dialog(object):
         self.device_desc.setFrame(False)
         self.device_desc.setReadOnly(True)
 
-        self.formLayout.setWidget(2, QFormLayout.FieldRole, self.device_desc)
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.device_desc)
 
 
         self.gridLayout.addLayout(self.formLayout, 5, 0, 1, 1)

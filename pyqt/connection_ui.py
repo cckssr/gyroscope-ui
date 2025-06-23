@@ -24,6 +24,7 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
+        Dialog.resize(500, 320)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -36,6 +37,7 @@ class Ui_Dialog(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.buttonBox = QDialogButtonBox(Dialog)
         self.buttonBox.setObjectName(u"buttonBox")
+        self.buttonBox.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Open)
 
@@ -97,7 +99,8 @@ class Ui_Dialog(object):
         sizePolicy3.setVerticalStretch(0)
         sizePolicy3.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
         self.label_4.setSizePolicy(sizePolicy3)
-        self.label_4.setMinimumSize(QSize(0, 20))
+        self.label_4.setMinimumSize(QSize(90, 20))
+        self.label_4.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
         self.horizontalLayout_3.addWidget(self.label_4)
 
@@ -137,6 +140,8 @@ class Ui_Dialog(object):
         self.formLayout.setContentsMargins(8, -1, -1, -1)
         self.label = QLabel(Dialog)
         self.label.setObjectName(u"label")
+        self.label.setMinimumSize(QSize(90, 0))
+        self.label.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
         self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label)
 
@@ -160,6 +165,8 @@ class Ui_Dialog(object):
 
         self.label_2 = QLabel(Dialog)
         self.label_2.setObjectName(u"label_2")
+        self.label_2.setMinimumSize(QSize(90, 0))
+        self.label_2.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
         self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_2)
 
@@ -174,6 +181,8 @@ class Ui_Dialog(object):
 
         self.label_3 = QLabel(Dialog)
         self.label_3.setObjectName(u"label_3")
+        self.label_3.setMinimumSize(QSize(90, 0))
+        self.label_3.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
         self.formLayout.setWidget(2, QFormLayout.ItemRole.LabelRole, self.label_3)
 

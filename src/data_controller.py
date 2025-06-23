@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-DataController-Modul zum Verwalten von Messdaten und Plotaktualisierungen.
-"""
+"""Data controller for managing measurements and plot updates."""
 
 from typing import Optional, List, Tuple, Dict, Union
 
@@ -51,14 +49,7 @@ MAX_HISTORY_SIZE = 100
 
 
 class DataController:
-    """
-    Verwaltet Messdaten und Plotaktualisierungen.
-
-    Diese Klasse ist verantwortlich für:
-    1. Speicherung und Verwaltung von Datenpunkten
-    2. Aktualisierung der UI-Elemente (Plot, Anzeige, Historie)
-    3. Berechnung statistischer Werte
-    """
+    """Store measurement data and provide statistics for the UI."""
 
     def __init__(
         self,
@@ -67,14 +58,13 @@ class DataController:
         history_widget: Optional[QListWidget] = None,
         max_history: int = MAX_HISTORY_SIZE,
     ):
-        """
-        Initialisiert den DataController.
+        """Initialise the data controller.
 
         Args:
-            plot_widget (PlotWidget): Das Widget zur Darstellung von Daten
-            display_widget (QLCDNumber, optional): Widget für die aktuelle Wertanzeige
-            history_widget (QListWidget, optional): Widget für die Anzeige der Datenhistorie
-            max_history (int, optional): Maximale Anzahl gespeicherter Datenpunkte
+            plot_widget: Plotting widget used for visualisation.
+            display_widget: Optional LCD display for the current value.
+            history_widget: Optional list widget for history display.
+            max_history: Maximum number of stored data points.
         """
         self.plot = plot_widget
         self.display = display_widget
@@ -83,82 +73,67 @@ class DataController:
         self.max_history = max_history
 
     def add_data_point(self, index: Union[int, str], value: Union[float, str]) -> None:
-        """
-        Fügt einen neuen Datenpunkt hinzu und aktualisiert UI-Elemente.
-
-        Args:
-            index (int oder str): Der x-Wert (üblicherweise ein Zähler)
-            value (float oder str): Der gemessene Wert
-        """
+        """Add a new point and update the optional UI widgets."""
+        
+        # Ensure numeric values
         try:
             # Sicherstellen, dass die Werte numerisch sind
             index_num = int(index)
             value_num = float(value)
 
-            # Datenpunkt hinzufügen und älteste entfernen, wenn Maximum erreicht
+            # Add data and drop oldest when maximum size is reached
             self.data_points.append((index_num, value_num))
             if len(self.data_points) > self.max_history:
                 self.data_points.pop(0)
 
-            # Plot aktualisieren
+            # Update plot widget
             if self.plot:
                 self.plot.update_plot((index_num, value_num))
 
-            # Anzeige des aktuellen Wertes aktualisieren
+            # Update display widget
             if self.display:
                 self.display.display(value_num)
 
-            # Historieliste mit korrektem Format aktualisieren
+            # Update history list widget
             if self.history:
-                # Neues Element am Anfang einfügen
+                # Insert new item at the top
                 self.history.insertItem(0, f"{value_num} µs : {index_num}")
-                # Rechtsbündige Textausrichtung für bessere Lesbarkeit
+                # Right align text for readability
                 self.history.item(0).setTextAlignment(Qt.AlignmentFlag.AlignRight)
 
-                # Listengröße begrenzen
+                # Keep list size within limit
                 while self.history.count() > self.max_history:
                     self.history.takeItem(self.history.count() - 1)
 
         except (ValueError, TypeError) as e:
-            Debug.error(
-                f"Fehler bei der Konvertierung der Datenpunktwerte: {e}", exc_info=True
-            )
+            Debug.error(f"Failed to convert values: {e}", exc_info=True)
         except (AttributeError, RuntimeError) as e:
-            Debug.error(
-                f"Fehler beim Aktualisieren der UI-Elemente: {e}", exc_info=True
-            )
+            Debug.error(f"Failed to update UI elements: {e}", exc_info=True)
 
     def clear_data(self) -> None:
-        """
-        Löscht alle Datenpunkte und setzt UI-Elemente zurück.
-        """
+        """Clear all data points and reset optional widgets."""
         try:
-            # Datenpunkte löschen
+            # Remove stored points
             self.data_points = []
 
-            # Plot zurücksetzen
+            # Clear the plot
             if self.plot:
                 self.plot.clear()
 
-            # Displaywert zurücksetzen
+            # Reset displayed value
             if self.display:
                 self.display.display(0)
 
-            # Historieliste löschen
+            # Clear the history list
             if self.history:
                 self.history.clear()
 
         except (AttributeError, RuntimeError) as e:
-            Debug.error(f"Fehler beim Zurücksetzen der UI-Elemente: {e}", exc_info=True)
+            Debug.error(f"Failed to reset UI elements: {e}", exc_info=True)
 
     def get_statistics(self) -> Dict[str, float]:
-        """
-        Berechnet statistische Kennzahlen aus den vorhandenen Datenpunkten.
-
-        Returns:
-            dict: Ein Dictionary mit statistischen Werten (count, min, max, avg, stdev)
-        """
-        # Initialisieren mit Standardwerten als Gleitkommazahlen
+        """Return basic statistics for the stored data."""
+        # Initialise statistics with defaults
         stats: Dict[str, float] = {
             "count": float(len(self.data_points)),
             "min": 0.0,
@@ -183,38 +158,22 @@ class DataController:
                     variance = sum((x - mean) ** 2 for x in values) / len(values)
                     stats["stdev"] = variance**0.5
             except (ValueError, TypeError) as e:
-                Debug.error(
-                    f"Fehler bei der Konvertierung von Werten: {e}", exc_info=True
-                )
+                Debug.error(f"Value conversion error: {e}", exc_info=True)
             except (ZeroDivisionError, OverflowError) as e:
                 Debug.error(
-                    f"Mathematischer Fehler bei der Statistikberechnung: {e}",
+                    f"Statistical calculation error: {e}",
                     exc_info=True,
                 )
 
         return stats
 
     def get_data_as_list(self) -> List[Tuple[int, float]]:
-        """
-        Gibt alle gespeicherten Datenpunkte als Liste zurück.
-
-        Returns:
-            list: Liste aller Datenpunkte als (Index, Wert)-Tupel
-        """
+        """Return all stored data points as a list."""
         return self.data_points.copy()
 
     def get_csv_data(self) -> List[List[str]]:
-        """
-        Bereitet die Daten für den Export als CSV vor.
-
-        Returns:
-            list: Liste von Zeilen, wobei die erste Zeile Header-Informationen enthält
-        """
-        # Header-Zeile
-        result: List[List[str]] = [["Index", "Wert (µs)"]]
-
-        # Datenpunkte hinzufügen
+        """Prepare the stored data for CSV export."""
+        result: List[List[str]] = [["Index", "Value (µs)"]]
         for idx, value in self.data_points:
             result.append([str(idx), str(value)])
-
         return result

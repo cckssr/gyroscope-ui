@@ -98,7 +98,7 @@ class DataControllerTests(unittest.TestCase):
     def test_get_csv_data(self):
         self.ctrl.add_data_point(1, 2)
         csv_data = self.ctrl.get_csv_data()
-        self.assertEqual(csv_data[0], ["Index", "Wert (µs)"])
+        self.assertEqual(csv_data[0], ["Index", "Value (µs)"])
         self.assertEqual(csv_data[1], ["1", "2.0"])
 
 

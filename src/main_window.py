@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QVBoxLayout,
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
-from src.connection import DeviceManager
+from src.device_manager import DeviceManager
 from src.control import ControlWidget
 from src.plot import PlotWidget
 from src.debug_utils import Debug
@@ -87,6 +87,11 @@ class MainWindow(QMainWindow):
         self.device_manager.data_callback = self.handle_data
         self.device_manager.status_callback = self.statusbar.temp_message
 
+        # Ensure the acquisition thread forwards data to this window. When the
+        # connection dialog created the DeviceManager the acquisition thread may
+        # already be running without our callback connected.
+        self.device_manager.start_acquisition()
+
     def _setup_controls(self):
         self.control = ControlWidget(
             device_manager=self.device_manager,
@@ -122,8 +127,8 @@ class MainWindow(QMainWindow):
         Verbindet die Schaltflächen mit ihren jeweiligen Funktionen.
         """
         # Mess-Steuerungsschaltflächen verbinden
-        # self.ui.buttonStart.clicked.connect(self._start_measurement)
-        # self.ui.buttonStop.clicked.connect(lambda: self._update_measurement(False))
+        self.ui.buttonStart.clicked.connect(self._start_measurement)
+        self.ui.buttonStop.clicked.connect(self._stop_measurement)
         # self.ui.buttonSave.clicked.connect(self._save_measurement)
         self.ui.buttonSetting.clicked.connect(self._apply_settings)
 
@@ -154,8 +159,11 @@ class MainWindow(QMainWindow):
     def _setup_timers(self):
         """
         Richtet alle Timer für die Anwendung ein.
-        Die Datenerfassung erfolgt nun automatisch im Hintergrund durch den DeviceManager,
-        daher werden nur noch UI-bezogene Timer benötigt.
+
+        Messdaten werden im Hintergrund vom ``DeviceManager`` erfasst. Die
+        Geräteeinstellungen werden hingegen ausschließlich über diesen Timer
+        abgefragt, sobald keine Messung aktiv ist. Dadurch entfällt das
+        ``time.sleep`` in der Erfassungsschleife und die UI bleibt reaktionsfähig.
         """
         # Timer für Steuerelemente-Updates
         self.control_update_timer = QTimer(self)
@@ -166,6 +174,34 @@ class MainWindow(QMainWindow):
         self.stats_timer = QTimer(self)
         self.stats_timer.timeout.connect(self._update_statistics)
         self.stats_timer.start(CONFIG["timers"]["statistics_update_interval"])
+
+    #
+    # 2a. MEASUREMENT CONTROL
+    #
+
+    def _start_measurement(self):
+        """Start measurement and adjust UI."""
+        if self.device_manager.start_measurement():
+            self.is_measuring = True
+            self.control_update_timer.stop()
+            self.ui.buttonStart.setEnabled(False)
+            self.ui.buttonStop.setEnabled(True)
+            self.statusbar.temp_message(
+                CONFIG["messages"]["measurement_running"],
+                CONFIG["colors"]["orange"],
+            )
+
+    def _stop_measurement(self):
+        """Stop measurement and resume config polling."""
+        self.device_manager.stop_measurement()
+        self.is_measuring = False
+        self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
+        self.ui.buttonStart.setEnabled(True)
+        self.ui.buttonStop.setEnabled(False)
+        self.statusbar.temp_message(
+            CONFIG["messages"]["measurement_stopped"],
+            CONFIG["colors"]["red"],
+        )
 
     #
     # 2. DATENVERARBEITUNG UND STATISTIK

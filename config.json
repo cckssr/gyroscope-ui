@@ -1,98 +1,102 @@
 {
-  "description": "Zentrale Konfigurationsdatei für die HRNGGUI-Anwendung. Stellt Konstanten und Standardwerte für die gesamte Anwendung bereit.",
+  "de": {
+    "description": "Zentrale Konfigurationsdatei für die HRNGGUI-Anwendung. Stellt Konstanten und Standardwerte für die gesamte Anwendung bereit.",
 
-  "application": {
-    "name": "Geiger-Müller Zähler GUI",
-    "version": "1.0.0",
-    "author": "C. Kessler, H. Celik"
-  },
-
-  "debug": {
-    "level_default": "verbose"
-  },
-
-  "plot": {
-    "max_points": 50,
-    "x_label": "Ereignis k",
-    "y_label": "Zeit / µs"
-  },
-
-  "timers": {
-    "control_update_interval": 1000,
-    "statistics_update_interval": 2000,
-    "acquisition_timer_interval": 100
-  },
-
-  "data_controller": {
-    "max_history_size": 100
-  },
-
-  "gm_counter": {
-    "default_voltage": 500,
-    "count_time_map": {
-      "0": 999,
-      "1": 1,
-      "2": 10,
-      "3": 60,
-      "4": 100,
-      "5": 300
+    "application": {
+      "name": "Geiger-Müller Zähler GUI",
+      "version": "1.0.0",
+      "author": "C. Kessler, H. Celik"
     },
-    "label_map": {
-      "repeat_on": "Wiederholung",
-      "repeat_off": "Einzel",
-      "auto_on": "Automatik",
-      "auto_off": "Manuell"
+
+    "debug": {
+      "level_default": "verbose"
+    },
+
+    "plot": {
+      "max_points": 50,
+      "x_label": "Ereignis k",
+      "y_label": "Zeit / µs"
+    },
+
+    "timers": {
+      "control_update_interval": 1000,
+      "statistics_update_interval": 2000,
+      "acquisition_timer_interval": 100
+    },
+
+    "data_controller": {
+      "max_history_size": 1000
+    },
+
+    "gm_counter": {
+      "demo_mode": true,
+      "default_arduino": "UNO",
+      "default_voltage": 500,
+      "count_time_map": {
+        "0": 999,
+        "1": 1,
+        "2": 10,
+        "3": 60,
+        "4": 100,
+        "5": 300
+      },
+      "label_map": {
+        "repeat_on": "Wiederholung",
+        "repeat_off": "Einzel",
+        "auto_on": "Automatik",
+        "auto_off": "Manuell"
+      }
+    },
+
+    "colors": {
+      "green": "green",
+      "red": "red",
+      "orange": "orange",
+      "blue": "blue"
+    },
+
+    "radioactive_samples": [
+      "E87198",
+      "E93652",
+      "E62894",
+      "E89152",
+      "E99208",
+      "E30347",
+      "E95829",
+      "E96269",
+      "E55600",
+      "E76054",
+      "E44367",
+      "E82518",
+      "E23303",
+      "E92206",
+      "E03607",
+      "E00200",
+      "E34316",
+      "E32090",
+      "E52165",
+      "E54024",
+      "E43002",
+      "E38069",
+      "E93945",
+      "E78857",
+      "E80533",
+      "E67594",
+      "E63699",
+      "E75572"
+    ],
+
+    "messages": {
+      "app_init": "Anwendung wird initialisiert...",
+      "connected": "Verbunden mit {}. Bereit für Messungen.",
+      "measurement_running": "Messung läuft...",
+      "measurement_stopped": "Messung gestoppt.",
+      "measurement_ended": "Messung beendet. Bereit zum Speichern oder für eine neue Messung.",
+      "settings_applied": "Einstellungen erfolgreich angewendet.",
+      "data_saved": "Daten gespeichert in {}",
+      "no_data": "Es sind keine Messdaten zum Speichern verfügbar.",
+      "unsaved_data": "Sie haben ungespeicherte Messdaten. Möchten Sie diese verwerfen und eine neue Messung starten?",
+      "connection_failed": "Verbindung zum Gerät fehlgeschlagen. Anwendung wird beendet."
     }
-  },
-
-  "colors": {
-    "green": "green",
-    "red": "red",
-    "orange": "orange",
-    "blue": "blue"
-  },
-
-  "radioactive_samples": [
-    "E87198",
-    "E93652",
-    "E62894",
-    "E89152",
-    "E99208",
-    "E30347",
-    "E95829",
-    "E96269",
-    "E55600",
-    "E76054",
-    "E44367",
-    "E82518",
-    "E23303",
-    "E92206",
-    "E03607",
-    "E00200",
-    "E34316",
-    "E32090",
-    "E52165",
-    "E54024",
-    "E43002",
-    "E38069",
-    "E93945",
-    "E78857",
-    "E80533",
-    "E67594",
-    "E63699",
-    "E75572"
-  ],
-
-  "messages": {
-    "app_init": "Anwendung wird initialisiert...",
-    "connected": "Verbunden mit {}. Bereit für Messungen.",
-    "measurement_running": "Messung läuft...",
-    "measurement_stopped": "Messung gestoppt.",
-    "measurement_ended": "Messung beendet. Bereit zum Speichern oder für eine neue Messung.",
-    "settings_applied": "Einstellungen erfolgreich angewendet.",
-    "data_saved": "Daten gespeichert in {}",
-    "no_data": "Es sind keine Messdaten zum Speichern verfügbar.",
-    "unsaved_data": "Sie haben ungespeicherte Messdaten. Möchten Sie diese verwerfen und eine neue Messung starten?",
-    "connection_failed": "Verbindung zum Gerät fehlgeschlagen. Anwendung wird beendet."
   }
 }
