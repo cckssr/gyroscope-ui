@@ -24,7 +24,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt, QTimer
 
 from src.main_window import MainWindow
-from src.connection import DeviceManager
+from src.device_manager import DeviceManager
 
 
 class IntegrationTest(unittest.TestCase):

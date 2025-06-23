@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QVBoxLayout,
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
-from src.connection import DeviceManager
+from src.device_manager import DeviceManager
 from src.control import ControlWidget
 from src.plot import PlotWidget
 from src.debug_utils import Debug

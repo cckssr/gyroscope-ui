@@ -1,7 +1,7 @@
 import time
 from typing import Union
 from src.debug_utils import Debug
-from src.connection import DeviceManager
+from src.device_manager import DeviceManager
 from src.helper_classes import import_config
 
 CONFIG = import_config()
