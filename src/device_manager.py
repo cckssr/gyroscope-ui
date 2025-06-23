@@ -40,13 +40,10 @@ class DataAcquisitionThread(QThread):
                         self.data_point.emit(index, value)
                         index += 1
                     else:
-                        data = self.manager.device.get_data(True)
-                        if data and isinstance(data, dict):
-                            value = data.get("count")
-                            if value is not None:
-                                self.data_point.emit(index, float(value))
-                                index += 1
-                        time.sleep(1)
+                        # Configuration polling now happens via QTimer in
+                        # MainWindow, so we simply idle briefly when no
+                        # measurement is active.
+                        time.sleep(0.1)
                 else:
                     time.sleep(0.1)
             except Exception as exc:  # pragma: no cover - unexpected errors

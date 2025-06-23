@@ -159,8 +159,11 @@ class MainWindow(QMainWindow):
     def _setup_timers(self):
         """
         Richtet alle Timer für die Anwendung ein.
-        Die Datenerfassung erfolgt nun automatisch im Hintergrund durch den DeviceManager,
-        daher werden nur noch UI-bezogene Timer benötigt.
+
+        Messdaten werden im Hintergrund vom ``DeviceManager`` erfasst. Die
+        Geräteeinstellungen werden hingegen ausschließlich über diesen Timer
+        abgefragt, sobald keine Messung aktiv ist. Dadurch entfällt das
+        ``time.sleep`` in der Erfassungsschleife und die UI bleibt reaktionsfähig.
         """
         # Timer für Steuerelemente-Updates
         self.control_update_timer = QTimer(self)
