@@ -87,6 +87,11 @@ class MainWindow(QMainWindow):
         self.device_manager.data_callback = self.handle_data
         self.device_manager.status_callback = self.statusbar.temp_message
 
+        # Ensure the acquisition thread forwards data to this window. When the
+        # connection dialog created the DeviceManager the acquisition thread may
+        # already be running without our callback connected.
+        self.device_manager.start_acquisition()
+
     def _setup_controls(self):
         self.control = ControlWidget(
             device_manager=self.device_manager,

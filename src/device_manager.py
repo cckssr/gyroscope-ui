@@ -107,9 +107,14 @@ class DeviceManager:
         self.connected = False
 
     def start_acquisition(self) -> bool:
-        """Start the acquisition thread using QThread."""
+        """Start or (re)connect the acquisition thread."""
         if self.acquire_thread and self.acquire_thread.isRunning():
+            if self.data_callback:
+                # Ensure our callback is connected even if the thread was
+                # started before the callback was assigned.
+                self.acquire_thread.data_point.connect(self.data_callback)
             return True
+
         self.acquire_thread = DataAcquisitionThread(self)
         if self.data_callback:
             self.acquire_thread.data_point.connect(self.data_callback)
