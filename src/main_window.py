@@ -122,8 +122,8 @@ class MainWindow(QMainWindow):
         Verbindet die Schaltflächen mit ihren jeweiligen Funktionen.
         """
         # Mess-Steuerungsschaltflächen verbinden
-        # self.ui.buttonStart.clicked.connect(self._start_measurement)
-        # self.ui.buttonStop.clicked.connect(lambda: self._update_measurement(False))
+        self.ui.buttonStart.clicked.connect(self._start_measurement)
+        self.ui.buttonStop.clicked.connect(self._stop_measurement)
         # self.ui.buttonSave.clicked.connect(self._save_measurement)
         self.ui.buttonSetting.clicked.connect(self._apply_settings)
 
@@ -166,6 +166,34 @@ class MainWindow(QMainWindow):
         self.stats_timer = QTimer(self)
         self.stats_timer.timeout.connect(self._update_statistics)
         self.stats_timer.start(CONFIG["timers"]["statistics_update_interval"])
+
+    #
+    # 2a. MEASUREMENT CONTROL
+    #
+
+    def _start_measurement(self):
+        """Start measurement and adjust UI."""
+        if self.device_manager.start_measurement():
+            self.is_measuring = True
+            self.control_update_timer.stop()
+            self.ui.buttonStart.setEnabled(False)
+            self.ui.buttonStop.setEnabled(True)
+            self.statusbar.temp_message(
+                CONFIG["messages"]["measurement_running"],
+                CONFIG["colors"]["orange"],
+            )
+
+    def _stop_measurement(self):
+        """Stop measurement and resume config polling."""
+        self.device_manager.stop_measurement()
+        self.is_measuring = False
+        self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
+        self.ui.buttonStart.setEnabled(True)
+        self.ui.buttonStop.setEnabled(False)
+        self.statusbar.temp_message(
+            CONFIG["messages"]["measurement_stopped"],
+            CONFIG["colors"]["red"],
+        )
 
     #
     # 2. DATENVERARBEITUNG UND STATISTIK

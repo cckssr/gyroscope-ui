@@ -2,10 +2,9 @@
 
 from typing import Callable, Optional
 import time
-import random
 from threading import Event
 
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QThread, Signal
 
 from src.arduino import GMCounter
 from src.debug_utils import Debug
@@ -13,6 +12,8 @@ from src.debug_utils import Debug
 
 class DataAcquisitionThread(QThread):
     """Background thread that pulls data from the device."""
+
+    data_point = Signal(int, float)
 
     def __init__(self, manager: "DeviceManager") -> None:
         super().__init__()
@@ -25,17 +26,29 @@ class DataAcquisitionThread(QThread):
         Debug.info("Acquisition thread started")
         while self._running and not self.isInterruptionRequested():
             try:
-                if self.manager.port == "/dev/ttymock":
-                    index = self.manager._generate_mock(index)
-                    continue
                 if self.manager.device and self.manager.connected:
-                    data = self.manager.device.get_data(True)
-                    if data and isinstance(data, dict):
-                        value = data.get("count")
-                        if value is not None and self.manager.data_callback:
-                            self.manager.data_callback(index, value)
-                            index += 1
-                time.sleep(0.1)
+                    if self.manager.measurement_active:
+                        line = self.manager.device.read_value()
+                        if line is None:
+                            continue
+                        try:
+                            value = float(line)
+                        except ValueError:
+                            # Probably measurement stopped, switch mode
+                            self.manager.measurement_active = False
+                            continue
+                        self.data_point.emit(index, value)
+                        index += 1
+                    else:
+                        data = self.manager.device.get_data(True)
+                        if data and isinstance(data, dict):
+                            value = data.get("count")
+                            if value is not None:
+                                self.data_point.emit(index, float(value))
+                                index += 1
+                        time.sleep(1)
+                else:
+                    time.sleep(0.1)
             except Exception as exc:  # pragma: no cover - unexpected errors
                 Debug.error(f"Acquisition error: {exc}")
                 time.sleep(0.5)
@@ -62,17 +75,12 @@ class DeviceManager:
         self.device: Optional[GMCounter] = None
         self.acquire_thread: Optional[DataAcquisitionThread] = None
         self.stop_event = Event()
+        self.measurement_active = False
 
     def connect(self, port: str) -> bool:
         """Connect to the given serial port."""
         self.port = port
         self.disconnect()
-        if port == "/dev/ttymock":
-            self.connected = True
-            if self.status_callback:
-                self.status_callback(f"Connected to mock port {port}", "orange")
-            self.start_acquisition()
-            return True
         try:
             self.device = GMCounter(port=port)
             self.connected = True
@@ -103,6 +111,8 @@ class DeviceManager:
         if self.acquire_thread and self.acquire_thread.isRunning():
             return True
         self.acquire_thread = DataAcquisitionThread(self)
+        if self.data_callback:
+            self.acquire_thread.data_point.connect(self.data_callback)
         self.acquire_thread.start()
         return True
 
@@ -113,10 +123,26 @@ class DeviceManager:
         self.acquire_thread = None
         return True
 
-    # Helper for mock data
-    def _generate_mock(self, index: int) -> int:
-        value = random.randint(50, 150) * 10
-        if self.data_callback:
-            self.data_callback(index, value)
-        time.sleep(0.05 + random.random() * 0.05)
-        return index + 1
+    def start_measurement(self) -> bool:
+        """Send start command to device and enable fast acquisition."""
+        if not (self.device and self.connected):
+            return False
+        try:
+            self.device.set_counting(True)
+            self.measurement_active = True
+            return True
+        except Exception as exc:  # pragma: no cover - unexpected errors
+            Debug.error(f"Failed to start measurement: {exc}")
+            return False
+
+    def stop_measurement(self) -> bool:
+        """Stop counting and resume configuration polling."""
+        if not (self.device and self.connected):
+            self.measurement_active = False
+            return False
+        try:
+            self.device.set_counting(False)
+        except Exception as exc:  # pragma: no cover - unexpected errors
+            Debug.error(f"Failed to stop measurement: {exc}")
+        self.measurement_active = False
+        return True
