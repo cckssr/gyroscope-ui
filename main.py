@@ -6,7 +6,10 @@ HRNGGUI - Hauptprogramm für die Geiger-Müller Counter GUI-Anwendung.
 """
 
 import sys
-from PySide6.QtWidgets import QApplication, QMessageBox  # pylint: disable=import-error
+from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
+    QApplication,
+    QMessageBox,
+)
 from src.debug_utils import Debug
 from src.connection import ConnectionWindow
 from src.main_window import MainWindow
@@ -40,7 +43,7 @@ def main():
     app.setQuitOnLastWindowClosed(True)
 
     # Verbindungsdialog anzeigen
-    connection_dialog = ConnectionWindow()
+    connection_dialog = ConnectionWindow(demo_mode=True)
 
     # Wenn der Dialog bestätigt wurde, Verbindung herstellen
     if connection_dialog.exec():

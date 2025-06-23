@@ -29,7 +29,7 @@ class DataAcquisitionThread(QThread):
                     index = self.manager._generate_mock(index)
                     continue
                 if self.manager.device and self.manager.connected:
-                    data = self.manager.device.get_data(False)
+                    data = self.manager.device.get_data(True)
                     if data and isinstance(data, dict):
                         value = data.get("count")
                         if value is not None and self.manager.data_callback:

@@ -130,7 +130,8 @@ class Arduino:
             # Check if there is data available to read
             if self.serial.in_waiting > 0:
                 # Read until newline or carriage return
-                response = self.serial.readline().decode("utf-8").strip()
+                response = self.serial.readline()
+                response = response.decode("utf-8").strip()
 
                 # Debug output
                 Debug.debug(f"Received raw data: '{response}'")
@@ -181,7 +182,7 @@ class Arduino:
 
 class GMCounter(Arduino):
     """
-    A class to represent a GM counter connected to an Arduino. 
+    A class to represent a GM counter connected to an Arduino.
     Class only for communication with GM counters and basic validity checks.
 
     Inherits from the Arduino class and provides additional functionality specific to GM counters.
