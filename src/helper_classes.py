@@ -1,6 +1,7 @@
 import re
 import json
 from datetime import datetime
+
 try:  # pragma: no cover - allow usage without Qt installation
     from PySide6.QtWidgets import (
         QStatusBar,
@@ -13,6 +14,7 @@ try:  # pragma: no cover - allow usage without Qt installation
     )
     from PySide6.QtCore import QTimer
 except Exception:  # Fallback stubs for headless testing
+
     class QStatusBar:  # pragma: no cover - stub
         def __init__(self):
             pass
@@ -63,6 +65,8 @@ except Exception:  # Fallback stubs for headless testing
         @staticmethod
         def singleShot(*args, **kwargs):
             pass
+
+
 from pyqt.ui_alert import Ui_Dialog
 from src.debug_utils import Debug
 
@@ -324,15 +328,18 @@ class SaveManager:
         return f"{timestamp}-{rad_sample}{suffix}"
 
 
-def import_config():
+def import_config(language: str = "de") -> dict:
     """
-    Imports the configuration from config.json.
+    Imports the language-specific configuration from config.json.
+    Args:
+        language (str): The language code to load the configuration for (default is "de").
     Returns:
         dict: The configuration dictionary.
     """
     try:
         with open("config.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+            config = json.load(f)
+            return config[language]
     except FileNotFoundError:
         Debug.error(
             "config.json not found. Please ensure it exists in the project root."

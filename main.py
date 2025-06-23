@@ -43,7 +43,7 @@ def main():
     app.setQuitOnLastWindowClosed(True)
 
     # Verbindungsdialog anzeigen
-    connection_dialog = ConnectionWindow(demo_mode=True)
+    connection_dialog = ConnectionWindow(demo_mode=CONFIG["gm_counter"]["demo_mode"])
 
     # Wenn der Dialog bestätigt wurde, Verbindung herstellen
     if connection_dialog.exec():

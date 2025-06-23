@@ -4,7 +4,7 @@ from typing import Callable, Optional
 import time
 from threading import Event
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal  # pylint: disable=no-name-in-module
 
 from src.arduino import GMCounter
 from src.debug_utils import Debug

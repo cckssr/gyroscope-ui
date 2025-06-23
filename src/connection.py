@@ -103,7 +103,7 @@ class ConnectionWindow(QDialog):
         for i, port in enumerate(ports):
             Debug.debug(f"Found port: {port.device} - {port.description}")
             self.ports.append(
-                [port.name, port.device, port.description]
+                [port.device, port.name, port.description]
             )  # Store port object for later use
             # Check if the port matches the default device
             if self.default_device in port.description and arduino_index == -1:
