@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 14.0.2, 2025-06-02T21:42:44. -->
+<!-- Written by QtCreator 14.0.2, 2025-06-23T19:56:41. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -189,7 +189,7 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">main.py</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/main.py</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/main.py</value>
-    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">false</value>
+    <value type="bool" key="ProjectExplorer.RunConfiguration.Customized">true</value>
     <value type="QString" key="PythonEditor.RunConfiguation.Script">/Users/cedric.kessler/TU_Berlin_offline/TutorGP/HRNGGUI/main.py</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>

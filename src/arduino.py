@@ -191,6 +191,8 @@ class GMCounter(Arduino):
     def __init__(self, port: str, baudrate: int = 9600, timeout: float = 1.0):
         super().__init__(port, baudrate, timeout)
         self.reconnect()
+        sleep(0.5)  # Allow time for the Arduino to reset
+        self.set_stream(0)  # Stop streaming by default
 
     def get_data(self, request: bool = True) -> Dict[str, Union[int, bool]]:
         """

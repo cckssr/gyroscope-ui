@@ -30,6 +30,7 @@
 
     "gm_counter": {
       "demo_mode": true,
+      "default_arduino": "UNO",
       "default_voltage": 500,
       "count_time_map": {
         "0": 999,
