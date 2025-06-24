@@ -1,6 +1,8 @@
 import re
+import csv
 import json
 from datetime import datetime
+from pathlib import Path
 
 try:  # pragma: no cover - allow usage without Qt installation
     from PySide6.QtWidgets import (
@@ -67,7 +69,6 @@ except Exception:  # Fallback stubs for headless testing
             pass
 
 
-from pyqt.ui_alert import Ui_Dialog
 from src.debug_utils import Debug
 
 
@@ -169,6 +170,10 @@ class AlertWindow(QDialog):
         buttons=None,
     ) -> None:
         super().__init__(parent)
+        try:
+            from pyqt.ui_alert import Ui_Dialog  # local import to avoid Qt dependency when unused
+        except Exception:  # pragma: no cover - fallback
+            Ui_Dialog = object  # type: ignore
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
         self.setWindowTitle(title)
@@ -298,34 +303,89 @@ class Helper:
 
 
 class SaveManager:
-    """
-    A class to handle file saving operations.
-    Methods:
-        save_file_dialog(parent, file_type: str, file_name: str = ""):
-            Opens a file dialog to save a file with the specified type and name.
-    """
+    """Utility class for storing measurement data and metadata."""
 
-    def filename_auto(self, rad_sample: str, suffix: str = "") -> str:
+    def __init__(self, base_dir: Path | None = None, auto_save: bool = False) -> None:
+        self.base_dir = Path(base_dir or Path.home() / "Documents" / "GMCounter")
+        try:
+            self.base_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as exc:  # pragma: no cover - unlikely
+            Debug.error(f"Failed to create base directory {self.base_dir}: {exc}")
+        self.auto_save = auto_save
+        self.last_saved = True
+
+    def filename_auto(
+        self, rad_sample: str, suffix: str = "", extension: str = ".csv"
+    ) -> str:
+        """Generate a standard file name.
+
+        Parameters
+        ----------
+        rad_sample:
+            Sample identifier to include in the file name.
+        suffix:
+            Optional suffix (``-run1`` etc.).
+        extension:
+            File extension including leading dot.
         """
-        Generates a filename based on the current date and time, with an optional suffix.
-        Args:
-            rad_sample (str): The sample name to include in the filename.
-            suffix (str): An optional suffix to append to the filename.
-        Returns:
-            str: The generated filename.
-        """
-        # Check if radioactive sample name is provided
+
         if not rad_sample:
             Debug.error("Radioactive sample name cannot be empty.")
             return ""
 
-        now = datetime.now()
-        timestamp = now.strftime("%Y_%m_%d")
-
+        timestamp = datetime.now().strftime("%Y_%m_%d")
         if suffix and not suffix.startswith("-"):
             suffix = "-" + suffix
+        return f"{timestamp}-{rad_sample}{suffix}{extension}"
 
-        return f"{timestamp}-{rad_sample}{suffix}"
+    def mark_unsaved(self) -> None:
+        """Mark the current measurement as not yet saved."""
+
+        self.last_saved = False
+
+    def has_unsaved(self) -> bool:
+        """Return ``True`` if a measurement has not been saved."""
+
+        return not self.last_saved
+
+    def create_metadata(
+        self,
+        start: datetime,
+        end: datetime,
+        author: str,
+        sample: str,
+        extra: dict | None = None,
+    ) -> dict:
+        """Create metadata dictionary following basic Dublin Core fields."""
+
+        metadata = {
+            "dc:date": start.strftime("%Y-%m-%d"),
+            "dc:creator": author,
+            "dc:title": sample,
+            "start_time": start.isoformat(),
+            "end_time": end.isoformat(),
+        }
+        if extra:
+            metadata.update(extra)
+        return metadata
+
+    def save_measurement(
+        self, file_name: str, data: list[list[str]], metadata: dict
+    ) -> Path:
+        """Save CSV data and accompanying metadata."""
+
+        csv_path = self.base_dir / file_name
+        try:
+            with open(csv_path, "w", newline="", encoding="utf-8") as csv_f:
+                writer = csv.writer(csv_f)
+                writer.writerows(data)
+            with open(csv_path.with_suffix(".json"), "w", encoding="utf-8") as js_f:
+                json.dump(metadata, js_f, indent=2)
+            self.last_saved = True
+            Debug.info(f"Saved measurement to {csv_path}")
+        except Exception as exc:  # pragma: no cover - file system errors
+            Debug.error(f"Failed to save measurement: {exc}", exc_info=exc)
+        return csv_path
 
 
 def import_config(language: str = "de") -> dict:

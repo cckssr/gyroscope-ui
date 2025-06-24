@@ -9,7 +9,7 @@ from src.device_manager import DeviceManager
 from src.control import ControlWidget
 from src.plot import PlotWidget
 from src.debug_utils import Debug
-from src.helper_classes import import_config, Statusbar
+from src.helper_classes import import_config, Statusbar, SaveManager
 from src.data_controller import DataController
 from pyqt.ui_mainwindow import Ui_MainWindow
 
@@ -48,6 +48,10 @@ class MainWindow(QMainWindow):
         # Status der Messung
         self.is_measuring = False
         self.data_saved = True
+        self.save_manager = SaveManager()
+        self.measurement_start = None
+        self._elapsed_seconds = 0
+        self._measurement_timer: QTimer | None = None
 
         # Statusleiste für Feedback initialisieren
         self.statusbar = Statusbar(self.ui.statusBar)
@@ -182,12 +186,36 @@ class MainWindow(QMainWindow):
 
     def _start_measurement(self):
         """Start measurement and adjust UI."""
+        if self.save_manager.has_unsaved():
+            reply = QMessageBox.question(
+                self,
+                "Warnung",
+                CONFIG["messages"]["unsaved_data"],
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if reply == QMessageBox.No:
+                return
+
         if self.device_manager.start_measurement():
             self.is_measuring = True
             self.control_update_timer.stop()
             self.ui.buttonStart.setEnabled(False)
             self.ui.buttonSetting.setEnabled(False)
             self.ui.buttonStop.setEnabled(True)
+            self.measurement_start = datetime.now()
+            self._elapsed_seconds = 0
+            duration_idx = self.ui.sDuration.currentIndex()
+            seconds = CONFIG["gm_counter"]["count_time_map"].get(str(duration_idx), 0)
+            if seconds != 999:
+                self.progressBar.setMaximum(seconds)
+                self.progressBar.setValue(0)
+                self._measurement_timer = QTimer(self)
+                self._measurement_timer.timeout.connect(self._update_progress)
+                self._measurement_timer.start(1000)
+            else:
+                self.progressBar.setMaximum(0)
+                self.progressBar.setValue(0)
             self.statusbar.temp_message(
                 CONFIG["messages"]["measurement_running"],
                 CONFIG["colors"]["orange"],
@@ -197,6 +225,9 @@ class MainWindow(QMainWindow):
         """Stop measurement and resume config polling."""
         self.device_manager.stop_measurement()
         self.is_measuring = False
+        if self._measurement_timer:
+            self._measurement_timer.stop()
+            self._measurement_timer = None
         self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
         self.ui.buttonStart.setEnabled(True)
         self.ui.buttonSetting.setEnabled(True)
@@ -205,6 +236,17 @@ class MainWindow(QMainWindow):
             CONFIG["messages"]["measurement_stopped"],
             CONFIG["colors"]["red"],
         )
+        if self.save_manager.auto_save and not self.save_manager.last_saved:
+            data = self.data_controller.get_csv_data()
+            rad_sample = self.ui.radSample.currentText() or "sample"
+            file_name = self.save_manager.filename_auto(rad_sample)
+            meta = self.save_manager.create_metadata(
+                self.measurement_start or datetime.now(),
+                datetime.now(),
+                CONFIG["application"]["author"],
+                rad_sample,
+            )
+            self.save_manager.save_measurement(file_name, data, meta)
 
     #
     # 2. DATENVERARBEITUNG UND STATISTIK
@@ -222,6 +264,7 @@ class MainWindow(QMainWindow):
         self.data_controller.add_data_point(index, value)
         # Daten als ungespeichert markieren
         self.data_saved = False
+        self.save_manager.mark_unsaved()
 
         # Statistiken nur bei jeder 5. Aktualisierung aktualisieren, um die Performance zu verbessern
         if hasattr(self, "_stats_counter"):
@@ -268,6 +311,17 @@ class MainWindow(QMainWindow):
             Debug.error(
                 f"Fehler beim Aktualisieren der Statistiken: {e}", exc_info=True
             )
+
+    def _update_progress(self) -> None:
+        """Update progress bar during finite measurements."""
+
+        self._elapsed_seconds += 1
+        self.progressBar.setValue(self._elapsed_seconds)
+        if (
+            self.progressBar.maximum() > 0
+            and self._elapsed_seconds >= self.progressBar.maximum()
+        ):
+            self._stop_measurement()
 
     #
     # 3. Gerätesteuerung
