@@ -90,10 +90,6 @@ class DataController:
             if self.plot:
                 self.plot.update_plot((index_num, value_num))
 
-            # Update display widget
-            if self.display:
-                self.display.display(value_num)
-
             # Update history list widget
             if self.history:
                 # Insert new item at the top

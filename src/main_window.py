@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QMainWindow,
     QVBoxLayout,
     QCompleter,
+    QMessageBox,
 )
 from PySide6.QtCore import QTimer, Qt  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
@@ -12,6 +13,7 @@ from src.debug_utils import Debug
 from src.helper_classes import import_config, Statusbar, SaveManager
 from src.data_controller import DataController
 from pyqt.ui_mainwindow import Ui_MainWindow
+from datetime import datetime
 
 
 # Import settings and messages
@@ -191,10 +193,10 @@ class MainWindow(QMainWindow):
                 self,
                 "Warnung",
                 CONFIG["messages"]["unsaved_data"],
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
             )
-            if reply == QMessageBox.No:
+            if reply == QMessageBox.StandardButton.No:
                 return
 
         if self.device_manager.start_measurement():
@@ -203,19 +205,20 @@ class MainWindow(QMainWindow):
             self.ui.buttonStart.setEnabled(False)
             self.ui.buttonSetting.setEnabled(False)
             self.ui.buttonStop.setEnabled(True)
+            self.ui.buttonSave.setEnabled(False)
             self.measurement_start = datetime.now()
             self._elapsed_seconds = 0
             duration_idx = self.ui.sDuration.currentIndex()
             seconds = CONFIG["gm_counter"]["count_time_map"].get(str(duration_idx), 0)
             if seconds != 999:
-                self.progressBar.setMaximum(seconds)
-                self.progressBar.setValue(0)
+                self.ui.progressBar.setMaximum(seconds)
+                self.ui.progressBar.setValue(0)
                 self._measurement_timer = QTimer(self)
                 self._measurement_timer.timeout.connect(self._update_progress)
                 self._measurement_timer.start(1000)
             else:
-                self.progressBar.setMaximum(0)
-                self.progressBar.setValue(0)
+                self.ui.progressBar.setMaximum(0)
+                self.ui.progressBar.setValue(0)
             self.statusbar.temp_message(
                 CONFIG["messages"]["measurement_running"],
                 CONFIG["colors"]["orange"],
@@ -232,6 +235,7 @@ class MainWindow(QMainWindow):
         self.ui.buttonStart.setEnabled(True)
         self.ui.buttonSetting.setEnabled(True)
         self.ui.buttonStop.setEnabled(False)
+        self.ui.buttonSave.setEnabled(True)
         self.statusbar.temp_message(
             CONFIG["messages"]["measurement_stopped"],
             CONFIG["colors"]["red"],
@@ -267,13 +271,13 @@ class MainWindow(QMainWindow):
         self.save_manager.mark_unsaved()
 
         # Statistiken nur bei jeder 5. Aktualisierung aktualisieren, um die Performance zu verbessern
-        if hasattr(self, "_stats_counter"):
-            self._stats_counter += 1
-            if self._stats_counter >= 5:
-                self._update_statistics()
-                self._stats_counter = 0
-        else:
-            self._stats_counter = 0
+        # if hasattr(self, "_stats_counter"):
+        #     self._stats_counter += 1
+        #     if self._stats_counter >= 5:
+        #         self._update_statistics()
+        #         self._stats_counter = 0
+        # else:
+        #     self._stats_counter = 0
 
     def _update_statistics(self):
         """
@@ -297,10 +301,6 @@ class MainWindow(QMainWindow):
                 if stats["count"] > 1:
                     stats_text += f" | σ: {stats['stdev']:.2f} µs"
 
-                # Status-Text aktualisieren, falls verfügbar
-                if hasattr(self.ui, "statusText"):
-                    self.ui.statusText.setText(stats_text)
-
                 # Statusleiste kurzzeitig aktualisieren, wenn eine Messung läuft
                 if self.is_measuring:
                     self.statusbar.temp_message(
@@ -316,10 +316,10 @@ class MainWindow(QMainWindow):
         """Update progress bar during finite measurements."""
 
         self._elapsed_seconds += 1
-        self.progressBar.setValue(self._elapsed_seconds)
+        self.ui.progressBar.setValue(self._elapsed_seconds)
         if (
-            self.progressBar.maximum() > 0
-            and self._elapsed_seconds >= self.progressBar.maximum()
+            self.ui.progressBar.maximum() > 0
+            and self._elapsed_seconds >= self.ui.progressBar.maximum()
         ):
             self._stop_measurement()
 
