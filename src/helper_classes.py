@@ -305,6 +305,37 @@ class Helper:
             event.ignore()
 
 
+class MessageHelper:
+    """Utility functions for showing standard message dialogs."""
+
+    @staticmethod
+    def info(parent: QWidget, message: str, title: str = "Information") -> None:
+        QMessageBox.information(parent, title, message, QMessageBox.StandardButton.Ok)
+
+    @staticmethod
+    def warning(parent: QWidget, message: str, title: str = "Warning") -> None:
+        QMessageBox.warning(parent, title, message, QMessageBox.StandardButton.Ok)
+
+    @staticmethod
+    def error(parent: QWidget, message: str, title: str = "Error") -> None:
+        QMessageBox.critical(parent, title, message, QMessageBox.StandardButton.Ok)
+
+    @staticmethod
+    def question(
+        parent: QWidget,
+        message: str,
+        title: str = "Question",
+    ) -> bool:
+        reply = QMessageBox.question(
+            parent,
+            title,
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
+
+
 class SaveManager:
     """Utility class for storing measurement data and metadata."""
 
@@ -372,9 +403,12 @@ class SaveManager:
     ) -> dict:
         """Create metadata dictionary following basic Dublin Core fields."""
 
+        group_name = (
+            group if group and len(str(group)) > 1 else self._create_group_name(group)
+        )
         metadata = {
             "dc:date": start.strftime("%Y-%m-%d"),
-            "dc:creator": self._create_group_name(group),
+            "dc:creator": group_name,
             "dc:title": sample,
             "start_time": start.isoformat(),
             "end_time": end.isoformat(),
@@ -387,9 +421,15 @@ class SaveManager:
     def save_measurement(
         self, file_name: str, data: list[list[str]], metadata: dict
     ) -> Path:
-        """Save CSV data and accompanying metadata."""
+        """Save CSV data and accompanying metadata.
 
-        csv_path = self.base_dir / file_name
+        ``file_name`` may be an absolute path or a simple file name. Relative
+        names are stored below ``base_dir``.
+        """
+
+        csv_path = Path(file_name)
+        if not csv_path.is_absolute():
+            csv_path = self.base_dir / csv_path
         try:
             with open(csv_path, "w", newline="", encoding="utf-8") as csv_f:
                 writer = csv.writer(csv_f)
@@ -401,6 +441,68 @@ class SaveManager:
         except Exception as exc:  # pragma: no cover - file system errors
             Debug.error(f"Failed to save measurement: {exc}", exc_info=exc)
         return csv_path
+
+    def auto_save_measurement(
+        self,
+        rad_sample: str,
+        group_letter: str,
+        data: list[list[str]],
+        start: datetime,
+        end: datetime,
+        suffix: str = "",
+    ) -> Path | None:
+        """Automatically save data using a generated file name."""
+
+        if not data:
+            Debug.error("No data provided for auto save")
+            return None
+
+        file_name = self.filename_auto(rad_sample, group_letter, suffix)
+        meta = self.create_metadata(start, end, group_letter, rad_sample)
+        return self.save_measurement(file_name, data, meta)
+
+    def manual_save_measurement(
+        self,
+        parent: QWidget,
+        rad_sample: str,
+        group_letter: str,
+        data: list[list[str]],
+        start: datetime,
+        end: datetime,
+    ) -> Path | None:
+        """Open a save dialog and store the measurement."""
+
+        if not data:
+            MessageHelper.warning(
+                parent,
+                "Keine Messdaten zum Speichern vorhanden.",
+                "Warnung",
+            )
+            return None
+
+        if not rad_sample or not group_letter:
+            MessageHelper.warning(
+                parent,
+                "Bitte wählen Sie eine radioaktive Probe und eine Gruppenzuordnung aus.",
+                "Warnung",
+            )
+            return None
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            parent,
+            "Messung speichern",
+            str(self.base_dir),
+            "CSV-Dateien (*.csv);;Alle Dateien (*)",
+            "CSV-Dateien (*.csv)",
+        )
+        if not file_path:
+            return None
+
+        if not file_path.lower().endswith(".csv"):
+            file_path += ".csv"
+
+        meta = self.create_metadata(start, end, group_letter, rad_sample)
+        return self.save_measurement(file_path, data, meta)
 
     def _create_group_name(self, letter: str) -> str:
         """Create a group name based on the letter."""

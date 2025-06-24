@@ -3,7 +3,6 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QMainWindow,
     QVBoxLayout,
     QCompleter,
-    QMessageBox,
     QFileDialog,
 )
 from PySide6.QtCore import QTimer, Qt  # pylint: disable=no-name-in-module
@@ -11,7 +10,12 @@ from src.device_manager import DeviceManager
 from src.control import ControlWidget
 from src.plot import PlotWidget
 from src.debug_utils import Debug
-from src.helper_classes import import_config, Statusbar, SaveManager
+from src.helper_classes import (
+    import_config,
+    Statusbar,
+    SaveManager,
+    MessageHelper,
+)
 from src.data_controller import DataController
 from pyqt.ui_mainwindow import Ui_MainWindow
 from datetime import datetime
@@ -22,18 +26,18 @@ CONFIG = import_config()
 
 
 class MainWindow(QMainWindow):
-    """
-    Hauptfenster der HRNGGUI-Anwendung.
+    """Main window of the HRNGGUI application.
 
-    Verwaltet die Benutzeroberfläche, die Verbindung zum Gerät und
-    die Datenverarbeitung. Die Klasse ist in funktionale Bereiche gegliedert:
+    It handles the user interface, the device connection and the
+    processing of the recorded data.  The implementation is split
+    into several functional sections:
 
-    1. Initialisierung und Setup
-    2. Datenverarbeitung und Statistik
-    3. Messverwaltung
-    4. UI-Event-Handler
-    5. Gerätesteuerung
-    6. Hilfsfunktionen
+    1. Initialization and setup
+    2. Data processing and statistics
+    3. Measurement management
+    4. UI event handlers
+    5. Device control
+    6. Helper functions
     """
 
     def __init__(self, device_manager: DeviceManager, parent=None):
@@ -257,14 +261,11 @@ class MainWindow(QMainWindow):
     def _start_measurement(self):
         """Start measurement and adjust UI."""
         if self.save_manager.has_unsaved():
-            reply = QMessageBox.question(
+            if not MessageHelper.question(
                 self,
-                "Warnung",
                 CONFIG["messages"]["unsaved_data"],
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
-            )
-            if reply == QMessageBox.StandardButton.No:
+                "Warnung",
+            ):
                 return
 
         self.data_controller.clear_data()
@@ -299,16 +300,14 @@ class MainWindow(QMainWindow):
             rad_sample = self.ui.radSample.currentText()
             group_letter = self.ui.groupLetter.currentText()
             suffix = self.ui.suffix.text().strip()
-            file_name = self.save_manager.filename_auto(
-                rad_sample, group_letter, suffix
-            )
-            meta = self.save_manager.create_metadata(
+            saved_path = self.save_manager.auto_save_measurement(
+                rad_sample,
+                group_letter,
+                data,
                 self.measurement_start or datetime.now(),
                 self.measurement_end or datetime.now(),
-                group_letter,
-                rad_sample,
+                suffix,
             )
-            saved_path = self.save_manager.save_measurement(file_name, data, meta)
             if saved_path and saved_path.exists():
                 self.data_saved = True
                 self.ui.buttonSave.setEnabled(False)
@@ -318,11 +317,10 @@ class MainWindow(QMainWindow):
                 )
                 Debug.info(f"Messung automatisch gespeichert: {saved_path}")
             else:
-                QMessageBox.critical(
+                MessageHelper.error(
                     self,
-                    "Fehler",
                     "Fehler beim Speichern der Messung. Siehe Log für Details.",
-                    QMessageBox.StandardButton.Ok,
+                    "Fehler",
                 )
 
     def _save_measurement(self):
@@ -330,64 +328,25 @@ class MainWindow(QMainWindow):
         try:
             # Check if there is data to save
             if not self.save_manager.has_unsaved():
-                QMessageBox.information(
+                MessageHelper.info(
                     self,
-                    "Information",
                     "Keine ungespeicherten Daten vorhanden.",
-                    QMessageBox.StandardButton.Ok,
+                    "Information",
                 )
                 return
 
-            # Get measurement data
             data = self.data_controller.get_csv_data()
-            if not data or len(data) == 0:
-                QMessageBox.warning(
-                    self,
-                    "Warnung",
-                    "Keine Messdaten zum Speichern vorhanden.",
-                    QMessageBox.StandardButton.Ok,
-                )
-                return
-
-            # Get necessary radioactive sample name and group letter
             rad_sample = self.ui.radSample.currentText()
             group_letter = self.ui.groupLetter.currentText()
-            if not rad_sample or not group_letter:
-                QMessageBox.warning(
-                    self,
-                    "Warnung",
-                    "Bitte wählen Sie eine radioaktive Probe und eine Gruppenzuordnung aus.",
-                    QMessageBox.StandardButton.Ok,
-                )
-                return
 
-            # Open file dialog to choose save location and filename
-            file_path, _ = QFileDialog.getSaveFileName(
+            saved_path = self.save_manager.manual_save_measurement(
                 self,
-                "Messung speichern",
-                str(self.save_manager.base_dir),
-                "CSV-Dateien (*.csv);;Alle Dateien (*)",
-                "CSV-Dateien (*.csv)",
-            )
-
-            if not file_path:
-                # User cancelled the dialog
-                return
-
-            # Ensure .csv extension
-            if not file_path.lower().endswith(".csv"):
-                file_path += ".csv"
-
-            # Create metadata
-            meta = self.save_manager.create_metadata(
+                rad_sample,
+                group_letter,
+                data,
                 self.measurement_start or datetime.now(),
                 self.measurement_end or datetime.now(),
-                group_letter,
-                rad_sample,
             )
-
-            # Save the measurement
-            saved_path = self.save_manager.save_measurement(file_path, data, meta)
 
             if saved_path and saved_path.exists():
                 self.data_saved = True
@@ -398,20 +357,18 @@ class MainWindow(QMainWindow):
                 )
                 Debug.info(f"Messung manuell gespeichert: {saved_path}")
             else:
-                QMessageBox.critical(
+                MessageHelper.error(
                     self,
-                    "Fehler",
                     "Fehler beim Speichern der Messung. Siehe Log für Details.",
-                    QMessageBox.StandardButton.Ok,
+                    "Fehler",
                 )
 
         except Exception as e:
             Debug.error(f"Fehler beim manuellen Speichern: {e}")
-            QMessageBox.critical(
+            MessageHelper.error(
                 self,
-                "Fehler",
                 f"Unerwarteter Fehler beim Speichern: {str(e)}",
-                QMessageBox.StandardButton.Ok,
+                "Fehler",
             )
 
     #
@@ -567,12 +524,10 @@ class MainWindow(QMainWindow):
             )
 
     def closeEvent(self, event):
-        """
-        Wird aufgerufen, wenn das Fenster geschlossen wird.
-        Sorgt für ein sauberes Herunterfahren aller Komponenten.
+        """Handle the window close event and shut down all components cleanly.
 
         Args:
-            event: Das Close-Event
+            event: The close event from Qt.
         """
         Debug.info("Anwendung wird geschlossen, fahre Komponenten herunter...")
 
