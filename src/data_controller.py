@@ -9,6 +9,7 @@ try:  # pragma: no cover - optional dependency for headless testing
     from PySide6.QtWidgets import QLCDNumber, QListWidget  # type: ignore
     from PySide6.QtCore import Qt  # type: ignore
 except Exception:  # ImportError or missing Qt libraries
+
     class QLCDNumber:  # pragma: no cover - fallback stub
         def display(self, *args, **kwargs):
             pass
@@ -74,7 +75,7 @@ class DataController:
 
     def add_data_point(self, index: Union[int, str], value: Union[float, str]) -> None:
         """Add a new point and update the optional UI widgets."""
-        
+
         # Ensure numeric values
         try:
             # Sicherstellen, dass die Werte numerisch sind

@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QVBoxLayout,
     QCompleter,
     QMessageBox,
+    QFileDialog,
 )
 from PySide6.QtCore import QTimer, Qt  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
@@ -52,6 +53,7 @@ class MainWindow(QMainWindow):
         self.data_saved = True
         self.save_manager = SaveManager()
         self.measurement_start = None
+        self.measurement_end = None
         self._elapsed_seconds = 0
         self._measurement_timer: QTimer | None = None
 
@@ -136,13 +138,17 @@ class MainWindow(QMainWindow):
         # Mess-Steuerungsschaltflächen verbinden
         self.ui.buttonStart.clicked.connect(self._start_measurement)
         self.ui.buttonStop.clicked.connect(self._stop_measurement)
-        # self.ui.buttonSave.clicked.connect(self._save_measurement)
+        self.ui.buttonSave.clicked.connect(self._save_measurement)
         self.ui.buttonSetting.clicked.connect(self._apply_settings)
 
         # Anfangszustand der Schaltflächen
         self.ui.buttonStart.setEnabled(True)
         self.ui.buttonStop.setEnabled(False)
         self.ui.buttonSave.setEnabled(False)
+
+        # Check auto-save setting
+        self.ui.autoSave.setChecked(self.save_manager.auto_save)
+        self.ui.autoSave.toggled.connect(self._change_auto_save)
 
     def _setup_radioactive_sample_input(self):
         """
@@ -186,6 +192,68 @@ class MainWindow(QMainWindow):
     # 2a. MEASUREMENT CONTROL
     #
 
+    def _set_ui_measuring_state(self) -> None:
+        """
+        Setzt die UI in den Messmodus (Buttons und Timer entsprechend konfigurieren).
+        """
+        self.control_update_timer.stop()
+        self.ui.buttonStart.setEnabled(False)
+        self.ui.buttonSetting.setEnabled(False)
+        self.ui.buttonStop.setEnabled(True)
+        self.ui.buttonSave.setEnabled(False)
+        Debug.debug("UI in Messmodus gesetzt")
+
+    def _set_ui_idle_state(self) -> None:
+        """
+        Setzt die UI in den Ruhemodus (nach beendeter Messung).
+        """
+        self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
+        self.ui.buttonStart.setEnabled(True)
+        self.ui.buttonSetting.setEnabled(True)
+        self.ui.buttonStop.setEnabled(False)
+        # buttonSave wird separat basierend auf vorhandenen Daten aktiviert
+        save_enabled = self.save_manager.has_unsaved()
+        self.ui.buttonSave.setEnabled(save_enabled)
+        Debug.debug(
+            f"UI in Ruhemodus gesetzt (Save-Button: {'aktiviert' if save_enabled else 'deaktiviert'})"
+        )
+
+    def _setup_progress_bar(self, duration_seconds: int) -> None:
+        """
+        Konfiguriert die ProgressBar basierend auf der Messdauer.
+
+        Args:
+            duration_seconds (int): Dauer in Sekunden. 999 bedeutet unendliche Dauer.
+        """
+        if duration_seconds != 999:
+            # Endliche Messdauer - Progress Bar mit Timer
+            self.ui.progressBar.setMaximum(duration_seconds)
+            self.ui.progressBar.setValue(0)
+            self._measurement_timer = QTimer(self)
+            self._measurement_timer.timeout.connect(self._update_progress)
+            self._measurement_timer.start(1000)  # Update every second
+            Debug.debug(f"ProgressBar konfiguriert für {duration_seconds} Sekunden")
+        else:
+            # Unendliche Messdauer - Indeterminate Progress Bar
+            self.ui.progressBar.setMaximum(0)
+            self.ui.progressBar.setValue(0)
+            self._measurement_timer = None
+            Debug.debug("ProgressBar konfiguriert für unendliche Messdauer")
+
+    def _stop_progress_bar(self) -> None:
+        """
+        Stoppt die ProgressBar und den zugehörigen Timer.
+        """
+        if self._measurement_timer:
+            self._measurement_timer.stop()
+            self._measurement_timer = None
+
+        # Reset ProgressBar to idle state
+        self.ui.progressBar.setMaximum(100)
+        self.ui.progressBar.setValue(0)
+        self._elapsed_seconds = 0
+        Debug.debug("ProgressBar gestoppt und zurückgesetzt")
+
     def _start_measurement(self):
         """Start measurement and adjust UI."""
         if self.save_manager.has_unsaved():
@@ -199,26 +267,17 @@ class MainWindow(QMainWindow):
             if reply == QMessageBox.StandardButton.No:
                 return
 
+        self.data_controller.clear_data()
+
         if self.device_manager.start_measurement():
             self.is_measuring = True
-            self.control_update_timer.stop()
-            self.ui.buttonStart.setEnabled(False)
-            self.ui.buttonSetting.setEnabled(False)
-            self.ui.buttonStop.setEnabled(True)
-            self.ui.buttonSave.setEnabled(False)
+            self._set_ui_measuring_state()
             self.measurement_start = datetime.now()
             self._elapsed_seconds = 0
-            duration_idx = self.ui.sDuration.currentIndex()
-            seconds = CONFIG["gm_counter"]["count_time_map"].get(str(duration_idx), 0)
-            if seconds != 999:
-                self.ui.progressBar.setMaximum(seconds)
-                self.ui.progressBar.setValue(0)
-                self._measurement_timer = QTimer(self)
-                self._measurement_timer.timeout.connect(self._update_progress)
-                self._measurement_timer.start(1000)
-            else:
-                self.ui.progressBar.setMaximum(0)
-                self.ui.progressBar.setValue(0)
+            seconds = int(self.ui.cDuration.value())
+            if seconds == 0:
+                seconds = 999
+            self._setup_progress_bar(seconds)
             self.statusbar.temp_message(
                 CONFIG["messages"]["measurement_running"],
                 CONFIG["colors"]["orange"],
@@ -228,29 +287,132 @@ class MainWindow(QMainWindow):
         """Stop measurement and resume config polling."""
         self.device_manager.stop_measurement()
         self.is_measuring = False
-        if self._measurement_timer:
-            self._measurement_timer.stop()
-            self._measurement_timer = None
-        self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
-        self.ui.buttonStart.setEnabled(True)
-        self.ui.buttonSetting.setEnabled(True)
-        self.ui.buttonStop.setEnabled(False)
-        self.ui.buttonSave.setEnabled(True)
+        self.measurement_end = datetime.now()
+        self._stop_progress_bar()
+        self._set_ui_idle_state()
         self.statusbar.temp_message(
             CONFIG["messages"]["measurement_stopped"],
             CONFIG["colors"]["red"],
         )
         if self.save_manager.auto_save and not self.save_manager.last_saved:
             data = self.data_controller.get_csv_data()
-            rad_sample = self.ui.radSample.currentText() or "sample"
-            file_name = self.save_manager.filename_auto(rad_sample)
+            rad_sample = self.ui.radSample.currentText()
+            group_letter = self.ui.groupLetter.currentText()
+            suffix = self.ui.suffix.text().strip()
+            file_name = self.save_manager.filename_auto(
+                rad_sample, group_letter, suffix
+            )
             meta = self.save_manager.create_metadata(
                 self.measurement_start or datetime.now(),
-                datetime.now(),
-                CONFIG["application"]["author"],
+                self.measurement_end or datetime.now(),
+                group_letter,
                 rad_sample,
             )
-            self.save_manager.save_measurement(file_name, data, meta)
+            saved_path = self.save_manager.save_measurement(file_name, data, meta)
+            if saved_path and saved_path.exists():
+                self.data_saved = True
+                self.ui.buttonSave.setEnabled(False)
+                self.statusbar.temp_message(
+                    f"Messung erfolgreich gespeichert: {saved_path}",
+                    CONFIG["colors"]["green"],
+                )
+                Debug.info(f"Messung automatisch gespeichert: {saved_path}")
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Fehler",
+                    "Fehler beim Speichern der Messung. Siehe Log für Details.",
+                    QMessageBox.StandardButton.Ok,
+                )
+
+    def _save_measurement(self):
+        """Manually save the current measurement data using a file dialog."""
+        try:
+            # Check if there is data to save
+            if not self.save_manager.has_unsaved():
+                QMessageBox.information(
+                    self,
+                    "Information",
+                    "Keine ungespeicherten Daten vorhanden.",
+                    QMessageBox.StandardButton.Ok,
+                )
+                return
+
+            # Get measurement data
+            data = self.data_controller.get_csv_data()
+            if not data or len(data) == 0:
+                QMessageBox.warning(
+                    self,
+                    "Warnung",
+                    "Keine Messdaten zum Speichern vorhanden.",
+                    QMessageBox.StandardButton.Ok,
+                )
+                return
+
+            # Get necessary radioactive sample name and group letter
+            rad_sample = self.ui.radSample.currentText()
+            group_letter = self.ui.groupLetter.currentText()
+            if not rad_sample or not group_letter:
+                QMessageBox.warning(
+                    self,
+                    "Warnung",
+                    "Bitte wählen Sie eine radioaktive Probe und eine Gruppenzuordnung aus.",
+                    QMessageBox.StandardButton.Ok,
+                )
+                return
+
+            # Open file dialog to choose save location and filename
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Messung speichern",
+                str(self.save_manager.base_dir),
+                "CSV-Dateien (*.csv);;Alle Dateien (*)",
+                "CSV-Dateien (*.csv)",
+            )
+
+            if not file_path:
+                # User cancelled the dialog
+                return
+
+            # Ensure .csv extension
+            if not file_path.lower().endswith(".csv"):
+                file_path += ".csv"
+
+            # Create metadata
+            meta = self.save_manager.create_metadata(
+                self.measurement_start or datetime.now(),
+                self.measurement_end or datetime.now(),
+                group_letter,
+                rad_sample,
+            )
+
+            # Save the measurement
+            saved_path = self.save_manager.save_measurement(file_path, data, meta)
+
+            if saved_path and saved_path.exists():
+                self.data_saved = True
+                self.ui.buttonSave.setEnabled(False)
+                self.statusbar.temp_message(
+                    f"Messung erfolgreich gespeichert: {saved_path}",
+                    CONFIG["colors"]["green"],
+                )
+                Debug.info(f"Messung manuell gespeichert: {saved_path}")
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Fehler",
+                    "Fehler beim Speichern der Messung. Siehe Log für Details.",
+                    QMessageBox.StandardButton.Ok,
+                )
+
+        except Exception as e:
+            Debug.error(f"Fehler beim manuellen Speichern: {e}")
+            QMessageBox.critical(
+                self,
+                "Fehler",
+                f"Unerwarteter Fehler beim Speichern: {str(e)}",
+                QMessageBox.StandardButton.Ok,
+            )
 
     #
     # 2. DATENVERARBEITUNG UND STATISTIK
@@ -269,6 +431,10 @@ class MainWindow(QMainWindow):
         # Daten als ungespeichert markieren
         self.data_saved = False
         self.save_manager.mark_unsaved()
+
+        # Save-Button aktivieren wenn wir gerade nicht messen (im Idle-Zustand)
+        if not self.is_measuring:
+            self.ui.buttonSave.setEnabled(True)
 
         # Statistiken nur bei jeder 5. Aktualisierung aktualisieren, um die Performance zu verbessern
         # if hasattr(self, "_stats_counter"):
@@ -292,19 +458,20 @@ class MainWindow(QMainWindow):
             if stats["count"] > 0:
                 stats_text = (
                     f"Datenpunkte: {int(stats['count'])} | "
-                    f"Min: {stats['min']:.2f} µs | "
-                    f"Max: {stats['max']:.2f} µs | "
-                    f"Mittelwert: {stats['avg']:.2f} µs"
+                    f"Min: {stats['min']:.0f} µs | "
+                    f"Max: {stats['max']:.0f} µs | "
+                    f"Mittelwert: {stats['avg']:.0f} µs"
                 )
 
                 # Standardabweichung hinzufügen, wenn genügend Datenpunkte vorhanden
                 if stats["count"] > 1:
-                    stats_text += f" | σ: {stats['stdev']:.2f} µs"
+                    stats_text += f" | σ: {stats['stdev']:.0f} µs"
 
                 # Statusleiste kurzzeitig aktualisieren, wenn eine Messung läuft
                 if self.is_measuring:
                     self.statusbar.temp_message(
-                        stats_text, CONFIG["colors"]["blue"], duration=1500
+                        CONFIG["messages"]["measurement_running"] + "\t" + stats_text,
+                        CONFIG["colors"]["orange"],
                     )
 
         except Exception as e:
@@ -377,6 +544,27 @@ class MainWindow(QMainWindow):
             )
         except Exception as e:
             Debug.error(f"Fehler beim Anwenden der Einstellungen: {e}")
+
+    def _change_auto_save(self, checked: bool) -> None:
+        """
+        Callback für die Änderung der Auto-Save-Einstellung.
+
+        Args:
+            checked (bool): Ob Auto-Save aktiviert ist
+        """
+        self.save_manager.auto_save = checked
+        if checked:
+            self.statusbar.temp_message(
+                CONFIG["messages"]["auto_save_enabled"],
+                CONFIG["colors"]["green"],
+                1000,
+            )
+        else:
+            self.statusbar.temp_message(
+                CONFIG["messages"]["auto_save_disabled"],
+                CONFIG["colors"]["green"],
+                1000,
+            )
 
     def closeEvent(self, event):
         """

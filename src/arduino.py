@@ -193,8 +193,8 @@ class GMCounter(Arduino):
     def __init__(self, port: str, baudrate: int = 9600, timeout: float = 1.0):
         super().__init__(port, baudrate, timeout)
         self.reconnect()
-        sleep(1)  # Allow time for the Arduino to reset
-        self.reconnect()  # Ensure the connection is established
+        sleep(0.5)
+        self.reconnect()
         Debug.info("Initializing GMCounter...")
         self.set_stream(0)  # Stop any streaming by default
         self.clear_register()

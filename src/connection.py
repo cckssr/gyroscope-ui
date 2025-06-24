@@ -80,6 +80,7 @@ class ConnectionWindow(QDialog):
         self.ui.status_msg.setText(message)
         self.ui.status_msg.setStyleSheet(f"color: {color};")
         QApplication.processEvents()  # Process events to update UI immediately
+        self.ui.status_msg.repaint()  # Force repaint to ensure message is shown
 
     def _update_ports(self):
         """

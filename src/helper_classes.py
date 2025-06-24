@@ -3,9 +3,10 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Union
 
 try:  # pragma: no cover - allow usage without Qt installation
-    from PySide6.QtWidgets import (
+    from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
         QStatusBar,
         QLabel,
         QMessageBox,
@@ -104,7 +105,7 @@ class Statusbar:
         self.statusbar.setStyleSheet(new_style)
 
         # Set new message and if duration is provided, reset after the duration elapses
-        if duration:
+        if duration != 0:
             self.statusbar.showMessage(message, duration)
             Debug.info(f"Statusbar message: {message} with duration: {duration}")
             # reset to old state after duration
@@ -171,7 +172,9 @@ class AlertWindow(QDialog):
     ) -> None:
         super().__init__(parent)
         try:
-            from pyqt.ui_alert import Ui_Dialog  # local import to avoid Qt dependency when unused
+            from pyqt.ui_alert import (
+                Ui_Dialog,
+            )  # local import to avoid Qt dependency when unused
         except Exception:  # pragma: no cover - fallback
             Ui_Dialog = object  # type: ignore
         self.ui = Ui_Dialog()
@@ -305,7 +308,7 @@ class Helper:
 class SaveManager:
     """Utility class for storing measurement data and metadata."""
 
-    def __init__(self, base_dir: Path | None = None, auto_save: bool = False) -> None:
+    def __init__(self, base_dir: Path = None, auto_save: bool = False) -> None:
         self.base_dir = Path(base_dir or Path.home() / "Documents" / "GMCounter")
         try:
             self.base_dir.mkdir(parents=True, exist_ok=True)
@@ -313,9 +316,14 @@ class SaveManager:
             Debug.error(f"Failed to create base directory {self.base_dir}: {exc}")
         self.auto_save = auto_save
         self.last_saved = True
+        self.index = 0
 
     def filename_auto(
-        self, rad_sample: str, suffix: str = "", extension: str = ".csv"
+        self,
+        rad_sample: str,
+        group_letter: str,
+        suffix: str = "",
+        extension: str = ".csv",
     ) -> str:
         """Generate a standard file name.
 
@@ -323,6 +331,8 @@ class SaveManager:
         ----------
         rad_sample:
             Sample identifier to include in the file name.
+        group_letter:
+            Group letter to include in the file name.
         suffix:
             Optional suffix (``-run1`` etc.).
         extension:
@@ -332,11 +342,15 @@ class SaveManager:
         if not rad_sample:
             Debug.error("Radioactive sample name cannot be empty.")
             return ""
+        if not group_letter:
+            Debug.error("Group letter cannot be empty.")
+            return ""
 
         timestamp = datetime.now().strftime("%Y_%m_%d")
         if suffix and not suffix.startswith("-"):
             suffix = "-" + suffix
-        return f"{timestamp}-{rad_sample}{suffix}{extension}"
+        self.index += 1
+        return f"{timestamp}-{self.index:02d}-{rad_sample}{suffix}{extension}"
 
     def mark_unsaved(self) -> None:
         """Mark the current measurement as not yet saved."""
@@ -352,18 +366,19 @@ class SaveManager:
         self,
         start: datetime,
         end: datetime,
-        author: str,
+        group: str,
         sample: str,
-        extra: dict | None = None,
+        extra: Union[dict, None] = None,
     ) -> dict:
         """Create metadata dictionary following basic Dublin Core fields."""
 
         metadata = {
             "dc:date": start.strftime("%Y-%m-%d"),
-            "dc:creator": author,
+            "dc:creator": self._create_group_name(group),
             "dc:title": sample,
             "start_time": start.isoformat(),
             "end_time": end.isoformat(),
+            "radioactive_sample": sample,
         }
         if extra:
             metadata.update(extra)
@@ -386,6 +401,20 @@ class SaveManager:
         except Exception as exc:  # pragma: no cover - file system errors
             Debug.error(f"Failed to save measurement: {exc}", exc_info=exc)
         return csv_path
+
+    def _create_group_name(self, letter: str) -> str:
+        """Create a group name based on the letter."""
+        semester = "SoSe"
+        if datetime.now().month >= 10 and datetime.now().month <= 12:
+            semester = "WiSe"
+        day = datetime.now().strftime("%a")[:2]
+        year = datetime.now().year
+
+        if not letter or not re.match(r"^[A-Z]$", letter):
+            Debug.error(f"Invalid group letter: {letter}")
+            return "Ungültige Gruppe"
+
+        return f"{semester}{year}_{day}_{letter.upper()}"
 
 
 def import_config(language: str = "de") -> dict:

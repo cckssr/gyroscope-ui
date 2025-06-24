@@ -32,19 +32,15 @@ class ControlWidget:
             # Get values from UI
             repeat = settings.get("repeat", False)
             auto_query = settings.get("auto_query", False)
-            duration = settings.get("duration", 0)  # duration as integer
+            duration_index = int(
+                settings.get("counting_time", 0)
+            )  # duration as integer
             voltage = settings.get("voltage", 500)
 
             Debug.debug(
                 f"Einstellungen: repeat={repeat}, auto_query={auto_query}, "
-                f"duration={duration}, voltage={voltage}"
+                f"duration (index)={duration_index}, voltage={voltage}"
             )
-            # Convert duration time to index
-            # Invert the count_time_map to map duration -> index
-            duration_map = {
-                v: int(k) for k, v in CONFIG["gm_counter"]["count_time_map"].items()
-            }
-            duration_index = duration_map.get(duration, 0)  # Default to 0 if not found
 
             # Apply to GM counter
             self.gm_counter.set_repeat(repeat)
@@ -75,7 +71,7 @@ class ControlWidget:
             if not data:
                 Debug.error("Keine Daten vom GM-Counter erhalten.")
                 return {}
-            
+
             # Check if measurement is active (started from hardware)
             if not self.measurement_active and data["progress"] > 0:
                 self.measurement_active = True
