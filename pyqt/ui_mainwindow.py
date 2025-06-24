@@ -294,13 +294,10 @@ class Ui_MainWindow(object):
 
         self.buttonSetting = QPushButton(self.settings)
         self.buttonSetting.setObjectName(u"buttonSetting")
+        self.buttonSetting.setEnabled(True)
         self.buttonSetting.setAutoDefault(False)
 
         self.formLayout.setWidget(10, QFormLayout.ItemRole.SpanningRole, self.buttonSetting)
-
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.formLayout.setItem(11, QFormLayout.ItemRole.LabelRole, self.verticalSpacer)
 
         self.line_5 = QFrame(self.settings)
         self.line_5.setObjectName(u"line_5")
@@ -458,6 +455,10 @@ class Ui_MainWindow(object):
         self.autoSave.setTristate(False)
 
         self.formLayout.setWidget(16, QFormLayout.ItemRole.SpanningRole, self.autoSave)
+
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.formLayout.setItem(11, QFormLayout.ItemRole.SpanningRole, self.verticalSpacer)
 
         self.label_10.raise_()
         self.label_8.raise_()
@@ -645,7 +646,7 @@ class Ui_MainWindow(object):
         self.buttonSetting.setDefault(False)
         self.radSample.setCurrentIndex(-1)
         self.groupLetter.setCurrentIndex(-1)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
