@@ -1,9 +1,10 @@
-import json
+# -*- coding: utf-8 -*-
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QMainWindow,
     QVBoxLayout,
+    QCompleter,
 )
-from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
+from PySide6.QtCore import QTimer, Qt  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
 from src.control import ControlWidget
 from src.plot import PlotWidget
@@ -151,10 +152,10 @@ class MainWindow(QMainWindow):
         radCombo.setCurrentIndex(-1)  # Kein Standardwert
 
         # QCompleter für radioaktive Proben
-        # vllt nicht notwendig (QT automatisch completer)
-        # completer = QCompleter(samples)
-        # completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        # radCombo.setCompleter(completer)
+        completer = QCompleter(samples)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        radCombo.setCompleter(completer)
 
     def _setup_timers(self):
         """
@@ -185,6 +186,7 @@ class MainWindow(QMainWindow):
             self.is_measuring = True
             self.control_update_timer.stop()
             self.ui.buttonStart.setEnabled(False)
+            self.ui.buttonSetting.setEnabled(False)
             self.ui.buttonStop.setEnabled(True)
             self.statusbar.temp_message(
                 CONFIG["messages"]["measurement_running"],
@@ -197,6 +199,7 @@ class MainWindow(QMainWindow):
         self.is_measuring = False
         self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
         self.ui.buttonStart.setEnabled(True)
+        self.ui.buttonSetting.setEnabled(True)
         self.ui.buttonStop.setEnabled(False)
         self.statusbar.temp_message(
             CONFIG["messages"]["measurement_stopped"],
