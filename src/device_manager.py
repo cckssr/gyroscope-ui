@@ -26,27 +26,27 @@ class DataAcquisitionThread(QThread):
         Debug.info("Acquisition thread started")
         while self._running and not self.isInterruptionRequested():
             try:
-                if self.manager.device and self.manager.connected:
-                    if self.manager.measurement_active:
-                        line = self.manager.device.read_value()
-                        if line is None:
-                            continue
-                        try:
-                            value = float(line)
-                        except ValueError:
-                            # Probably measurement stopped, switch mode
-                            self.manager.measurement_active = False
-                            continue
-                        self.data_point.emit(index, value)
-                        index += 1
-                    else:
-                        # Configuration polling now happens via QTimer in
-                        # MainWindow, so we simply idle briefly when no
-                        # measurement is active.
-                        time.sleep(0.1)
-                else:
+                if not (self.manager.device and self.manager.connected):
                     time.sleep(0.1)
-            except Exception as exc:  # pragma: no cover - unexpected errors
+                    continue
+
+                if not self.manager.measurement_active:
+                    time.sleep(0.1)
+                    continue
+
+                line = self.manager.device.read_value()
+                if line is None:
+                    continue
+                try:
+                    value = float(line)
+                except ValueError:
+                    # Probably measurement stopped, switch mode
+                    self.manager.measurement_active = False
+                    continue
+                self.data_point.emit(index, value)
+                index += 1
+
+            except Exception as exc:
                 Debug.error(f"Acquisition error: {exc}")
                 time.sleep(0.5)
         Debug.info("Acquisition thread stopped")

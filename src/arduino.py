@@ -66,6 +66,8 @@ class Arduino:
                 port=self.port, baudrate=self.baudrate, timeout=self.timeout
             )
             sleep(2.0)  # Allow Arduino to reset after connection
+            self.serial.read_all()  # Clear any existing data in the buffer
+            self.serial.flush()  # Clear the serial buffer
             self.connected = True
             Debug.info(f"Successfully connected to {self.port}")
             return True
@@ -191,8 +193,18 @@ class GMCounter(Arduino):
     def __init__(self, port: str, baudrate: int = 9600, timeout: float = 1.0):
         super().__init__(port, baudrate, timeout)
         self.reconnect()
-        sleep(0.5)  # Allow time for the Arduino to reset
-        self.set_stream(0)  # Stop streaming by default
+        sleep(1)  # Allow time for the Arduino to reset
+        self.reconnect()  # Ensure the connection is established
+        Debug.info("Initializing GMCounter...")
+        self.set_stream(0)  # Stop any streaming by default
+        self.clear_register()
+        sleep(1)  # Allow time for the Arduino to reset
+        init_value = self.read_value()
+        while init_value != "" and init_value is not None:
+            Debug.debug(f"Initial value read: {init_value}")
+            self.set_stream(0)  # Stop any streaming by default
+            init_value = self.read_value()
+            sleep(0.5)
 
     def get_data(self, request: bool = True) -> Dict[str, Union[int, bool]]:
         """
@@ -381,4 +393,12 @@ class GMCounter(Arduino):
             Debug.error("Error: Counting time key must be between 0 and 5.")
             return None
         self.send_command(f"f{value}")
+        return True
+
+    def clear_register(self):
+        """
+        Clears the register of the GM counter.
+        This is typically used to reset the count.
+        """
+        self.send_command("w")
         return True

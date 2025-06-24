@@ -554,6 +554,9 @@
        </item>
        <item row="10" column="0" colspan="2">
         <widget class="QPushButton" name="buttonSetting">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
          <property name="text">
           <string>Einstellungen ändern</string>
          </property>
@@ -1069,7 +1072,6 @@
       <zorder>volt_label</zorder>
       <zorder>buttonSetting</zorder>
       <zorder>line_5</zorder>
-      <zorder>formLayoutWidget</zorder>
       <zorder>line_6</zorder>
       <zorder>autoSave</zorder>
      </widget>
@@ -1333,11 +1335,11 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>322</x>
+     <x>320</x>
      <y>441</y>
     </hint>
     <hint type="destinationlabel">
-     <x>212</x>
+     <x>210</x>
      <y>411</y>
     </hint>
    </hints>
@@ -1349,11 +1351,11 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>212</x>
+     <x>210</x>
      <y>411</y>
     </hint>
     <hint type="destinationlabel">
-     <x>322</x>
+     <x>320</x>
      <y>441</y>
     </hint>
    </hints>

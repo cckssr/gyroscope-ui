@@ -294,6 +294,7 @@ class Ui_MainWindow(object):
 
         self.buttonSetting = QPushButton(self.settings)
         self.buttonSetting.setObjectName(u"buttonSetting")
+        self.buttonSetting.setEnabled(True)
         self.buttonSetting.setAutoDefault(False)
 
         self.formLayout.setWidget(10, QFormLayout.ItemRole.SpanningRole, self.buttonSetting)

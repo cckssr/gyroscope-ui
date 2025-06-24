@@ -148,7 +148,7 @@ class ConnectionWindow(QDialog):
                   configured DeviceManager if successful, None otherwise.
         """
         port = self.combo.currentText()
-        self.status_message(f"Connecting to {port}...", "blue")
+        self.status_message(f"Connecting to {port}...", "white")
         Debug.info(f"ConnectionWindow: Attempting to connect to port: {port}")
 
         # Check if connected
