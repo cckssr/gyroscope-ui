@@ -5,6 +5,7 @@ import select
 import time
 import sys
 import random
+import argparse
 from typing import Optional, Dict, Union
 from tempfile import gettempdir
 
@@ -19,10 +20,17 @@ class MockGMCounter:
     ohne ein physisches Gerät zu benötigen.
     """
 
-    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 1.0):
+    def __init__(
+        self,
+        port: str,
+        baudrate: int = 9600,
+        timeout: float = 1.0,
+        max_tick: float = 1.0,
+    ):
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
+        self.max_tick = max_tick
         self._voltage = 500
         self._repeat = False
         self._counting = False
@@ -33,6 +41,9 @@ class MockGMCounter:
         self._last_pulse_time = 0.0
         self.next_pulse_time = 0
         Debug.info(f"MockGMCounter für Port {port} initialisiert")
+        print(
+            f"Baudrate: {self.baudrate}, timeout: {self.timeout:2f}, max_tick: {self.max_tick:6f}"
+        )
 
     def get_data(self) -> Optional[Dict[str, Union[int, bool]]]:
         counting_time_map = {0: 0, 1: 1, 2: 10, 3: 60, 4: 100, 5: 300}
@@ -152,7 +163,9 @@ class MockGMCounter:
             value = self.read_time_fast()
             if value is not None:
                 self._count += 1  # Zähler bei einem Impuls erhöhen
-                self.next_pulse_time = time.time() + random.uniform(0.1, 1.0)
+                self.next_pulse_time = time.time() + random.uniform(
+                    self.max_tick / 100, self.max_tick
+                )
                 Debug.debug(f"Mock Pulse! Count: {self._count}, Time: {value} us")
                 return str(value)
         return None
@@ -227,4 +240,27 @@ def main(device_class=MockGMCounter):
 if __name__ == "__main__":
     # Hier könnte man z.B. über Kommandozeilenargumente eine andere Geräteklasse auswählen.
     # z.B. main(device_class=MyOtherMockDevice)
-    main()
+    parser = argparse.ArgumentParser(description="Starte das Mock-Serial-Gerät.")
+    parser.add_argument(
+        "--baudrate", type=int, default=9600, help="Baudrate für das Mock-Gerät"
+    )
+    parser.add_argument(
+        "--timeout", type=float, default=1.0, help="Timeout für das Mock-Gerät"
+    )
+    parser.add_argument(
+        "--max-tick",
+        type=float,
+        default=1.0,
+        help="Maximale Zeit zwischen Impulsen (Sekunden)",
+    )
+    args = parser.parse_args()
+
+    def device_factory(port):
+        return MockGMCounter(
+            port=port,
+            baudrate=args.baudrate,
+            timeout=args.timeout,
+            max_tick=args.max_tick,
+        )
+
+    main(device_class=device_factory)

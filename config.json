@@ -96,7 +96,9 @@
       "data_saved": "Daten gespeichert in {}",
       "no_data": "Es sind keine Messdaten zum Speichern verfügbar.",
       "unsaved_data": "Sie haben ungespeicherte Messdaten. Möchten Sie diese verwerfen und eine neue Messung starten?",
-      "connection_failed": "Verbindung zum Gerät fehlgeschlagen. Anwendung wird beendet."
+      "connection_failed": "Verbindung zum Gerät fehlgeschlagen. Anwendung wird beendet.",
+      "auto_save_enabled": "Automatisches Speichern ist aktiviert. Messdaten werden automatisch gespeichert, wenn die Messung endet.",
+      "auto_save_disabled": "Automatisches Speichern ist deaktiviert. Sie müssen die Messdaten manuell speichern."
     }
   }
 }
