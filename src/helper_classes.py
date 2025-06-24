@@ -4,72 +4,16 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Union
-
-try:  # pragma: no cover - allow usage without Qt installation
-    from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
-        QStatusBar,
-        QLabel,
-        QMessageBox,
-        QDialog,
-        QWidget,
-        QDialogButtonBox,
-        QFileDialog,
-    )
-    from PySide6.QtCore import QTimer
-except Exception:  # Fallback stubs for headless testing
-
-    class QStatusBar:  # pragma: no cover - stub
-        def __init__(self):
-            pass
-
-        def setStyleSheet(self, *args, **kwargs):
-            pass
-
-        def showMessage(self, *args, **kwargs):
-            pass
-
-        def insertPermanentWidget(self, *args, **kwargs):
-            pass
-
-        def currentMessage(self):
-            return ""
-
-        def styleSheet(self):
-            return ""
-
-    class QLabel:
-        def setText(self, *args, **kwargs):
-            pass
-
-    class QMessageBox:
-        Critical = None
-
-    class QDialog:
-        pass
-
-    class QWidget:
-        pass
-
-    class QDialogButtonBox:
-        def addButton(self, *args, **kwargs):
-            class _B:
-                def clicked(self):
-                    pass
-
-                def connect(self, *a, **k):
-                    pass
-
-            return _B()
-
-    class QFileDialog:
-        pass
-
-    class QTimer:
-        @staticmethod
-        def singleShot(*args, **kwargs):
-            pass
-
-
+from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
+    QStatusBar,
+    QLabel,
+    QMessageBox,
+    QDialog,
+    QWidget,
+    QDialogButtonBox,
+    QFileDialog,
+)
+from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 from src.debug_utils import Debug
 
 
@@ -450,7 +394,7 @@ class SaveManager:
         start: datetime,
         end: datetime,
         suffix: str = "",
-    ) -> Path | None:
+    ) -> Path:
         """Automatically save data using a generated file name."""
 
         if not data:
@@ -469,7 +413,7 @@ class SaveManager:
         data: list[list[str]],
         start: datetime,
         end: datetime,
-    ) -> Path | None:
+    ) -> Path:
         """Open a save dialog and store the measurement."""
 
         if not data:

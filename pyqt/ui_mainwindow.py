@@ -21,18 +21,23 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QButtonGroup, QCh
     QLCDNumber, QLabel, QLayout, QLineEdit,
     QMainWindow, QMenuBar, QProgressBar, QPushButton,
     QRadioButton, QSizePolicy, QSpacerItem, QSpinBox,
-    QStatusBar, QTabWidget, QTableView, QWidget)
+    QStatusBar, QTabWidget, QTableView, QVBoxLayout,
+    QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1089, 912)
+        MainWindow.resize(1018, 799)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.horizontalLayout_3 = QHBoxLayout(self.centralwidget)
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.horizontalLayout_3.setContentsMargins(10, -1, -1, 10)
+        self.verticalLayout_2 = QVBoxLayout()
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.verticalLayout_2.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
+        self.verticalLayout_2.setContentsMargins(0, -1, -1, -1)
         self.settings = QGroupBox(self.centralwidget)
         self.settings.setObjectName(u"settings")
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
@@ -40,7 +45,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.settings.sizePolicy().hasHeightForWidth())
         self.settings.setSizePolicy(sizePolicy)
-        self.settings.setMaximumSize(QSize(500, 16777215))
+        self.settings.setMaximumSize(QSize(1000, 16777215))
         font = QFont()
         font.setPointSize(13)
         self.settings.setFont(font)
@@ -51,6 +56,7 @@ class Ui_MainWindow(object):
         self.formLayout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         self.formLayout.setLabelAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.formLayout.setFormAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
+        self.formLayout.setContentsMargins(-1, 12, -1, -1)
         self.label_8 = QLabel(self.settings)
         self.label_8.setObjectName(u"label_8")
 
@@ -299,23 +305,52 @@ class Ui_MainWindow(object):
 
         self.formLayout.setWidget(10, QFormLayout.ItemRole.SpanningRole, self.buttonSetting)
 
-        self.line_5 = QFrame(self.settings)
-        self.line_5.setObjectName(u"line_5")
-        self.line_5.setFrameShadow(QFrame.Shadow.Plain)
-        self.line_5.setFrameShape(QFrame.Shape.HLine)
+        self.label_10.raise_()
+        self.label_8.raise_()
+        self.cVoltage.raise_()
+        self.label_9.raise_()
+        self.cDuration.raise_()
+        self.query_label.raise_()
+        self.cQueryMode.raise_()
+        self.label_12.raise_()
+        self.cMode.raise_()
+        self.label.raise_()
+        self.cVersion.raise_()
+        self.line_3.raise_()
+        self.mode_label.raise_()
+        self.duration_label.raise_()
+        self.sDuration.raise_()
+        self.volt_label.raise_()
+        self.buttonSetting.raise_()
 
-        self.formLayout.setWidget(12, QFormLayout.ItemRole.SpanningRole, self.line_5)
+        self.verticalLayout_2.addWidget(self.settings)
 
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_2.addItem(self.verticalSpacer)
+
+        self.groupBox = QGroupBox(self.centralwidget)
+        self.groupBox.setObjectName(u"groupBox")
+        sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
+        self.groupBox.setSizePolicy(sizePolicy)
+        self.groupBox.setMinimumSize(QSize(0, 50))
+        self.groupBox.setFont(font)
+        self.groupBox.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.groupBox.setFlat(False)
+        self.groupBox.setCheckable(False)
+        self.verticalLayout = QVBoxLayout(self.groupBox)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         self.formLayout_2 = QFormLayout()
         self.formLayout_2.setObjectName(u"formLayout_2")
         self.formLayout_2.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.formLayout_2.setContentsMargins(-1, -1, 0, 0)
-        self.label_6 = QLabel(self.settings)
+        self.label_6 = QLabel(self.groupBox)
         self.label_6.setObjectName(u"label_6")
 
         self.formLayout_2.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_6)
 
-        self.radSample = QComboBox(self.settings)
+        self.radSample = QComboBox(self.groupBox)
         self.radSample.addItem("")
         self.radSample.addItem("")
         self.radSample.addItem("")
@@ -355,12 +390,12 @@ class Ui_MainWindow(object):
 
         self.formLayout_2.setWidget(0, QFormLayout.ItemRole.FieldRole, self.radSample)
 
-        self.label_7 = QLabel(self.settings)
+        self.label_7 = QLabel(self.groupBox)
         self.label_7.setObjectName(u"label_7")
 
         self.formLayout_2.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_7)
 
-        self.groupLetter = QComboBox(self.settings)
+        self.groupLetter = QComboBox(self.groupBox)
         self.groupLetter.addItem("")
         self.groupLetter.addItem("")
         self.groupLetter.addItem("")
@@ -385,12 +420,12 @@ class Ui_MainWindow(object):
 
         self.formLayout_2.setWidget(1, QFormLayout.ItemRole.FieldRole, self.groupLetter)
 
-        self.label_5 = QLabel(self.settings)
+        self.label_5 = QLabel(self.groupBox)
         self.label_5.setObjectName(u"label_5")
 
         self.formLayout_2.setWidget(2, QFormLayout.ItemRole.LabelRole, self.label_5)
 
-        self.suffix = QLineEdit(self.settings)
+        self.suffix = QLineEdit(self.groupBox)
         self.suffix.setObjectName(u"suffix")
         sizePolicy9.setHeightForWidth(self.suffix.sizePolicy().hasHeightForWidth())
         self.suffix.setSizePolicy(sizePolicy9)
@@ -400,20 +435,19 @@ class Ui_MainWindow(object):
         self.formLayout_2.setWidget(2, QFormLayout.ItemRole.FieldRole, self.suffix)
 
 
-        self.formLayout.setLayout(13, QFormLayout.ItemRole.SpanningRole, self.formLayout_2)
+        self.verticalLayout.addLayout(self.formLayout_2)
 
-        self.line_6 = QFrame(self.settings)
-        self.line_6.setObjectName(u"line_6")
-        self.line_6.setMinimumSize(QSize(0, 0))
-        self.line_6.setFrameShape(QFrame.Shape.HLine)
-        self.line_6.setFrameShadow(QFrame.Shadow.Sunken)
+        self.line_5 = QFrame(self.groupBox)
+        self.line_5.setObjectName(u"line_5")
+        self.line_5.setFrameShape(QFrame.Shape.HLine)
+        self.line_5.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.formLayout.setWidget(14, QFormLayout.ItemRole.SpanningRole, self.line_6)
+        self.verticalLayout.addWidget(self.line_5)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalLayout.setContentsMargins(2, 2, 2, 2)
-        self.buttonStart = QPushButton(self.settings)
+        self.buttonStart = QPushButton(self.groupBox)
         self.buttonStart.setObjectName(u"buttonStart")
         self.buttonStart.setEnabled(False)
         self.buttonStart.setMinimumSize(QSize(75, 30))
@@ -421,7 +455,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout.addWidget(self.buttonStart)
 
-        self.buttonStop = QPushButton(self.settings)
+        self.buttonStop = QPushButton(self.groupBox)
         self.buttonStop.setObjectName(u"buttonStop")
         self.buttonStop.setEnabled(False)
         self.buttonStop.setMinimumSize(QSize(75, 30))
@@ -429,14 +463,14 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout.addWidget(self.buttonStop)
 
-        self.line_4 = QFrame(self.settings)
+        self.line_4 = QFrame(self.groupBox)
         self.line_4.setObjectName(u"line_4")
         self.line_4.setFrameShadow(QFrame.Shadow.Plain)
         self.line_4.setFrameShape(QFrame.Shape.VLine)
 
         self.horizontalLayout.addWidget(self.line_4)
 
-        self.buttonSave = QPushButton(self.settings)
+        self.buttonSave = QPushButton(self.groupBox)
         self.buttonSave.setObjectName(u"buttonSave")
         self.buttonSave.setEnabled(False)
         self.buttonSave.setMinimumSize(QSize(100, 30))
@@ -445,43 +479,22 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addWidget(self.buttonSave)
 
 
-        self.formLayout.setLayout(15, QFormLayout.ItemRole.SpanningRole, self.horizontalLayout)
+        self.verticalLayout.addLayout(self.horizontalLayout)
 
-        self.autoSave = QCheckBox(self.settings)
+        self.autoSave = QCheckBox(self.groupBox)
         self.autoSave.setObjectName(u"autoSave")
         self.autoSave.setMaximumSize(QSize(850, 16777215))
         self.autoSave.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.autoSave.setChecked(True)
         self.autoSave.setTristate(False)
 
-        self.formLayout.setWidget(16, QFormLayout.ItemRole.SpanningRole, self.autoSave)
+        self.verticalLayout.addWidget(self.autoSave)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.formLayout.setItem(11, QFormLayout.ItemRole.SpanningRole, self.verticalSpacer)
+        self.verticalLayout_2.addWidget(self.groupBox)
 
-        self.label_10.raise_()
-        self.label_8.raise_()
-        self.cVoltage.raise_()
-        self.label_9.raise_()
-        self.cDuration.raise_()
-        self.query_label.raise_()
-        self.cQueryMode.raise_()
-        self.label_12.raise_()
-        self.cMode.raise_()
-        self.label.raise_()
-        self.cVersion.raise_()
-        self.line_3.raise_()
-        self.mode_label.raise_()
-        self.duration_label.raise_()
-        self.sDuration.raise_()
-        self.volt_label.raise_()
-        self.buttonSetting.raise_()
-        self.line_5.raise_()
-        self.line_6.raise_()
-        self.autoSave.raise_()
 
-        self.horizontalLayout_3.addWidget(self.settings)
+        self.horizontalLayout_3.addLayout(self.verticalLayout_2)
 
         self.line = QFrame(self.centralwidget)
         self.line.setObjectName(u"line")
@@ -490,6 +503,9 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3.addWidget(self.line)
 
+        self.verticalLayout_3 = QVBoxLayout()
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.verticalLayout_3.setContentsMargins(-1, -1, 0, -1)
         self.gridGroupBox = QGroupBox(self.centralwidget)
         self.gridGroupBox.setObjectName(u"gridGroupBox")
         sizePolicy10 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -502,6 +518,8 @@ class Ui_MainWindow(object):
         self.gridGroupBox.setFlat(False)
         self.gridLayout_2 = QGridLayout(self.gridGroupBox)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
+        self.gridLayout_2.setHorizontalSpacing(-1)
+        self.gridLayout_2.setContentsMargins(-1, 12, -1, -1)
         self.line_2 = QFrame(self.gridGroupBox)
         self.line_2.setObjectName(u"line_2")
         self.line_2.setFrameShadow(QFrame.Shadow.Plain)
@@ -511,29 +529,60 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3 = QGridLayout()
         self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.label_4 = QLabel(self.gridGroupBox)
+        self.label_4.setObjectName(u"label_4")
+        sizePolicy5.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
+        self.label_4.setSizePolicy(sizePolicy5)
+        self.label_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.gridLayout_3.addWidget(self.label_4, 2, 0, 1, 1)
+
+        self.lastCount = QLCDNumber(self.gridGroupBox)
+        self.lastCount.setObjectName(u"lastCount")
+        sizePolicy11 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        sizePolicy11.setHorizontalStretch(0)
+        sizePolicy11.setVerticalStretch(0)
+        sizePolicy11.setHeightForWidth(self.lastCount.sizePolicy().hasHeightForWidth())
+        self.lastCount.setSizePolicy(sizePolicy11)
+        self.lastCount.setMinimumSize(QSize(300, 70))
+        self.lastCount.setMaximumSize(QSize(0, 70))
+        self.lastCount.setFrameShape(QFrame.Shape.Box)
+        self.lastCount.setFrameShadow(QFrame.Shadow.Raised)
+
+        self.gridLayout_3.addWidget(self.lastCount, 3, 0, 1, 1)
+
         self.label_2 = QLabel(self.gridGroupBox)
         self.label_2.setObjectName(u"label_2")
         self.label_2.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.label_2, 0, 0, 1, 1)
 
-        self.label_3 = QLabel(self.gridGroupBox)
-        self.label_3.setObjectName(u"label_3")
-        sizePolicy5.setHeightForWidth(self.label_3.sizePolicy().hasHeightForWidth())
-        self.label_3.setSizePolicy(sizePolicy5)
-        self.label_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.horizontalLayout_4 = QHBoxLayout()
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
+        self.horizontalLayout_4.setContentsMargins(-1, -1, -1, 0)
+        self.progressBar = QProgressBar(self.gridGroupBox)
+        self.progressBar.setObjectName(u"progressBar")
+        self.progressBar.setValue(0)
 
-        self.gridLayout_3.addWidget(self.label_3, 2, 1, 1, 1)
+        self.horizontalLayout_4.addWidget(self.progressBar)
+
+        self.progressTimer = QLabel(self.gridGroupBox)
+        self.progressTimer.setObjectName(u"progressTimer")
+
+        self.horizontalLayout_4.addWidget(self.progressTimer)
+
+
+        self.gridLayout_3.addLayout(self.horizontalLayout_4, 1, 0, 1, 2)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.statusLED = QLabel(self.gridGroupBox)
         self.statusLED.setObjectName(u"statusLED")
-        sizePolicy11 = QSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
-        sizePolicy11.setHorizontalStretch(0)
-        sizePolicy11.setVerticalStretch(0)
-        sizePolicy11.setHeightForWidth(self.statusLED.sizePolicy().hasHeightForWidth())
-        self.statusLED.setSizePolicy(sizePolicy11)
+        sizePolicy12 = QSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
+        sizePolicy12.setHorizontalStretch(0)
+        sizePolicy12.setVerticalStretch(0)
+        sizePolicy12.setHeightForWidth(self.statusLED.sizePolicy().hasHeightForWidth())
+        self.statusLED.setSizePolicy(sizePolicy12)
         self.statusLED.setMinimumSize(QSize(20, 20))
         self.statusLED.setMaximumSize(QSize(20, 20))
         self.statusLED.setStyleSheet(u"background-color: rgb(255, 11, 3); border: 0px; padding: 4px; border-radius: 10px")
@@ -544,55 +593,35 @@ class Ui_MainWindow(object):
 
         self.statusText = QLabel(self.gridGroupBox)
         self.statusText.setObjectName(u"statusText")
-        sizePolicy12 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        sizePolicy12.setHorizontalStretch(0)
-        sizePolicy12.setVerticalStretch(0)
-        sizePolicy12.setHeightForWidth(self.statusText.sizePolicy().hasHeightForWidth())
-        self.statusText.setSizePolicy(sizePolicy12)
+        sizePolicy13 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        sizePolicy13.setHorizontalStretch(0)
+        sizePolicy13.setVerticalStretch(0)
+        sizePolicy13.setHeightForWidth(self.statusText.sizePolicy().hasHeightForWidth())
+        self.statusText.setSizePolicy(sizePolicy13)
 
         self.horizontalLayout_2.addWidget(self.statusText)
 
 
         self.gridLayout_3.addLayout(self.horizontalLayout_2, 0, 1, 1, 1)
 
-        self.progressBar = QProgressBar(self.gridGroupBox)
-        self.progressBar.setObjectName(u"progressBar")
-        self.progressBar.setValue(0)
+        self.label_3 = QLabel(self.gridGroupBox)
+        self.label_3.setObjectName(u"label_3")
+        sizePolicy5.setHeightForWidth(self.label_3.sizePolicy().hasHeightForWidth())
+        self.label_3.setSizePolicy(sizePolicy5)
+        self.label_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.gridLayout_3.addWidget(self.progressBar, 1, 0, 1, 2)
-
-        self.label_4 = QLabel(self.gridGroupBox)
-        self.label_4.setObjectName(u"label_4")
-        sizePolicy5.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
-        self.label_4.setSizePolicy(sizePolicy5)
-        self.label_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.gridLayout_3.addWidget(self.label_4, 2, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.label_3, 2, 1, 1, 1)
 
         self.currentCount = QLCDNumber(self.gridGroupBox)
         self.currentCount.setObjectName(u"currentCount")
-        sizePolicy13 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        sizePolicy13.setHorizontalStretch(0)
-        sizePolicy13.setVerticalStretch(0)
-        sizePolicy13.setHeightForWidth(self.currentCount.sizePolicy().hasHeightForWidth())
-        self.currentCount.setSizePolicy(sizePolicy13)
+        sizePolicy11.setHeightForWidth(self.currentCount.sizePolicy().hasHeightForWidth())
+        self.currentCount.setSizePolicy(sizePolicy11)
         self.currentCount.setMinimumSize(QSize(300, 70))
         self.currentCount.setMaximumSize(QSize(0, 70))
         self.currentCount.setFrameShape(QFrame.Shape.Box)
         self.currentCount.setFrameShadow(QFrame.Shadow.Raised)
 
         self.gridLayout_3.addWidget(self.currentCount, 3, 1, 1, 1)
-
-        self.lastCount = QLCDNumber(self.gridGroupBox)
-        self.lastCount.setObjectName(u"lastCount")
-        sizePolicy13.setHeightForWidth(self.lastCount.sizePolicy().hasHeightForWidth())
-        self.lastCount.setSizePolicy(sizePolicy13)
-        self.lastCount.setMinimumSize(QSize(300, 70))
-        self.lastCount.setMaximumSize(QSize(0, 70))
-        self.lastCount.setFrameShape(QFrame.Shape.Box)
-        self.lastCount.setFrameShadow(QFrame.Shadow.Raised)
-
-        self.gridLayout_3.addWidget(self.lastCount, 3, 0, 1, 1)
 
 
         self.gridLayout_2.addLayout(self.gridLayout_3, 0, 0, 1, 1)
@@ -626,14 +655,16 @@ class Ui_MainWindow(object):
         self.gridLayout_2.setRowStretch(0, 1)
         self.gridLayout_2.setRowStretch(4, 5)
 
-        self.horizontalLayout_3.addWidget(self.gridGroupBox)
+        self.verticalLayout_3.addWidget(self.gridGroupBox)
 
-        self.horizontalLayout_3.setStretch(0, 1)
-        self.horizontalLayout_3.setStretch(2, 12)
+
+        self.horizontalLayout_3.addLayout(self.verticalLayout_3)
+
+        self.horizontalLayout_3.setStretch(2, 5)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1089, 24))
+        self.menubar.setGeometry(QRect(0, 0, 1018, 24))
         MainWindow.setMenuBar(self.menubar)
         self.statusBar = QStatusBar(MainWindow)
         self.statusBar.setObjectName(u"statusBar")
@@ -707,6 +738,7 @@ class Ui_MainWindow(object):
         self.volt_label.setText(QCoreApplication.translate("MainWindow", u"GM-Spannung", None))
         self.sVoltage.setSuffix(QCoreApplication.translate("MainWindow", u" V", None))
         self.buttonSetting.setText(QCoreApplication.translate("MainWindow", u"Einstellungen \u00e4ndern", None))
+        self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Speicherung Messung", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", u"Radioaktive Probe*", None))
         self.radSample.setItemText(0, QCoreApplication.translate("MainWindow", u"E00200", None))
         self.radSample.setItemText(1, QCoreApplication.translate("MainWindow", u"E03607", None))
@@ -783,10 +815,11 @@ class Ui_MainWindow(object):
 #endif // QT_CONFIG(tooltip)
         self.autoSave.setText(QCoreApplication.translate("MainWindow", u"Automatisch Speichern ", None))
         self.gridGroupBox.setTitle(QCoreApplication.translate("MainWindow", u"Live-Metriken", None))
-        self.label_2.setText(QCoreApplication.translate("MainWindow", u"Status:", None))
-        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Aktuell", None))
-        self.statusText.setText(QCoreApplication.translate("MainWindow", u"unknown", None))
         self.label_4.setText(QCoreApplication.translate("MainWindow", u"Voriger Wert", None))
+        self.label_2.setText(QCoreApplication.translate("MainWindow", u"Status:", None))
+        self.progressTimer.setText(QCoreApplication.translate("MainWindow", u"999", None))
+        self.statusText.setText(QCoreApplication.translate("MainWindow", u"unknown", None))
+        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Aktuell", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.timePlot), QCoreApplication.translate("MainWindow", u"Zeitverlauf", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.histogramm), QCoreApplication.translate("MainWindow", u"Histogramm", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.list), QCoreApplication.translate("MainWindow", u"Liste", None))
