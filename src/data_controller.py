@@ -4,10 +4,13 @@
 """Data controller for managing measurements and plot updates."""
 
 from typing import Optional, List, Tuple, Dict, Union
+import queue
+import threading
+from time import time
 
 try:  # pragma: no cover - optional dependency for headless testing
     from PySide6.QtWidgets import QLCDNumber, QListWidget  # type: ignore
-    from PySide6.QtCore import Qt  # type: ignore
+    from PySide6.QtCore import Qt, QTimer  # type: ignore
 except Exception:  # ImportError or missing Qt libraries
 
     class QLCDNumber:  # pragma: no cover - fallback stub
@@ -40,6 +43,20 @@ except Exception:  # ImportError or missing Qt libraries
     class _Qt:
         AlignmentFlag = _Alignment
 
+    class QTimer:  # pragma: no cover - fallback stub
+        def __init__(self):
+            self.timeout = self._MockSignal()
+
+        def start(self, interval):
+            pass
+
+        def stop(self):
+            pass
+
+        class _MockSignal:
+            def connect(self, callback):
+                pass
+
     Qt = _Qt()
 
 from src.plot import PlotWidget
@@ -58,6 +75,7 @@ class DataController:
         display_widget: Optional[QLCDNumber] = None,
         history_widget: Optional[QListWidget] = None,
         max_history: int = MAX_HISTORY_SIZE,
+        gui_update_interval: int = 100,  # ms
     ):
         """Initialise the data controller.
 
@@ -66,6 +84,7 @@ class DataController:
             display_widget: Optional LCD display for the current value.
             history_widget: Optional list widget for history display.
             max_history: Maximum number of stored data points.
+            gui_update_interval: GUI update interval in milliseconds.
         """
         self.plot = plot_widget
         self.display = display_widget
@@ -73,8 +92,146 @@ class DataController:
         self.data_points: List[Tuple[int, float]] = []
         self.max_history = max_history
 
+        # Queue für hochfrequente Datenerfassung
+        self.data_queue: queue.Queue = queue.Queue()
+        self._queue_lock = threading.Lock()
+        self._last_update_time = time()
+
+        # Timer für GUI-Updates alle 100ms
+        try:
+            self.gui_update_timer = QTimer()
+            if hasattr(self.gui_update_timer.timeout, "connect"):
+                self.gui_update_timer.timeout.connect(self._process_queued_data)
+                self.gui_update_timer.start(gui_update_interval)
+            else:
+                self.gui_update_timer = None
+        except Exception:
+            # Fallback für headless testing
+            self.gui_update_timer = None
+            Debug.info("GUI update timer not available (headless mode)")
+
+        # Performance-Zähler
+        self._total_points_received = 0
+        self._points_processed_in_last_update = 0
+
+    def add_data_point_fast(
+        self, index: Union[int, str], value: Union[float, str]
+    ) -> None:
+        """Schnelles Hinzufügen von Datenpunkten in die Queue ohne GUI-Update.
+
+        Diese Methode ist für hochfrequente Datenerfassung optimiert und aktualisiert
+        die GUI nicht sofort. Stattdessen werden die Daten in eine Queue eingereiht
+        und alle 100ms verarbeitet.
+
+        Args:
+            index: Der Datenpunktindex
+            value: Der gemessene Wert
+        """
+        try:
+            # Schnelle Validierung und Konvertierung
+            index_num = int(index)
+            value_num = float(value)
+
+            # Thread-sicher in Queue einreihen
+            with self._queue_lock:
+                self.data_queue.put((index_num, value_num, time()))
+                self._total_points_received += 1
+
+        except (ValueError, TypeError) as e:
+            Debug.error(f"Failed to convert values for fast queue: {e}")
+
+    def _process_queued_data(self) -> None:
+        """Verarbeitet alle Daten aus der Queue und aktualisiert die GUI."""
+        if self.data_queue.empty():
+            return
+
+        new_points = []
+        current_time = time()
+
+        try:
+            # Alle verfügbaren Datenpunkte aus der Queue holen
+            with self._queue_lock:
+                while not self.data_queue.empty():
+                    try:
+                        index_num, value_num, timestamp = self.data_queue.get_nowait()
+                        new_points.append((index_num, value_num))
+                    except queue.Empty:
+                        break
+
+            if not new_points:
+                return
+
+            self._points_processed_in_last_update = len(new_points)
+
+            # Alle neuen Punkte zu den Daten hinzufügen
+            for index_num, value_num in new_points:
+                self.data_points.append((index_num, value_num))
+
+            # Alte Daten entfernen wenn Maximum überschritten
+            while len(self.data_points) > self.max_history:
+                self.data_points.pop(0)
+
+            # GUI nur einmal mit dem letzten Wert aktualisieren
+            if new_points:
+                last_index, last_value = new_points[-1]
+                self._update_gui_widgets(last_index, last_value)
+
+            # Performance-Logging
+            time_since_last = current_time - self._last_update_time
+            if time_since_last > 0:
+                rate = len(new_points) / time_since_last
+                Debug.debug(
+                    f"Processed {len(new_points)} points in {time_since_last:.3f}s "
+                    f"(rate: {rate:.1f} Hz, total: {self._total_points_received})"
+                )
+
+            self._last_update_time = current_time
+
+        except Exception as e:
+            Debug.error(f"Error processing queued data: {e}", exc_info=True)
+
+    def _update_gui_widgets(self, index: int, value: float) -> None:
+        """Aktualisiert die GUI-Widgets mit einem einzelnen Datenpunkt."""
+        try:
+            # Update plot widget - alle neuen Punkte in einem Batch hinzufügen
+            if self.plot and self._points_processed_in_last_update > 0:
+                # Hole alle neuen Punkte für den Plot-Update
+                new_plot_points = self.data_points[
+                    -self._points_processed_in_last_update :
+                ]
+
+                # Verwende die effiziente Batch-Update-Methode wenn verfügbar
+                if hasattr(self.plot, "update_plot_batch"):
+                    self.plot.update_plot_batch(new_plot_points)
+                else:
+                    # Fallback für alte PlotWidget-Versionen
+                    for point in new_plot_points:
+                        self.plot.update_plot(point)
+
+            # Update current value display mit dem letzten Wert
+            if self.display:
+                self.display.display(value)
+
+            # Update history list widget mit dem letzten Wert
+            if self.history:
+                # Insert new item at the top
+                self.history.insertItem(0, f"{value} µs : {index}")
+                # Right align text for readability
+                self.history.item(0).setTextAlignment(Qt.AlignmentFlag.AlignRight)
+
+                # Keep list size within limit
+                while self.history.count() > self.max_history:
+                    self.history.takeItem(self.history.count() - 1)
+
+        except (AttributeError, RuntimeError) as e:
+            Debug.error(f"Failed to update GUI widgets: {e}", exc_info=True)
+
     def add_data_point(self, index: Union[int, str], value: Union[float, str]) -> None:
-        """Add a new point and update the optional UI widgets."""
+        """Add a new point and update the optional UI widgets.
+
+        Hinweis: Diese Methode ist für Kompatibilität beibehalten. Für hochfrequente
+        Datenerfassung sollte add_data_point_fast() verwendet werden.
+        """
 
         # Ensure numeric values
         try:
@@ -87,35 +244,50 @@ class DataController:
             if len(self.data_points) > self.max_history:
                 self.data_points.pop(0)
 
-            # Update plot widget
-            if self.plot:
-                self.plot.update_plot((index_num, value_num))
-
-            # Update current value display
-            if self.display:
-                self.display.display(value_num)
-
-            # Update history list widget
-            if self.history:
-                # Insert new item at the top
-                self.history.insertItem(0, f"{value_num} µs : {index_num}")
-                # Right align text for readability
-                self.history.item(0).setTextAlignment(Qt.AlignmentFlag.AlignRight)
-
-                # Keep list size within limit
-                while self.history.count() > self.max_history:
-                    self.history.takeItem(self.history.count() - 1)
+            # Update GUI widgets
+            self._update_gui_widgets(index_num, value_num)
 
         except (ValueError, TypeError) as e:
             Debug.error(f"Failed to convert values: {e}", exc_info=True)
         except (AttributeError, RuntimeError) as e:
             Debug.error(f"Failed to update UI elements: {e}", exc_info=True)
 
+    def stop_gui_updates(self) -> None:
+        """Stoppt den GUI-Update-Timer."""
+        if hasattr(self, "gui_update_timer") and self.gui_update_timer is not None:
+            try:
+                self.gui_update_timer.stop()
+                Debug.debug("GUI update timer stopped")
+            except Exception as e:
+                Debug.debug(f"Error stopping GUI timer: {e}")
+
+    def start_gui_updates(self, interval: int = 100) -> None:
+        """Startet den GUI-Update-Timer."""
+        if hasattr(self, "gui_update_timer") and self.gui_update_timer is not None:
+            try:
+                self.gui_update_timer.start(interval)
+                Debug.debug(f"GUI update timer started with {interval}ms interval")
+            except Exception as e:
+                Debug.debug(f"Error starting GUI timer: {e}")
+
     def clear_data(self) -> None:
         """Clear all data points and reset optional widgets."""
         try:
             # Remove stored points
             self.data_points = []
+
+            # Clear the queue
+            with self._queue_lock:
+                while not self.data_queue.empty():
+                    try:
+                        self.data_queue.get_nowait()
+                    except queue.Empty:
+                        break
+
+            # Reset counters
+            self._total_points_received = 0
+            self._points_processed_in_last_update = 0
+            self._last_update_time = time()
 
             # Clear the plot
             if self.plot:
@@ -178,3 +350,17 @@ class DataController:
         for idx, value in self.data_points:
             result.append([str(idx), str(value)])
         return result
+
+    def get_performance_stats(self) -> Dict[str, Union[int, float]]:
+        """Gibt Performance-Statistiken für die Datenerfassung zurück."""
+        queue_size = 0
+        with self._queue_lock:
+            queue_size = self.data_queue.qsize()
+
+        return {
+            "total_points_received": self._total_points_received,
+            "points_in_last_update": self._points_processed_in_last_update,
+            "queue_size": queue_size,
+            "stored_points": len(self.data_points),
+            "last_update_time": self._last_update_time,
+        }

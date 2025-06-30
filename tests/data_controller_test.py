@@ -52,6 +52,11 @@ class DummyPlot:
     def update_plot(self, point):
         self.data.append(point)
 
+    def update_plot_batch(self, points):
+        """Support for batch updates"""
+        for point in points:
+            self.data.append(point)
+
     def clear(self):
         self.data.clear()
 
@@ -72,7 +77,32 @@ class DataControllerTests(unittest.TestCase):
         self.ctrl.add_data_point(1, 0.5)
         self.assertEqual(self.lcd.value, 0.5)
         self.assertEqual(len(self.history.items), 1)
-        self.assertEqual(self.plot.data[0], (1, 0.5))
+        # With the new batch system, we need to check the DataController's data_points
+        # instead of the plot directly, as plot updates are batched
+        self.assertEqual(len(self.ctrl.data_points), 1)
+        self.assertEqual(self.ctrl.data_points[0], (1, 0.5))
+
+    def test_add_data_point_fast(self):
+        """Test the new fast data point method with queue processing"""
+        # Add data points using the fast method (only 3 due to max_history limit)
+        for i in range(3):
+            self.ctrl.add_data_point_fast(i, float(i * 0.1))
+
+        # Verify data is queued but not yet processed
+        self.assertEqual(self.ctrl.data_queue.qsize(), 3)
+        self.assertEqual(len(self.ctrl.data_points), 0)
+
+        # Manually trigger queue processing (simulates timer)
+        self.ctrl._process_queued_data()
+
+        # Verify data was processed
+        self.assertEqual(self.ctrl.data_queue.qsize(), 0)
+        self.assertEqual(len(self.ctrl.data_points), 3)
+        self.assertEqual(len(self.plot.data), 3)
+
+        # Check specific data points
+        self.assertEqual(self.ctrl.data_points[0], (0, 0.0))
+        self.assertEqual(self.ctrl.data_points[2], (2, 0.2))
 
     def test_history_limit(self):
         for i in range(5):
