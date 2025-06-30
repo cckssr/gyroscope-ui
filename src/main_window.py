@@ -132,6 +132,7 @@ class MainWindow(QMainWindow):
             plot_widget=self.plot,
             display_widget=self.ui.currentCount,
             max_history=CONFIG["data_controller"]["max_history_size"],
+            gui_update_interval=CONFIG["timers"]["gui_update_interval"],
         )
 
     def _setup_buttons(self):
@@ -378,12 +379,15 @@ class MainWindow(QMainWindow):
         """
         Verarbeitet eingehende Daten vom Gerät.
         Aktualisiert Anzeige, Historie und Plot mit dem Daten-Controller.
+        Nutzt jetzt die schnelle Queue-basierte Verarbeitung.
 
         Args:
             index (int): Der Datenpunktindex
             value (float): Der gemessene Wert
         """
-        self.data_controller.add_data_point(index, value)
+        # Verwende die schnelle Queue-basierte Methode für bessere Performance
+        self.data_controller.add_data_point_fast(index, value)
+
         # Daten als ungespeichert markieren
         self.data_saved = False
         self.save_manager.mark_unsaved()
@@ -392,14 +396,8 @@ class MainWindow(QMainWindow):
         if not self.is_measuring:
             self.ui.buttonSave.setEnabled(True)
 
-        # Statistiken nur bei jeder 5. Aktualisierung aktualisieren, um die Performance zu verbessern
-        # if hasattr(self, "_stats_counter"):
-        #     self._stats_counter += 1
-        #     if self._stats_counter >= 5:
-        #         self._update_statistics()
-        #         self._stats_counter = 0
-        # else:
-        #     self._stats_counter = 0
+        # Statistiken werden jetzt über den eigenen Timer alle 2s aktualisiert
+        # Keine manuelle Aktualisierung mehr nötig - bessere Performance
 
     def _update_statistics(self):
         """
@@ -553,6 +551,14 @@ class MainWindow(QMainWindow):
                 if timer.isActive():
                     Debug.debug(f"Stoppe Timer: {timer_attr}")
                     timer.stop()
+
+        # Stoppe den DataController GUI-Update-Timer
+        if hasattr(self, "data_controller"):
+            try:
+                Debug.info("Stoppe DataController GUI-Updates...")
+                self.data_controller.stop_gui_updates()
+            except Exception as e:
+                Debug.error(f"Fehler beim Stoppen der DataController GUI-Updates: {e}")
 
         # Event weitergeben
         Debug.info("Anwendung wird geschlossen")

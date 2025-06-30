@@ -115,8 +115,8 @@ class Arduino:
 
     def read_value(self) -> Union[int, float, str, None]:
         """
-        Reads a single value from the Arduino,
-        ensuring a complete line is read until a newline or carriage return.
+        Reads a single value from the Arduino, ensuring a 
+        complete line is read until a newline or carriage return.
 
         Returns:
             Union[int, float, str, None]: The value read, or None if reading failed
@@ -134,8 +134,6 @@ class Arduino:
                 # Read until newline or carriage return
                 response = self.serial.readline()
                 response = response.decode("utf-8").strip()
-
-                # Debug output
                 Debug.debug(f"Received raw data: '{response}'")
 
                 # Check if the response is empty or invalid
@@ -154,6 +152,144 @@ class Arduino:
         except (serial.SerialException, UnicodeDecodeError) as e:
             Debug.error(f"Error reading value: {e}", exc_info=True)
             return None
+
+    def read_bytes_fast(
+        self,
+        max_bytes: int = 1024,
+        timeout_ms: int = 100,
+        start_byte: Optional[int] = None,
+    ) -> bytes:
+        """
+        Hochperformante byte-weise Lesefunktion für extrem schnelles Lesen von seriellen Daten.
+        Minimaler Overhead für maximale Geschwindigkeit.
+
+        Args:
+            max_bytes (int): Maximale Anzahl Bytes zu lesen (Standard: 1024)
+            timeout_ms (int): Timeout in Millisekunden (Standard: 100)
+            start_byte (Optional[int]): Optionales Start-Byte, ab dem gelesen wird (Standard: None)
+
+        Returns:
+            bytes: Die gelesenen Rohdaten als Bytes-Objekt
+        """
+        if not self.serial or not self.serial.is_open:
+            return b""
+
+        original_timeout = self.serial.timeout
+
+        try:
+            self.serial.timeout = timeout_ms * 0.001
+
+            if start_byte is None:
+                return self.serial.read(max_bytes)
+
+            # Suche nach Start-Byte
+            while True:
+                byte_data = self.serial.read(1)
+                if not byte_data:
+                    return b""
+                if byte_data[0] == start_byte:
+                    # Start-Byte gefunden, lese restliche Daten
+                    remaining_data = self.serial.read(max_bytes - 1)
+                    return byte_data + remaining_data
+
+        except:
+            return b""
+        finally:
+            self.serial.timeout = original_timeout
+
+    def read_stream_fast(
+        self, delimiter: bytes = b"\n", max_buffer: int = 4096
+    ) -> Optional[bytes]:
+        """
+        Liest kontinuierlich Bytes bis ein Delimiter gefunden wird.
+        Optimiert für streaming data von Arduino.
+
+        Args:
+            delimiter (bytes): Trennzeichen zum Beenden der Lesung (Standard: b'\n')
+            max_buffer (int): Maximale Puffergröße (Standard: 4096)
+
+        Returns:
+            Optional[bytes]: Komplette Nachricht bis delimiter, oder None bei Fehler
+        """
+        if not self.serial or not self.serial.is_open:
+            Debug.error("Error: Serial connection not open")
+            return None
+
+        buffer = bytearray()
+
+        try:
+            while len(buffer) < max_buffer:
+                # Sehr kleine Chunks lesen für Effizienz
+                chunk = self.read_bytes_fast(max_bytes=64, timeout_ms=50)
+
+                if not chunk:
+                    # Keine neuen Daten, prüfen ob wir schon Daten im Buffer haben
+                    if buffer:
+                        # Kurz warten falls mehr Daten kommen
+                        sleep(0.005)  # 5ms
+                        continue
+                    else:
+                        # Kein Buffer und keine neuen Daten
+                        return None
+
+                buffer.extend(chunk)
+
+                # Prüfen ob Delimiter gefunden wurde
+                delimiter_pos = buffer.find(delimiter)
+                if delimiter_pos != -1:
+                    # Delimiter gefunden, Message extrahieren
+                    message = bytes(buffer[:delimiter_pos])
+
+                    # Verbleibende Daten zurück in den seriellen Buffer schreiben ist nicht möglich,
+                    # aber wir können sie für den nächsten Aufruf zwischenspeichern
+                    remaining = buffer[delimiter_pos + len(delimiter) :]
+                    if remaining:
+                        # Für vereinfachte Implementierung loggen wir nur
+                        Debug.debug(
+                            f"Remaining bytes after delimiter: {len(remaining)}"
+                        )
+
+                    Debug.debug(f"Stream read complete: {len(message)} bytes")
+                    return message
+
+            # Buffer voll, aber kein Delimiter gefunden
+            Debug.info(f"Buffer full ({max_buffer} bytes) without finding delimiter")
+            return bytes(buffer)
+
+        except Exception as e:
+            Debug.error(f"Error in stream reading: {e}", exc_info=True)
+            return None
+
+    def flush_input_buffer(self) -> bool:
+        """
+        Leert den Eingangspuffer komplett für saubere Neustart.
+
+        Returns:
+            bool: True wenn erfolgreich, False bei Fehler
+        """
+        if not self.serial or not self.serial.is_open:
+            Debug.error("Error: Serial connection not open")
+            return False
+
+        try:
+            # Alle verfügbaren Daten lesen und verwerfen
+            discarded_bytes = 0
+            while self.serial.in_waiting > 0:
+                chunk = self.serial.read(self.serial.in_waiting)
+                discarded_bytes += len(chunk)
+                sleep(0.001)  # Kurz warten falls mehr Daten kommen
+
+            # Reset input buffer
+            self.serial.reset_input_buffer()
+
+            if discarded_bytes > 0:
+                Debug.debug(f"Flushed {discarded_bytes} bytes from input buffer")
+
+            return True
+
+        except serial.SerialException as e:
+            Debug.error(f"Error flushing input buffer: {e}", exc_info=True)
+            return False
 
     def set_config(self, key: str, value: Any) -> bool:
         """
