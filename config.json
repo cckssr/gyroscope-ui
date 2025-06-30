@@ -21,7 +21,8 @@
     "timers": {
       "control_update_interval": 1000,
       "statistics_update_interval": 2000,
-      "acquisition_timer_interval": 100
+      "acquisition_timer_interval": 100,
+      "gui_update_interval": 100
     },
 
     "data_controller": {
