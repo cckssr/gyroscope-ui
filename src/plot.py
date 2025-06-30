@@ -1,11 +1,14 @@
 from typing import Tuple, Optional
 import numpy as np
 import matplotlib
+
 try:  # pragma: no cover - optional Qt backend for headless tests
     from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+
     matplotlib.use("Qt5Agg")
 except Exception:  # If no Qt backend is available fall back to Agg
     from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasQTAgg
+
     matplotlib.use("Agg")
 
 from matplotlib.figure import Figure
@@ -142,6 +145,44 @@ class PlotWidget(FigureCanvasQTAgg):
         self.fig.canvas.draw()  # Statt draw_idle() für sofortige Aktualisierung
         self.fig.canvas.flush_events()
         self.update()  # Löst ein explizites QWidget repaint aus
+
+    def update_plot_batch(self, new_points: list) -> None:
+        """
+        Add multiple new data points to the plot in a single batch operation.
+        This is much more efficient than calling update_plot() multiple times.
+
+        Args:
+            new_points (list): List of tuples (x, y) to add to the plot
+        """
+        if not new_points:
+            return
+
+        for x, y in new_points:
+            # Add each point to our data arrays
+            if self._data_count < self.max_plot_points:
+                # Still filling the initial buffer
+                self._x_data[self._data_count] = x
+                self._y_data[self._data_count] = y
+                self._data_count += 1
+            else:
+                # Buffer full, shift data and add new point at the end
+                self._x_data = np.roll(self._x_data, -1)
+                self._y_data = np.roll(self._y_data, -1)
+                self._x_data[-1] = x
+                self._y_data[-1] = y
+
+        # Update the line data for display (only once after all points are added)
+        self.line.set_data(
+            self._x_data[: self._data_count], self._y_data[: self._data_count]
+        )
+
+        # Adjust plot limits only once for all new points
+        self._adjust_limits()
+
+        # Redraw the canvas only once
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        self.update()
 
     def _adjust_limits(self) -> None:
         """
