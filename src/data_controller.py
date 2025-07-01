@@ -75,7 +75,7 @@ class DataController:
         display_widget: Optional[QLCDNumber] = None,
         history_widget: Optional[QListWidget] = None,
         max_history: int = MAX_HISTORY_SIZE,
-        gui_update_interval: int = 100,  # ms
+        gui_update_interval: int = 200,  # ms (optimiert für Performance)
     ):
         """Initialise the data controller.
 
@@ -83,13 +83,18 @@ class DataController:
             plot_widget: Plotting widget used for visualisation.
             display_widget: Optional LCD display for the current value.
             history_widget: Optional list widget for history display.
-            max_history: Maximum number of stored data points.
+            max_history: Maximum number of data points for GUI display (not file storage).
             gui_update_interval: GUI update interval in milliseconds.
         """
         self.plot = plot_widget
         self.display = display_widget
         self.history = history_widget
+
+        # Vollständige Datenspeicherung (für CSV-Export, etc.)
         self.data_points: List[Tuple[int, float]] = []
+
+        # GUI-limitierte Daten (für Plot und History Widget)
+        self.gui_data_points: List[Tuple[int, float]] = []
         self.max_history = max_history
 
         # Queue für hochfrequente Datenerfassung
@@ -163,13 +168,17 @@ class DataController:
 
             self._points_processed_in_last_update = len(new_points)
 
-            # Alle neuen Punkte zu den Daten hinzufügen
+            # Alle neuen Punkte zu den vollständigen Daten hinzufügen (für CSV-Export)
             for index_num, value_num in new_points:
                 self.data_points.append((index_num, value_num))
 
-            # Alte Daten entfernen wenn Maximum überschritten
-            while len(self.data_points) > self.max_history:
-                self.data_points.pop(0)
+            # Alle neuen Punkte auch zu GUI-Daten hinzufügen (mit Limit)
+            for index_num, value_num in new_points:
+                self.gui_data_points.append((index_num, value_num))
+
+            # Nur GUI-Daten begrenzen, vollständige Daten bleiben unbegrenzt
+            while len(self.gui_data_points) > self.max_history:
+                self.gui_data_points.pop(0)
 
             # GUI nur einmal mit dem letzten Wert aktualisieren
             if new_points:
@@ -195,8 +204,8 @@ class DataController:
         try:
             # Update plot widget - alle neuen Punkte in einem Batch hinzufügen
             if self.plot and self._points_processed_in_last_update > 0:
-                # Hole alle neuen Punkte für den Plot-Update
-                new_plot_points = self.data_points[
+                # Hole alle neuen Punkte für den Plot-Update (aus GUI-limitierten Daten)
+                new_plot_points = self.gui_data_points[
                     -self._points_processed_in_last_update :
                 ]
 
@@ -239,10 +248,13 @@ class DataController:
             index_num = int(index)
             value_num = float(value)
 
-            # Add data and drop oldest when maximum size is reached
+            # Add data to full storage (unbounded for file saving)
             self.data_points.append((index_num, value_num))
-            if len(self.data_points) > self.max_history:
-                self.data_points.pop(0)
+
+            # Add data to GUI storage (bounded for display)
+            self.gui_data_points.append((index_num, value_num))
+            if len(self.gui_data_points) > self.max_history:
+                self.gui_data_points.pop(0)
 
             # Update GUI widgets
             self._update_gui_widgets(index_num, value_num)
@@ -273,8 +285,9 @@ class DataController:
     def clear_data(self) -> None:
         """Clear all data points and reset optional widgets."""
         try:
-            # Remove stored points
+            # Remove stored points (both full and GUI data)
             self.data_points = []
+            self.gui_data_points = []
 
             # Clear the queue
             with self._queue_lock:
@@ -364,3 +377,27 @@ class DataController:
             "stored_points": len(self.data_points),
             "last_update_time": self._last_update_time,
         }
+
+    def get_data_info(self) -> dict:
+        """
+        Gibt Informationen über die gespeicherten Daten zurück.
+
+        Returns:
+            dict: Informationen über vollständige und GUI-Daten
+        """
+        return {
+            "total_data_points": len(self.data_points),
+            "gui_data_points": len(self.gui_data_points),
+            "max_history_limit": self.max_history,
+            "data_points_for_export": self.data_points,  # Vollständige Daten für CSV-Export
+            "gui_points_for_display": self.gui_data_points,  # Begrenzte Daten für GUI
+        }
+
+    def get_all_data_for_export(self) -> List[Tuple[int, float]]:
+        """
+        Gibt alle Datenpunkte für den Export zurück (unbegrenzt).
+
+        Returns:
+            List[Tuple[int, float]]: Alle Datenpunkte von Start bis Stop
+        """
+        return self.data_points.copy()

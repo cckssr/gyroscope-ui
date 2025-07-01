@@ -338,7 +338,7 @@ void handleTimer(u_int32_t deltaToPrint = 0)
  */
 void setup()
 {
-    Serial.begin(115200);          // Initialize serial communication at 115200 baud
+    Serial.begin(500000);          // Initialize serial communication at 115200 baud
     Serial1.begin(9600);           // Initialize second serial communication with GM-Counter
     pinMode(INTERRUPT_PIN, INPUT); // Configure the interrupt pin as an input
     // Attach interrupt to the pin, using RISING edge detection

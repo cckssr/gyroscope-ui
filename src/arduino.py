@@ -28,7 +28,7 @@ class Arduino:
     Manages serial connection and data exchange with hardware.
     """
 
-    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 1.0):
+    def __init__(self, port: str, baudrate: int = 115200, timeout: float = 1.0):
         """
         Initialize Arduino connection.
 
@@ -115,7 +115,7 @@ class Arduino:
 
     def read_value(self) -> Union[int, float, str, None]:
         """
-        Reads a single value from the Arduino, ensuring a 
+        Reads a single value from the Arduino, ensuring a
         complete line is read until a newline or carriage return.
 
         Returns:
@@ -326,7 +326,7 @@ class GMCounter(Arduino):
     Inherits from the Arduino class and provides additional functionality specific to GM counters.
     """
 
-    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 1.0):
+    def __init__(self, port: str, baudrate: int = 115200, timeout: float = 1.0):
         super().__init__(port, baudrate, timeout)
         self.reconnect()
         sleep(0.5)

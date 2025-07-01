@@ -77,10 +77,11 @@ class DataControllerTests(unittest.TestCase):
         self.ctrl.add_data_point(1, 0.5)
         self.assertEqual(self.lcd.value, 0.5)
         self.assertEqual(len(self.history.items), 1)
-        # With the new batch system, we need to check the DataController's data_points
-        # instead of the plot directly, as plot updates are batched
-        self.assertEqual(len(self.ctrl.data_points), 1)
+        # Check both full data storage and GUI data storage
+        self.assertEqual(len(self.ctrl.data_points), 1)  # Full storage
+        self.assertEqual(len(self.ctrl.gui_data_points), 1)  # GUI storage
         self.assertEqual(self.ctrl.data_points[0], (1, 0.5))
+        self.assertEqual(self.ctrl.gui_data_points[0], (1, 0.5))
 
     def test_add_data_point_fast(self):
         """Test the new fast data point method with queue processing"""

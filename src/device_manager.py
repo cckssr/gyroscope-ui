@@ -19,10 +19,10 @@ class DataAcquisitionThread(QThread):
         super().__init__()
         self.manager = manager
         self._running = False
+        self._index = 0  # Index-Zähler für Datenpunkte
 
     def run(self) -> None:
         self._running = True
-        index = 0
         Debug.info(
             "Acquisition thread started with binary data acquisition mode (0xAA + 4 bytes + 0x55)"
         )
@@ -37,19 +37,21 @@ class DataAcquisitionThread(QThread):
         while self._running and not self.isInterruptionRequested():
             try:
                 if not (self.manager.device and self.manager.connected):
-                    time.sleep(0.1)
+                    time.sleep(0.01)  # Reduziert von 0.1s
                     continue
 
                 if not self.manager.measurement_active:
-                    time.sleep(0.1)
+                    time.sleep(0.01)  # Reduziert von 0.1s
                     continue
 
                 # Verwende read_bytes_fast für hochfrequente binäre Datenerfassung
                 current_time = time.time()
 
-                # Lese Daten mit read_bytes_fast (max 1024 Bytes, 5ms Timeout für binäre Daten)
+                # Lese Daten mit read_bytes_fast (größerer Buffer, reduzierter Timeout)
                 raw_data = self.manager.device.read_bytes_fast(
-                    max_bytes=1024, timeout_ms=5, start_byte=START_BYTE
+                    max_bytes=4096,
+                    timeout_ms=1,
+                    start_byte=None,  # Optimiert für Geschwindigkeit
                 )
 
                 if raw_data:
@@ -93,8 +95,8 @@ class DataAcquisitionThread(QThread):
                                     )
 
                                     # Emit als float für Kompatibilität
-                                    self.data_point.emit(index, float(value))
-                                    index += 1
+                                    self.data_point.emit(self._index, float(value))
+                                    self._index += 1
 
                                     Debug.debug(
                                         f"Valid packet: 0x{packet.hex()} -> value: {value}"
@@ -123,14 +125,19 @@ class DataAcquisitionThread(QThread):
                             # Nicht genug Daten für vollständiges Paket
                             break
 
-                # Sehr kleine Pause für binäre Hochgeschwindigkeitsdaten
-                time.sleep(0.0005)  # 0.5ms für maximale Datenrate
+                # Adaptive Pause: Kein Sleep wenn Daten verarbeitet wurden
+                if raw_data:
+                    # Keine Pause bei aktiven Daten für maximale Geschwindigkeit
+                    pass
+                else:
+                    # Kurze Pause nur wenn keine Daten verfügbar
+                    time.sleep(0.001)  # 1ms statt 0.5ms
 
                 # Performance-Logging alle 5 Sekunden
                 if current_time - last_process_time > 5.0:
                     buffer_size = len(byte_buffer)
                     Debug.debug(
-                        f"Binary acquisition active, processed {index} packets, buffer: {buffer_size} bytes"
+                        f"Binary acquisition active, processed {self._index} packets, buffer: {buffer_size} bytes"
                     )
                     last_process_time = current_time
 
@@ -139,6 +146,11 @@ class DataAcquisitionThread(QThread):
                 time.sleep(0.05)  # Kürzere Pause bei Fehlern für binäre Daten
 
         Debug.info("Binary acquisition thread stopped")
+
+    def reset_index(self) -> None:
+        """Reset the data point index counter for a new measurement."""
+        self._index = 0
+        Debug.debug("Data acquisition index reset to 0")
 
     def stop(self) -> None:
         self._running = False
@@ -219,6 +231,10 @@ class DeviceManager:
         if not (self.device and self.connected):
             return False
         try:
+            # Reset index counter for new measurement
+            if self.acquire_thread:
+                self.acquire_thread.reset_index()
+
             self.device.set_counting(True)
             self.measurement_active = True
             return True
