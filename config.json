@@ -13,7 +13,7 @@
     },
 
     "plot": {
-      "max_points": 50,
+      "max_points": 100,
       "x_label": "Ereignis k",
       "y_label": "Zeit / µs"
     },

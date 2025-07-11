@@ -1,6 +1,22 @@
 #include <Arduino.h>
 #include "serial_com.h"
 
+bool DEBUG = false;          // Global debug flag
+const char *O_CODE = "TEST"; // OpenBIS code for the device
+int MAX_LENGTH = 64;         // Maximum allowed length of a message line
+
+/**
+ * @brief Initializes the serial communication and sets the debug mode
+ *
+ * @param debug_on Flag to enable or disable debug output
+ */
+void init(bool debug_on, const char *openbiscode, int max_length)
+{
+    DEBUG = debug_on;
+    O_CODE = openbiscode;
+    MAX_LENGTH = max_length;
+}
+
 /**
  * @brief Checks if a string is a valid integer
  *
@@ -30,17 +46,16 @@ bool isInteger(const char *str)
  * This function checks if the message contains only valid integers separated by commas.
  *
  * @param msg The message to validate
- * @param debug Debug flag to enable/disable debug output
  * @return true if the message is valid, false otherwise
  */
-bool validateMessage(volatile char *msg, bool debug)
+bool validateMessage(volatile char *msg)
 {
     int numberCount = 0; // Number of integers found
     char temp[10];       // Buffer for current number
     int tempIndex = 0;   // Index for temporary number
     bool isValid = true;
 
-    if (debug)
+    if (DEBUG)
     {
         Serial.print("Complete message is ");
         Serial.println((const char *)msg);
@@ -50,7 +65,7 @@ bool validateMessage(volatile char *msg, bool debug)
     for (int i = 0; msg[i] != '\0'; i++)
     {
         char currentChar = msg[i];
-        if (debug)
+        if (DEBUG)
         {
             Serial.print("Character " + String(i) + " is: ");
             Serial.println(currentChar);
@@ -58,7 +73,7 @@ bool validateMessage(volatile char *msg, bool debug)
 
         if (currentChar == 0x0D)
         {
-            if (debug)
+            if (DEBUG)
                 Serial.println("\t Character is CR (ignored)");
             continue; // Skip CR character
         }
@@ -66,19 +81,19 @@ bool validateMessage(volatile char *msg, bool debug)
         if ((currentChar >= '0' && currentChar <= '9') || currentChar == '-')
         {
             // Valid digit or minus sign
-            if (debug)
+            if (DEBUG)
                 Serial.println("\t Character is between '0' and '9' or '-'");
             temp[tempIndex++] = currentChar;
         }
         else if (currentChar == ',')
         {
-            if (debug)
+            if (DEBUG)
                 Serial.println("\t Character is comma");
 
             // Check the current number when a comma is encountered
             if (tempIndex == 0)
             {
-                if (debug)
+                if (DEBUG)
                     Serial.println("\t Number is empty");
                 isValid = false; // Empty numbers are invalid
                 break;
@@ -86,7 +101,7 @@ bool validateMessage(volatile char *msg, bool debug)
             temp[tempIndex] = '\0'; // Add null terminator
             if (!isInteger(temp))
             {
-                if (debug)
+                if (DEBUG)
                     Serial.println("\t Not a valid integer");
                 isValid = false; // Invalid number
                 break;
@@ -96,7 +111,7 @@ bool validateMessage(volatile char *msg, bool debug)
         }
         else
         {
-            if (debug)
+            if (DEBUG)
             {
                 Serial.println("\t Character is neither a digit nor a comma");
                 Serial.print("\t Character is: ");
@@ -130,23 +145,21 @@ bool validateMessage(volatile char *msg, bool debug)
  * @param receivedChar The character received from serial
  * @param message Buffer to store the message
  * @param index Current index in the message buffer
- * @param maxLength Maximum length of the message buffer
- * @param debug Debug flag to enable/disable debug output
  */
-void receiveMessage(char receivedChar, volatile char *message, volatile int &index, int maxLength, bool debug)
+void receiveMessage(char receivedChar, volatile char *message, volatile int &index)
 {
     // Check for end of message (newline)
     if (receivedChar == '\n')
     {
         message[index] = '\0'; // Add null terminator
-        if (!debug)
+        if (!DEBUG)
         {
             Serial.println((char *)message);
         }
         else
         {
             // Validate message
-            if (validateMessage(message, debug))
+            if (validateMessage(message))
             {
                 Serial.print("Message is valid: ");
                 Serial.println((char *)message);
@@ -160,9 +173,9 @@ void receiveMessage(char receivedChar, volatile char *message, volatile int &ind
         index = 0;
     }
     // Check for buffer overflow
-    else if (index >= maxLength - 1)
+    else if (index >= MAX_LENGTH - 1)
     {
-        if (debug)
+        if (DEBUG)
         {
             Serial.println("Error: Message too long, discarded.");
         }
@@ -181,23 +194,21 @@ void receiveMessage(char receivedChar, volatile char *message, volatile int &ind
  *
  * @param command The command string to send
  * @param measurementInProgress Reference to the measurement progress flag
- * @param openBisCode The OpenBIS code to send with info command
- * @param debug Debug flag to enable/disable debug output
  */
-void sendMessage(String command, volatile bool &measurementInProgress, const char *openBisCode, bool debug)
+void sendMessage(String command, volatile bool &measurementInProgress)
 {
     // Send commands to the external device
     command.trim(); // Remove whitespace and control characters
     if (command.length() > 0)
     {
-        if (debug)
+        if (DEBUG)
         {
             Serial.print("Sending: ");
             Serial.println(command);
         }
         Serial1.println(command); // Send command via Serial1
 
-        if (debug)
+        if (DEBUG)
         {
             Serial.println("Successfully sent.");
         }
@@ -206,7 +217,7 @@ void sendMessage(String command, volatile bool &measurementInProgress, const cha
     if (command == "s0")
     {
         measurementInProgress = false; // Stop measurement
-        if (debug)
+        if (DEBUG)
         {
             Serial.println("Measurement stopped.");
         }
@@ -214,7 +225,7 @@ void sendMessage(String command, volatile bool &measurementInProgress, const cha
     if (command == "s1")
     {
         measurementInProgress = true; // Start measurement
-        if (debug)
+        if (DEBUG)
         {
             Serial.println("Measurement started.");
         }
@@ -222,11 +233,11 @@ void sendMessage(String command, volatile bool &measurementInProgress, const cha
     if (command == "info")
     {
         // Handle info command
-        if (debug)
+        if (DEBUG)
         {
             Serial.println("Info command received.");
         }
         Serial.print("OpenBIS code: ");
-        Serial.println(openBisCode); // Send OpenBIS code
+        Serial.println(O_CODE); // Send OpenBIS code
     }
 }
