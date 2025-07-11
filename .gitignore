@@ -79,3 +79,10 @@ CMakeLists.txt.user*
 logs/
 backup/
 __pycache__/
+
+# mdBook build output
+book/
+
+# Sphinx build output
+docs-src/build/
+docs/api-docs/
