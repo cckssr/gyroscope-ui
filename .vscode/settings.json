@@ -3,10 +3,28 @@
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "editor.formatOnSave": true,
+
+  // Python-Interpreter auf die aktuelle venv setzen
+  "python.defaultInterpreterPath": "./venv/bin/python",
+
+  // Code Runner auf die aktuelle venv anpassen
   "code-runner.executorMap": {
-    "python": "./.qtcreator/Python_3_9_6venv/bin/python3 -u main.py"
+    "python": "./venv/bin/python -u"
   },
+
+  // Terminal-Konfiguration für automatische venv-Aktivierung
+  "python.terminal.activateEnvironment": true,
+  "python.terminal.activateEnvInCurrentTerminal": true,
+
+  // Testing-Konfiguration
   "python.testing.unittestEnabled": true,
   "python.testing.pytestEnabled": false,
-  "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "*_test.py"]
+  "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "*_test.py"],
+
+  // Zusätzliche Python-Einstellungen
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "standard",
+
+  // Workspace-spezifische Pfade
+  "python.envFile": "${workspaceFolder}/.env"
 }
