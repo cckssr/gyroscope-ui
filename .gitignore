@@ -86,3 +86,37 @@ book/
 # Sphinx build output
 docs-src/build/
 docs/api-docs/
+
+# Read the Docs / Sphinx Documentation Build Files
+docs/_build/
+docs/_static/
+docs/_templates/
+docs/.buildinfo
+docs/.doctrees/
+docs/.nojekyll
+
+# Autodoc generated files
+docs/api/generated/
+docs/modules/
+
+# Test output files
+docs/_test_autodoc.rst
+docs/_build/test/
+docs/_build/autodoc_test/
+
+# Sphinx cache
+docs/.doctrees/
+docs/.buildinfo
+
+# Documentation dependencies
+docs/requirements.txt.bak
+
+# Additional documentation build artifacts
+*.epub
+*.pdf
+*.log
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
