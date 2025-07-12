@@ -6,15 +6,52 @@ Die automatisch generierte API-Dokumentation basiert auf den Docstrings im Pytho
 Hauptmodule
 -----------
 
-.. toctree::
-   :maxdepth: 2
+.. automodule:: main
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-   main-window
-   data-controller
-   plot-widget
-   helper-classes
-   debug-utils
-   arduino-gmcounter
+Device Management
+-----------------
+
+.. automodule:: src.device_manager
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: src.arduino
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Data Controller
+---------------
+
+.. automodule:: src.data_controller
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Helper Classes
+--------------
+
+.. automodule:: src.helper_classes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: src.control
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Debug Utilities
+---------------
+
+.. automodule:: src.debug_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Automatisch generierte Dokumentation
 ------------------------------------

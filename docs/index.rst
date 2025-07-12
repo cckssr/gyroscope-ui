@@ -1,97 +1,78 @@
-HRNGGUI - Hardware-Zufallszahlengenerator GUI
-===============================================
+HRNGGUI - Hardware Random Number Generator GUI
+==============================================
 
-Willkommen zur Dokumentation der HRNGGUI-Anwendung - einer grafischen Benutzeroberfläche für Hardware-Zufallszahlengeneratoren mit Geiger-Müller-Zähler.
-
-Inhaltsverzeichnis
-==================
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Erste Schritte
-
-   installation
-   quickstart
-   configuration
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Benutzerhandbuch
-
-   user-interface
-   device-connection
-   data-acquisition
-   data-analysis
-   export-save
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Technische Dokumentation
-
-   architecture
-   code-structure
-   api
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Entwicklung
-
-   development/README
-   troubleshooting
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Weitere Informationen
-
-   faq
-   CHANGELOG
-   ROADMAP
-   license
-
-Schnellstart
-============
-
-Die HRNGGUI-Anwendung ist eine benutzerfreundliche Oberfläche zur Steuerung und Überwachung von Hardware-Zufallszahlengeneratoren basierend auf Geiger-Müller-Zählern.
+**HRNGGUI** ist eine spezialisierte Anwendung zur Datenerfassung und -analyse von Hardware-Zufallszahlengeneratoren mit Geiger-Müller-Zählern.
 
 Hauptfunktionen
 ===============
 
-* **Echtzeit-Datenerfassung** von Geiger-Müller-Zählern
-* **Grafische Darstellung** der Messdaten
-* **Statistische Analyse** der erfassten Daten
-* **Export-Funktionen** für verschiedene Datenformate
-* **Konfigurierbare Messparameter**
+* **Echtzeit-Datenerfassung** von GM-Zählern über serielle Schnittstelle
+* **Statistische Analyse** zur Bewertung der Zufallsqualität
+* **Grafische Visualisierung** von Messdaten und Verteilungen
+* **Datenexport** in verschiedenen Formaten (CSV, JSON, Binary)
+* **Konfigurierbare Hardware-Protokolle** für verschiedene GM-Zähler-Modelle
 
-Systemanforderungen
-===================
+.. toctree::
+   :maxdepth: 2
+   :caption: Projektdokumentation
 
-* Python 3.8 oder höher
-* PySide6 (Qt for Python)
-* Matplotlib für Diagramme
-* PySerial für Geräteverbindung
+   quickstart
+   hardware/gm-counter-protocol
+   hardware/arduino-integration
+   architecture
+   api
+   
+.. toctree::
+   :maxdepth: 1
+   :caption: Bedienung
 
-Über dieses Projekt
-===================
+   user-interface
+   data-analysis
+   
+.. toctree::
+   :maxdepth: 1
+   :caption: Support
 
-Dieses Projekt wurde entwickelt, um eine einfache und intuitive Benutzeroberfläche für die Arbeit mit Hardware-Zufallszahlengeneratoren zu bieten. Die Anwendung richtet sich sowohl an Forscher als auch an Studierende, die mit radioaktiven Quellen und Zufallszahlengenerierung arbeiten.
+   faq
+   troubleshooting
 
-Lizenz
-======
+Schnellstart
+============
 
-Dieses Projekt steht unter der MIT-Lizenz. Weitere Details finden Sie in der `Lizenzdatei <license.html>`_.
+1. **Installation:**
 
-Kontakt
-=======
+   .. code-block:: bash
+   
+      git clone https://github.com/cckssr/HRNGGUI.git
+      cd HRNGGUI
+      pip install -r requirements.txt
 
-Bei Fragen oder Problemen können Sie sich gerne an den Entwickler wenden:
+2. **Hardware vorbereiten:**
+   - GM-Zähler per USB anschließen
+   - COM-Port in Konfiguration eintragen
 
-* **Autor**: Cedric Kessler
-* **E-Mail**: cedric.kessler@me.com
-* **GitHub**: `HRNGGUI Repository <https://github.com/cckssr/HRNGGUI>`_
+3. **Anwendung starten:**
 
-Indizes und Tabellen
-====================
+   .. code-block:: bash
+   
+      python main.py
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   Für Demo ohne Hardware:
+
+   .. code-block:: bash
+   
+      python main.py --demo
+
+Systemvoraussetzungen
+=====================
+
+* Python 3.10+
+* PySide6, Matplotlib, PySerial
+* USB-Port für GM-Zähler
+
+Über das Projekt
+================
+
+HRNGGUI wurde für wissenschaftliche Anwendungen entwickelt, die echte Zufallszahlen aus radioaktivem Zerfall benötigen. Die Anwendung bietet präzise Datenerfassung und umfangreiche Analysetools zur Bewertung der Zufallsqualität.
+
+**Autor:** Cedric Kessler | **Lizenz:** MIT | **GitHub:** `HRNGGUI Repository <https://github.com/cckssr/HRNGGUI>`_
