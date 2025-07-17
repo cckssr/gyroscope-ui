@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from manual_checklist import load_checklist
+from tests.manual_checklist import load_checklist
 
 
 def test_load_checklist(tmp_path):
