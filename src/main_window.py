@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
 from PySide6.QtCore import QTimer, Qt  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
 from src.control import ControlWidget
-from src.plot import PlotWidget
+from src.plot import PlotWidget, HistogramWidget
 from src.debug_utils import Debug
 from src.helper_classes import (
     import_config,
@@ -124,6 +124,10 @@ class MainWindow(QMainWindow):
         )
         QVBoxLayout(self.ui.timePlot).addWidget(self.plot)
 
+        # Histogram plot
+        self.histogram = HistogramWidget()
+        QVBoxLayout(self.ui.histogramm).addWidget(self.histogram)
+
     def _setup_data_controller(self):
         """
         Richtet den Daten-Controller ein.
@@ -131,6 +135,7 @@ class MainWindow(QMainWindow):
         self.data_controller = DataController(
             plot_widget=self.plot,
             display_widget=self.ui.currentCount,
+            table_widget=self.ui.tableView,
             max_history=CONFIG["data_controller"]["max_history_size"],
         )
 
@@ -384,6 +389,9 @@ class MainWindow(QMainWindow):
             value (float): Der gemessene Wert
         """
         self.data_controller.add_data_point(index, value)
+        # Histogram aktualisieren
+        values = [p[1] for p in self.data_controller.data_points]
+        self.histogram.update_histogram(values)
         # Daten als ungespeichert markieren
         self.data_saved = False
         self.save_manager.mark_unsaved()
