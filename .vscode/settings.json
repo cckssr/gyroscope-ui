@@ -26,5 +26,5 @@
   "python.analysis.typeCheckingMode": "standard",
 
   // Workspace-spezifische Pfade
-  "python.envFile": "${workspaceFolder}/.env"
+  "python.envFile": "${workspaceFolder}/.vscode/.env"
 }
