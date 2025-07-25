@@ -115,9 +115,6 @@ class MainWindow(QMainWindow):
         """
         self.plot = PlotWidget(
             max_plot_points=CONFIG["plot"]["max_points"],
-            width=self.ui.timePlot.width(),
-            height=self.ui.timePlot.height(),
-            dpi=self.logicalDpiX(),
             fontsize=self.ui.timePlot.fontInfo().pixelSize(),
             xlabel=CONFIG["plot"]["x_label"],
             ylabel=CONFIG["plot"]["y_label"],

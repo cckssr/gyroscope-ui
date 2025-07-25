@@ -108,23 +108,28 @@ class DataController:
             self.table.setModel(self.table_model)
 
     def add_data_point(self, index: Union[int, str], value: Union[float, str]) -> None:
-        """Add a new point and update the optional UI widgets."""
+        """Add a new point and update the optional UI widgets.
+
+        Args:
+            index (Union[int, str]): Index of the data point.
+            value (Union[float, str]): Value of the data point.
+        """
 
         # Ensure numeric values
         try:
-            # Sicherstellen, dass die Werte numerisch sind
+            # Check incoming data types
             index_num = int(index)
             value_num = float(value)
-            timestamp = datetime.now().strftime("%H:%M:%S")
+            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
             # Add data and drop oldest when maximum size is reached
             self.data_points.append((index_num, value_num, timestamp))
             if len(self.data_points) > self.max_history:
                 self.data_points.pop(0)
 
-            # Update plot widget
+            # Update plot widget with all data points
             if self.plot:
-                self.plot.update_plot((index_num, value_num))
+                self.plot.update_plot(self.data_points)
 
             # Update current value display
             if self.display:
