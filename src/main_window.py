@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
         QVBoxLayout(self.ui.timePlot).addWidget(self.plot)
 
         # Histogram plot
-        self.histogram = HistogramWidget()
+        self.histogram = HistogramWidget(xlabel=CONFIG["plot"]["x_label"])
         QVBoxLayout(self.ui.histogramm).addWidget(self.histogram)
 
     def _setup_data_controller(self):

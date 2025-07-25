@@ -31,6 +31,7 @@ class MockGMCounter:
         self.baudrate = baudrate
         self.timeout = timeout
         self.max_tick = max_tick
+        self._min_tick = 0.000_08  # Minimal tick (80 us)
         self._voltage = 500
         self._repeat = False
         self._counting = False
@@ -40,6 +41,7 @@ class MockGMCounter:
         self._measurement_start_time = 0.0
         self._last_pulse_time = 0.0
         self.next_pulse_time = 0
+        self._next_pulse_interval = 0.0  # Das nächste zufällige Intervall
         Debug.info(f"MockGMCounter für Port {port} initialisiert")
         print(
             f"Baudrate: {self.baudrate}, timeout: {self.timeout:2f}, max_tick: {self.max_tick:6f}"
@@ -93,9 +95,14 @@ class MockGMCounter:
             self._last_count = self._count
             self._count = 0
             self._measurement_start_time = time.time()
-            self._last_pulse_time = self._measurement_start_time
-            self.next_pulse_time = time.time() + random.uniform(0.1, 1.0)
-            Debug.info("MockGMCounter: Zählung gestartet.")
+
+            # Generiere das erste zufällige Intervall
+            self._next_pulse_interval = random.uniform(self._min_tick, self.max_tick)
+            self.next_pulse_time = time.time() + self._next_pulse_interval
+
+            Debug.info(
+                f"MockGMCounter: Zählung gestartet. Erstes Intervall: {self._next_pulse_interval:.6f}s"
+            )
         elif not value and self._counting:  # Stop counting
             self._counting = False
             Debug.info(f"MockGMCounter: Zählung gestoppt. Finaler Count: {self._count}")
@@ -160,14 +167,21 @@ class MockGMCounter:
 
         # Nächsten Impuls erzeugen
         if time.time() >= self.next_pulse_time:
-            value = self.read_time_fast()
-            if value is not None:
-                self._count += 1  # Zähler bei einem Impuls erhöhen
-                self.next_pulse_time = time.time() + random.uniform(
-                    self.max_tick / 100, self.max_tick
-                )
-                Debug.debug(f"Mock Pulse! Count: {self._count}, Time: {value} us")
-                return str(value)
+            current_time = time.time()
+
+            # Verwende das vorgenerierte Intervall für diesen Puls
+            current_interval_us = int(self._next_pulse_interval * 1_000_000)
+
+            self._count += 1  # Zähler bei einem Impuls erhöhen
+
+            # Generiere das nächste zufällige Intervall
+            self._next_pulse_interval = random.uniform(self._min_tick, self.max_tick)
+            self.next_pulse_time = current_time + self._next_pulse_interval
+
+            Debug.debug(
+                f"Mock Pulse! Count: {self._count}, Time: {current_interval_us} us, Next in: {self._next_pulse_interval:.6f}s"
+            )
+            return str(current_interval_us)
         return None
 
 

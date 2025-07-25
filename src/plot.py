@@ -37,7 +37,7 @@ class PlotWidget(pg.PlotWidget):
 
     def __init__(
         self,
-        title: str = "Real-time Plot",
+        title: Optional[str] = None,
         xlabel: str = "Index",
         ylabel: str = "Time (µs)",
         max_plot_points: int = 500,
@@ -151,7 +151,7 @@ class HistogramWidget(pg.PlotWidget):
     """A histogram widget using pyqtgraph."""
 
     def __init__(
-        self, title: str = "Histogram", xlabel: str = "CPM", ylabel: str = "Count"
+        self, title: Optional[str] = None, xlabel: str = "CPM", ylabel: str = "Count"
     ):
         """
         Initialize the histogram widget.

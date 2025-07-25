@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1018</width>
-    <height>799</height>
+    <width>1143</width>
+    <height>903</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1145,7 +1145,7 @@
         <property name="flat">
          <bool>false</bool>
         </property>
-        <layout class="QGridLayout" name="gridLayout_2" rowstretch="1,0,0,0,5">
+        <layout class="QGridLayout" name="gridLayout_2" rowstretch="1,0,0,0,0">
          <property name="topMargin">
           <number>12</number>
          </property>
@@ -1162,15 +1162,67 @@
            </property>
           </widget>
          </item>
+         <item row="4" column="0">
+          <widget class="QTabWidget" name="tabWidget">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>10</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
+           <widget class="QWidget" name="timePlot">
+            <attribute name="title">
+             <string>Zeitverlauf</string>
+            </attribute>
+           </widget>
+           <widget class="QWidget" name="histogramm">
+            <attribute name="title">
+             <string>Histogramm</string>
+            </attribute>
+           </widget>
+           <widget class="QWidget" name="list">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <attribute name="title">
+             <string>Liste</string>
+            </attribute>
+            <layout class="QGridLayout" name="gridLayout">
+             <item row="0" column="0">
+              <widget class="QTableView" name="tableView">
+               <property name="editTriggers">
+                <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </item>
          <item row="0" column="0">
           <layout class="QGridLayout" name="gridLayout_3" rowstretch="0,0,0,0">
+           <property name="sizeConstraint">
+            <enum>QLayout::SizeConstraint::SetMinimumSize</enum>
+           </property>
            <item row="2" column="0">
             <widget class="QLabel" name="label_4">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>100</height>
+              </size>
              </property>
              <property name="text">
               <string>Voriger Wert</string>
@@ -1183,7 +1235,7 @@
            <item row="3" column="0">
             <widget class="QLCDNumber" name="lastCount">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -1210,6 +1262,12 @@
            </item>
            <item row="0" column="0">
             <widget class="QLabel" name="label_2">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Status:</string>
              </property>
@@ -1225,6 +1283,12 @@
              </property>
              <item>
               <widget class="QProgressBar" name="progressBar">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="value">
                 <number>0</number>
                </property>
@@ -1232,6 +1296,12 @@
              </item>
              <item>
               <widget class="QLabel" name="progressTimer">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="text">
                 <string>999</string>
                </property>
@@ -1244,7 +1314,7 @@
              <item>
               <widget class="QLabel" name="statusLED">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+                <sizepolicy hsizetype="Maximum" vsizetype="Minimum">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -1275,7 +1345,7 @@
              <item>
               <widget class="QLabel" name="statusText">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -1290,10 +1360,16 @@
            <item row="2" column="1">
             <widget class="QLabel" name="label_3">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>100</height>
+              </size>
              </property>
              <property name="text">
               <string>Aktuell</string>
@@ -1306,7 +1382,7 @@
            <item row="3" column="1">
             <widget class="QLCDNumber" name="currentCount">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -1333,39 +1409,6 @@
            </item>
           </layout>
          </item>
-         <item row="4" column="0">
-          <widget class="QTabWidget" name="tabWidget">
-           <property name="currentIndex">
-            <number>0</number>
-           </property>
-           <widget class="QWidget" name="timePlot">
-            <attribute name="title">
-             <string>Zeitverlauf</string>
-            </attribute>
-           </widget>
-           <widget class="QWidget" name="histogramm">
-            <attribute name="title">
-             <string>Histogramm</string>
-            </attribute>
-           </widget>
-           <widget class="QWidget" name="list">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <attribute name="title">
-             <string>Liste</string>
-            </attribute>
-            <layout class="QGridLayout" name="gridLayout">
-             <item row="0" column="0">
-              <widget class="QTableView" name="tableView"/>
-             </item>
-            </layout>
-           </widget>
-          </widget>
-         </item>
         </layout>
        </widget>
       </item>
@@ -1378,7 +1421,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1018</width>
+     <width>1143</width>
      <height>24</height>
     </rect>
    </property>
@@ -1421,7 +1464,7 @@
   </connection>
  </connections>
  <buttongroups>
-  <buttongroup name="groupMode"/>
   <buttongroup name="groupQMode"/>
+  <buttongroup name="groupMode"/>
  </buttongroups>
 </ui>
