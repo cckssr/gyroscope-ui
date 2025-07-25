@@ -134,7 +134,6 @@ class MainWindow(QMainWindow):
             display_widget=self.ui.currentCount,
             table_widget=self.ui.tableView,
             max_history=CONFIG["data_controller"]["max_history_size"],
-            gui_update_interval=CONFIG["timers"]["gui_update_interval"],
         )
 
     def _setup_buttons(self):
@@ -387,13 +386,13 @@ class MainWindow(QMainWindow):
             index (int): Der Datenpunktindex
             value (float): Der gemessene Wert
         """
+        # Verwende die schnelle Queue-basierte Methode für bessere Performance
+        # bei hochfrequenten Messungen
+        self.data_controller.add_data_point_fast(index, value)
 
-        self.data_controller.add_data_point(index, value)
-        # Histogram aktualisieren
+        # Histogram mit aktuellen Daten aktualisieren
         values = [p[1] for p in self.data_controller.data_points]
         self.histogram.update_histogram(values)
-        # Verwende die schnelle Queue-basierte Methode für bessere Performance
-        # old main: self.data_controller.add_data_point_fast(index, value)
 
         # Daten als ungespeichert markieren
         self.data_saved = False
@@ -410,8 +409,17 @@ class MainWindow(QMainWindow):
         """
         Aktualisiert die Statistiken in der Benutzeroberfläche basierend
         auf den aktuellen Daten im DataController.
+
+        Zusätzlich wird die Queue des DataControllers verarbeitet.
         """
         try:
+            # WICHTIG: Queue-Verarbeitung für das neue Queue-basierte System
+            if (
+                hasattr(self, "data_controller")
+                and self.data_controller.has_queued_data()
+            ):
+                self.data_controller.process_queued_data()
+
             # Statistiken vom DataController holen
             stats = self.data_controller.get_statistics()
 
@@ -559,13 +567,14 @@ class MainWindow(QMainWindow):
                     Debug.debug(f"Stoppe Timer: {timer_attr}")
                     timer.stop()
 
-        # Stoppe den DataController GUI-Update-Timer
+        # DataController Cleanup (falls vorhanden)
         if hasattr(self, "data_controller"):
             try:
-                Debug.info("Stoppe DataController GUI-Updates...")
-                self.data_controller.stop_gui_updates()
+                Debug.info("DataController Cleanup...")
+                # Daten können noch geleert werden, falls gewünscht
+                # self.data_controller.clear_data()  # Optional
             except Exception as e:
-                Debug.error(f"Fehler beim Stoppen der DataController GUI-Updates: {e}")
+                Debug.error(f"Fehler beim DataController Cleanup: {e}")
 
         # Event weitergeben
         Debug.info("Anwendung wird geschlossen")

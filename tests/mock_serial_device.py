@@ -153,7 +153,11 @@ class MockGMCounter:
         return response
 
     def tick(self) -> Optional[int]:
-        """Wird periodisch aufgerufen, um spontane Daten zu erzeugen."""
+        """Wird periodisch aufgerufen, um spontane Daten zu erzeugen.
+
+        Returns:
+            Optional[int]: Zeitintervall in Mikrosekunden als int, oder None wenn keine Daten
+        """
         if not self._counting:
             return None
 
@@ -182,7 +186,7 @@ class MockGMCounter:
             Debug.debug(
                 f"Mock Pulse! Count: {self._count}, Time: {current_interval_us} us, Next in: {self._next_pulse_interval:.6f}s"
             )
-            return str(current_interval_us)
+            return current_interval_us  # Rückgabe als int, nicht als String
         return None
 
 
@@ -235,10 +239,18 @@ def main(device_class=MockGMCounter):
             # Spontane Daten vom Gerät verarbeiten
             spontaneous_data = mock_device.tick()
             if spontaneous_data:
-                os.write(
-                    master,
-                    bytes([0xAA]) + spontaneous_data.to_bytes(4, byteorder="big"),
+                # Korrektes Binärformat: 0xAA + 4 Bytes (little-endian) + 0x55
+                packet = (
+                    bytes([0xAA])  # Start-Byte
+                    + spontaneous_data.to_bytes(
+                        4, byteorder="little"
+                    )  # 4 Daten-Bytes (little-endian)
+                    + bytes([0x55])  # End-Byte
                 )
+                print(
+                    f"Sende Binärpaket: 0x{packet.hex()} (Wert: {spontaneous_data} µs)"
+                )
+                os.write(master, packet)
 
     except KeyboardInterrupt:
         print("\nProgramm wird beendet...")
@@ -273,12 +285,14 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    def device_factory(port):
-        return MockGMCounter(
-            port=port,
-            baudrate=args.baudrate,
-            timeout=args.timeout,
-            max_tick=args.max_tick,
-        )
+    # Konfigurierte MockGMCounter-Klasse erstellen
+    class ConfiguredMockGMCounter(MockGMCounter):
+        def __init__(self, port):
+            super().__init__(
+                port=port,
+                baudrate=args.baudrate,
+                timeout=args.timeout,
+                max_tick=args.max_tick,
+            )
 
-    main(device_class=device_factory)
+    main(device_class=ConfiguredMockGMCounter)
