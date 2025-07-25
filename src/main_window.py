@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
 from PySide6.QtCore import QTimer, Qt  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
 from src.control import ControlWidget
-from src.plot import PlotWidget
+from src.plot import PlotWidget, HistogramWidget
 from src.debug_utils import Debug
 from src.helper_classes import (
     import_config,
@@ -115,14 +115,15 @@ class MainWindow(QMainWindow):
         """
         self.plot = PlotWidget(
             max_plot_points=CONFIG["plot"]["max_points"],
-            width=self.ui.timePlot.width(),
-            height=self.ui.timePlot.height(),
-            dpi=self.logicalDpiX(),
             fontsize=self.ui.timePlot.fontInfo().pixelSize(),
             xlabel=CONFIG["plot"]["x_label"],
             ylabel=CONFIG["plot"]["y_label"],
         )
         QVBoxLayout(self.ui.timePlot).addWidget(self.plot)
+
+        # Histogram plot
+        self.histogram = HistogramWidget(xlabel=CONFIG["plot"]["x_label"])
+        QVBoxLayout(self.ui.histogramm).addWidget(self.histogram)
 
     def _setup_data_controller(self):
         """
@@ -131,6 +132,7 @@ class MainWindow(QMainWindow):
         self.data_controller = DataController(
             plot_widget=self.plot,
             display_widget=self.ui.currentCount,
+            table_widget=self.ui.tableView,
             max_history=CONFIG["data_controller"]["max_history_size"],
             gui_update_interval=CONFIG["timers"]["gui_update_interval"],
         )
@@ -385,8 +387,13 @@ class MainWindow(QMainWindow):
             index (int): Der Datenpunktindex
             value (float): Der gemessene Wert
         """
+
+        self.data_controller.add_data_point(index, value)
+        # Histogram aktualisieren
+        values = [p[1] for p in self.data_controller.data_points]
+        self.histogram.update_histogram(values)
         # Verwende die schnelle Queue-basierte Methode für bessere Performance
-        self.data_controller.add_data_point_fast(index, value)
+        # old main: self.data_controller.add_data_point_fast(index, value)
 
         # Daten als ungespeichert markieren
         self.data_saved = False

@@ -70,6 +70,7 @@ class DataControllerTests(unittest.TestCase):
             plot_widget=self.plot,
             display_widget=self.lcd,
             history_widget=self.history,
+            table_widget=None,
             max_history=3,
         )
 
@@ -129,8 +130,9 @@ class DataControllerTests(unittest.TestCase):
     def test_get_csv_data(self):
         self.ctrl.add_data_point(1, 2)
         csv_data = self.ctrl.get_csv_data()
-        self.assertEqual(csv_data[0], ["Index", "Value (µs)"])
-        self.assertEqual(csv_data[1], ["1", "2.0"])
+        self.assertEqual(csv_data[0], ["Index", "Value (µs)", "Time"])
+        self.assertEqual(csv_data[1][0], "1")
+        self.assertEqual(csv_data[1][1], "2.0")
 
 
 if __name__ == "__main__":
