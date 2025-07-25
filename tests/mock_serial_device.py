@@ -35,7 +35,7 @@ class MockGMCounter:
         self._voltage = 500
         self._repeat = False
         self._counting = False
-        self._counting_time_mode = 0
+        self._counting_time_mode = 2
         self._count = 0
         self._last_count = 0
         self._measurement_start_time = 0.0
@@ -75,6 +75,7 @@ class MockGMCounter:
             return None
         delta_micros = (current_time - self._last_pulse_time) * 1_000_000
         self._last_pulse_time = current_time
+        print(current_time)
         return int(delta_micros)
 
     def get_information(self) -> Dict[str, str]:
@@ -151,7 +152,7 @@ class MockGMCounter:
             self.set_counting_time(int(command[1:]))
         return response
 
-    def tick(self) -> Optional[str]:
+    def tick(self) -> Optional[int]:
         """Wird periodisch aufgerufen, um spontane Daten zu erzeugen."""
         if not self._counting:
             return None
@@ -234,7 +235,10 @@ def main(device_class=MockGMCounter):
             # Spontane Daten vom Gerät verarbeiten
             spontaneous_data = mock_device.tick()
             if spontaneous_data:
-                os.write(master, (spontaneous_data + "\n").encode("utf-8"))
+                os.write(
+                    master,
+                    bytes([0xAA]) + spontaneous_data.to_bytes(4, byteorder="big"),
+                )
 
     except KeyboardInterrupt:
         print("\nProgramm wird beendet...")

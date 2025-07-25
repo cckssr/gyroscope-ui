@@ -149,11 +149,12 @@ class ConnectionWindow(QDialog):
                   configured DeviceManager if successful, None otherwise.
         """
         port = self.combo.currentText()
+        baudrate = int(self.ui.comboBox.currentText())
         self.status_message(f"Connecting to {port}...", "white")
         Debug.info(f"ConnectionWindow: Attempting to connect to port: {port}")
 
         # Check if connected
-        success = self.device_manager.connect(port)
+        success = self.device_manager.connect(port, baudrate)
 
         if success:
             self.status_message(f"Successfully connected to {port}", "green")

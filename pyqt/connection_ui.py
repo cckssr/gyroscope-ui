@@ -113,6 +113,12 @@ class Ui_Dialog(object):
         self.comboBox.addItem("")
         self.comboBox.addItem("")
         self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
         self.comboBox.setObjectName(u"comboBox")
         sizePolicy1.setHeightForWidth(self.comboBox.sizePolicy().hasHeightForWidth())
         self.comboBox.setSizePolicy(sizePolicy1)
@@ -209,7 +215,7 @@ class Ui_Dialog(object):
         self.buttonBox.rejected.connect(Dialog.reject)
         self.buttonBox.accepted.connect(Dialog.accept)
 
-        self.comboBox.setCurrentIndex(2)
+        self.comboBox.setCurrentIndex(7)
 
 
         QMetaObject.connectSlotsByName(Dialog)
@@ -235,6 +241,12 @@ class Ui_Dialog(object):
         self.comboBox.setItemText(5, QCoreApplication.translate("Dialog", u"38400", None))
         self.comboBox.setItemText(6, QCoreApplication.translate("Dialog", u"57600", None))
         self.comboBox.setItemText(7, QCoreApplication.translate("Dialog", u"115200", None))
+        self.comboBox.setItemText(8, QCoreApplication.translate("Dialog", u"230400", None))
+        self.comboBox.setItemText(9, QCoreApplication.translate("Dialog", u"460800", None))
+        self.comboBox.setItemText(10, QCoreApplication.translate("Dialog", u"500000", None))
+        self.comboBox.setItemText(11, QCoreApplication.translate("Dialog", u"921600", None))
+        self.comboBox.setItemText(12, QCoreApplication.translate("Dialog", u"1000000", None))
+        self.comboBox.setItemText(13, QCoreApplication.translate("Dialog", u"2000000", None))
 
         self.label.setText(QCoreApplication.translate("Dialog", u"Adresse", None))
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Name", None))

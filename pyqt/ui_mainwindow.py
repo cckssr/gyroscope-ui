@@ -37,7 +37,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2 = QVBoxLayout()
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.verticalLayout_2.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
-        self.verticalLayout_2.setContentsMargins(0, -1, -1, -1)
+        self.verticalLayout_2.setContentsMargins(0, -1, -1, 0)
         self.settings = QGroupBox(self.centralwidget)
         self.settings.setObjectName(u"settings")
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
@@ -437,61 +437,60 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addLayout(self.formLayout_2)
 
-        self.line_5 = QFrame(self.groupBox)
-        self.line_5.setObjectName(u"line_5")
-        self.line_5.setFrameShape(QFrame.Shape.HLine)
-        self.line_5.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.verticalLayout.addWidget(self.line_5)
-
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalLayout.setContentsMargins(2, 2, 2, 2)
-        self.buttonStart = QPushButton(self.groupBox)
-        self.buttonStart.setObjectName(u"buttonStart")
-        self.buttonStart.setEnabled(False)
-        self.buttonStart.setMinimumSize(QSize(75, 30))
-        self.buttonStart.setMaximumSize(QSize(75, 40))
-
-        self.horizontalLayout.addWidget(self.buttonStart)
-
-        self.buttonStop = QPushButton(self.groupBox)
-        self.buttonStop.setObjectName(u"buttonStop")
-        self.buttonStop.setEnabled(False)
-        self.buttonStop.setMinimumSize(QSize(75, 30))
-        self.buttonStop.setMaximumSize(QSize(75, 40))
-
-        self.horizontalLayout.addWidget(self.buttonStop)
-
-        self.line_4 = QFrame(self.groupBox)
-        self.line_4.setObjectName(u"line_4")
-        self.line_4.setFrameShadow(QFrame.Shadow.Plain)
-        self.line_4.setFrameShape(QFrame.Shape.VLine)
-
-        self.horizontalLayout.addWidget(self.line_4)
-
         self.buttonSave = QPushButton(self.groupBox)
         self.buttonSave.setObjectName(u"buttonSave")
         self.buttonSave.setEnabled(False)
+        sizePolicy10 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        sizePolicy10.setHorizontalStretch(0)
+        sizePolicy10.setVerticalStretch(0)
+        sizePolicy10.setHeightForWidth(self.buttonSave.sizePolicy().hasHeightForWidth())
+        self.buttonSave.setSizePolicy(sizePolicy10)
         self.buttonSave.setMinimumSize(QSize(100, 30))
-        self.buttonSave.setMaximumSize(QSize(75, 40))
+        self.buttonSave.setMaximumSize(QSize(1000, 40))
 
-        self.horizontalLayout.addWidget(self.buttonSave)
+        self.verticalLayout.addWidget(self.buttonSave)
 
-
-        self.verticalLayout.addLayout(self.horizontalLayout)
-
+        self.horizontalLayout_5 = QHBoxLayout()
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
+        self.horizontalLayout_5.setContentsMargins(-1, -1, 0, 0)
         self.autoSave = QCheckBox(self.groupBox)
         self.autoSave.setObjectName(u"autoSave")
+        sizePolicy3.setHeightForWidth(self.autoSave.sizePolicy().hasHeightForWidth())
+        self.autoSave.setSizePolicy(sizePolicy3)
         self.autoSave.setMaximumSize(QSize(850, 16777215))
         self.autoSave.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.autoSave.setChecked(True)
         self.autoSave.setTristate(False)
 
-        self.verticalLayout.addWidget(self.autoSave)
+        self.horizontalLayout_5.addWidget(self.autoSave)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_5)
 
 
         self.verticalLayout_2.addWidget(self.groupBox)
+
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(2, 2, 2, 2)
+        self.buttonStart = QPushButton(self.centralwidget)
+        self.buttonStart.setObjectName(u"buttonStart")
+        self.buttonStart.setEnabled(False)
+        self.buttonStart.setMinimumSize(QSize(75, 30))
+        self.buttonStart.setMaximumSize(QSize(500, 40))
+
+        self.horizontalLayout.addWidget(self.buttonStart)
+
+        self.buttonStop = QPushButton(self.centralwidget)
+        self.buttonStop.setObjectName(u"buttonStop")
+        self.buttonStop.setEnabled(False)
+        self.buttonStop.setMinimumSize(QSize(75, 30))
+        self.buttonStop.setMaximumSize(QSize(500, 40))
+
+        self.horizontalLayout.addWidget(self.buttonStop)
+
+
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
 
 
         self.horizontalLayout_3.addLayout(self.verticalLayout_2)
@@ -508,11 +507,11 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setContentsMargins(-1, -1, 0, -1)
         self.gridGroupBox = QGroupBox(self.centralwidget)
         self.gridGroupBox.setObjectName(u"gridGroupBox")
-        sizePolicy10 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        sizePolicy10.setHorizontalStretch(0)
-        sizePolicy10.setVerticalStretch(0)
-        sizePolicy10.setHeightForWidth(self.gridGroupBox.sizePolicy().hasHeightForWidth())
-        self.gridGroupBox.setSizePolicy(sizePolicy10)
+        sizePolicy11 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        sizePolicy11.setHorizontalStretch(0)
+        sizePolicy11.setVerticalStretch(0)
+        sizePolicy11.setHeightForWidth(self.gridGroupBox.sizePolicy().hasHeightForWidth())
+        self.gridGroupBox.setSizePolicy(sizePolicy11)
         self.gridGroupBox.setFont(font)
         self.gridGroupBox.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.gridGroupBox.setFlat(False)
@@ -746,7 +745,7 @@ class Ui_MainWindow(object):
         self.volt_label.setText(QCoreApplication.translate("MainWindow", u"GM-Spannung", None))
         self.sVoltage.setSuffix(QCoreApplication.translate("MainWindow", u" V", None))
         self.buttonSetting.setText(QCoreApplication.translate("MainWindow", u"Einstellungen \u00e4ndern", None))
-        self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Speicherung Messung", None))
+        self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Speicherung", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", u"Radioaktive Probe*", None))
         self.radSample.setItemText(0, QCoreApplication.translate("MainWindow", u"E00200", None))
         self.radSample.setItemText(1, QCoreApplication.translate("MainWindow", u"E03607", None))
@@ -807,6 +806,14 @@ class Ui_MainWindow(object):
         self.suffix.setToolTip(QCoreApplication.translate("MainWindow", u"Ein benutzerdefiniertes Suffix mit maximal 20 Zeichen", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(tooltip)
+        self.buttonSave.setToolTip(QCoreApplication.translate("MainWindow", u"Messung speichern (Dateidialog)", None))
+#endif // QT_CONFIG(tooltip)
+        self.buttonSave.setText(QCoreApplication.translate("MainWindow", u"Speichern", None))
+#if QT_CONFIG(tooltip)
+        self.autoSave.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Bei Aktivierung werden die Messungen automatisch im Format:</p><p>YYYY_MM_DD-<span style=\" font-style:italic;\">Radioaktive Probe</span>-<span style=\" font-style:italic;\">Suffix</span>.csv</p><p>im Ordner Dokumente/Geiger-Mueller/ gespeichert.</p></body></html>", None))
+#endif // QT_CONFIG(tooltip)
+        self.autoSave.setText(QCoreApplication.translate("MainWindow", u"Automatische Speicherung. ", None))
+#if QT_CONFIG(tooltip)
         self.buttonStart.setToolTip(QCoreApplication.translate("MainWindow", u"Start der Messung", None))
 #endif // QT_CONFIG(tooltip)
         self.buttonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
@@ -814,14 +821,6 @@ class Ui_MainWindow(object):
         self.buttonStop.setToolTip(QCoreApplication.translate("MainWindow", u"Aktuelle Messung stoppen", None))
 #endif // QT_CONFIG(tooltip)
         self.buttonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
-#if QT_CONFIG(tooltip)
-        self.buttonSave.setToolTip(QCoreApplication.translate("MainWindow", u"Messung speichern (Dateidialog)", None))
-#endif // QT_CONFIG(tooltip)
-        self.buttonSave.setText(QCoreApplication.translate("MainWindow", u"Speichern", None))
-#if QT_CONFIG(tooltip)
-        self.autoSave.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Bei Aktivierung werden die Messungen automatisch im Format:</p><p>YYYY_MM_DD-<span style=\" font-style:italic;\">Radioaktive Probe</span>-<span style=\" font-style:italic;\">Suffix</span>.csv</p><p>im Ordner Dokumente/Geiger-Mueller/ gespeichert.</p></body></html>", None))
-#endif // QT_CONFIG(tooltip)
-        self.autoSave.setText(QCoreApplication.translate("MainWindow", u"Automatisch Speichern ", None))
         self.gridGroupBox.setTitle(QCoreApplication.translate("MainWindow", u"Live-Metriken", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.timePlot), QCoreApplication.translate("MainWindow", u"Zeitverlauf", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.histogramm), QCoreApplication.translate("MainWindow", u"Histogramm", None))

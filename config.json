@@ -9,11 +9,11 @@
     },
 
     "debug": {
-      "level_default": "verbose"
+      "level_default": "off"
     },
 
     "plot": {
-      "max_points": 50,
+      "max_points": 100,
       "x_label": "Ereignis k",
       "y_label": "Zeit / µs"
     },
@@ -21,7 +21,8 @@
     "timers": {
       "control_update_interval": 1000,
       "statistics_update_interval": 2000,
-      "acquisition_timer_interval": 100
+      "acquisition_timer_interval": 100,
+      "gui_update_interval": 100
     },
 
     "data_controller": {
