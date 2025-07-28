@@ -375,15 +375,15 @@ Unterstützung
 
 Bei Installationsproblemen:
 
-* Konsultieren Sie die `Fehlerbehebung <troubleshooting.md>`_
+* Konsultieren Sie die `Fehlerbehebung <troubleshooting>`_
 * Öffnen Sie ein `Issue auf GitHub <https://github.com/cckssr/HRNGGUI/issues>`_
-* Prüfen Sie die `FAQ <faq.md>`_
+* Prüfen Sie die `FAQ <faq>`_
 
 Nächste Schritte
 ----------------
 
 Nach erfolgreicher Installation:
 
-1. Lesen Sie den `Schnellstart-Guide <quickstart.md>`_
-2. Konfigurieren Sie die `Grundeinstellungen <configuration.md>`_
-3. Verbinden Sie Ihr `Gerät <device-connection.md>`_
+1. Lesen Sie den `Schnellstart-Guide <quickstart>`_
+2. Konfigurieren Sie die `Grundeinstellungen <configuration>`_
+3. Verbinden Sie Ihr `Gerät <device-connection>`_

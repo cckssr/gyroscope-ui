@@ -64,7 +64,7 @@ class ControlWidget:
         Retrieve the current settings from the GM counter.
 
         Returns:
-            dict[str, Union[bool, int]]: Die aktuellen Einstellungen des GM-Zählers.
+            dict[str, Union[bool, int]]: The current counter settings.
         """
         try:
             data = self.gm_counter.get_data()
@@ -90,7 +90,7 @@ class ControlWidget:
             # Reset to default values
             self.gm_counter.set_repeat(False)
             self.gm_counter.set_stream(0)  # No streaming
-            self.gm_counter.set_counting_time(0)  # Unbegrenzt
+            self.gm_counter.set_counting_time(0)  # Unlimited
             self.gm_counter.set_voltage(500)  # Default voltage
 
             time.sleep(0.2)  # Wait for reset to apply

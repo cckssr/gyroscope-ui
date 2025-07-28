@@ -47,11 +47,14 @@ class PlotWidget(pg.PlotWidget):
         Initialize the plot widget.
 
         Args:
-            title: Plot title
-            xlabel: X-axis label
-            ylabel: Y-axis label
-            max_plot_points: Maximum number of points to display for performance
-            fontsize: Font size for labels
+            max_plot_points (int): Maximum number of points to display in the plot
+            width (int): Width of the plot in inches
+            height (int): Height of the plot in inches
+            dpi (int): DPI (dots per inch) of the plot
+            fontsize (int): Font size to use in the plot
+            xlabel (str): Label for the x-axis
+            ylabel (str): Label for the y-axis
+            title (str): Title of the plot
         """
         super().__init__()
 
@@ -69,8 +72,11 @@ class PlotWidget(pg.PlotWidget):
         # Store config for potential future use
         self._plot_config = {"xlabel": xlabel, "ylabel": ylabel, "title": title}
 
-        # Connect to view change signals to track user interaction
-        self.plotItem.getViewBox().sigRangeChanged.connect(self._on_view_changed)
+
+        # Redraw the canvas
+        self.fig.canvas.draw()  # Use draw() instead of draw_idle() for immediate update
+        self.fig.canvas.flush_events()
+        self.update()  # Triggers an explicit QWidget repaint
 
     def _on_view_changed(self):
         """Called when user pans or zooms the plot"""

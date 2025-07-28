@@ -40,18 +40,17 @@ class MainWindow(QMainWindow):
     """
 
     def __init__(self, device_manager: DeviceManager, parent=None):
-        """
-        Initialisiert das Hauptfenster und alle Komponenten der Anwendung.
+        """Initialise the main window and all components.
 
         Args:
-            device_manager (DeviceManager): Der verbundene Geräte-Manager
-            parent: Das übergeordnete Widget (optional)
+            device_manager: The connected device manager.
+            parent: Optional parent widget.
         """
         super().__init__(parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        # Status der Messung
+        # Measurement status
         self.is_measuring = False
         self.data_saved = True
         self.save_manager = SaveManager()
@@ -60,14 +59,14 @@ class MainWindow(QMainWindow):
         self._elapsed_seconds = 0
         self._measurement_timer: QTimer | None = None
 
-        # Statusleiste für Feedback initialisieren
+        # Initialize status bar for user feedback
         self.statusbar = Statusbar(self.ui.statusBar)
         self.statusbar.temp_message(CONFIG["messages"]["app_init"])
 
-        # Geräte-Manager einrichten
+        # Set up device manager
         self._setup_device_manager(device_manager)
 
-        # UI-Komponenten initialisieren
+        # Initialise UI components
         self._setup_plot()
         self._setup_data_controller()
         self._setup_controls()
@@ -75,25 +74,24 @@ class MainWindow(QMainWindow):
         self._setup_radioactive_sample_input()
         self._setup_timers()
 
-        # # Erste Aktualisierung der UI
+        # Initial update of the UI
         self._update_control_display()
 
-        # Erfolgsmeldung anzeigen
+        # Show success message
         self.statusbar.temp_message(
             CONFIG["messages"]["connected"].format(self.device_manager.port),
             CONFIG["colors"]["green"],
         )
 
     #
-    # 1. INITIALISIERUNG UND SETUP
+    # 1. INITIALIZATION AND SETUP
     #
 
     def _setup_device_manager(self, device_manager: DeviceManager):
-        """
-        Initialisiert den Geräte-Manager und setzt Callbacks für Daten- und Statusaktualisierungen.
+        """Configure the device manager and attach callbacks.
 
         Args:
-            device_manager (DeviceManager): Der zu verwendende Geräte-Manager
+            device_manager: The device manager instance to use.
         """
         self.device_manager = device_manager
         self.device_manager.data_callback = self.handle_data
@@ -110,9 +108,7 @@ class MainWindow(QMainWindow):
         )
 
     def _setup_plot(self):
-        """
-        Richtet das Plot-Widget ein.
-        """
+        """Initialise the plot widget."""
         self.plot = PlotWidget(
             max_plot_points=CONFIG["plot"]["max_points"],
             fontsize=self.ui.timePlot.fontInfo().pixelSize(),
@@ -126,9 +122,7 @@ class MainWindow(QMainWindow):
         QVBoxLayout(self.ui.histogramm).addWidget(self.histogram)
 
     def _setup_data_controller(self):
-        """
-        Richtet den Daten-Controller ein.
-        """
+        """Initialise the data controller."""
         self.data_controller = DataController(
             plot_widget=self.plot,
             display_widget=self.ui.currentCount,
@@ -137,16 +131,14 @@ class MainWindow(QMainWindow):
         )
 
     def _setup_buttons(self):
-        """
-        Verbindet die Schaltflächen mit ihren jeweiligen Funktionen.
-        """
-        # Mess-Steuerungsschaltflächen verbinden
+        """Connect buttons to their respective callbacks."""
+        # Connect measurement buttons
         self.ui.buttonStart.clicked.connect(self._start_measurement)
         self.ui.buttonStop.clicked.connect(self._stop_measurement)
         self.ui.buttonSave.clicked.connect(self._save_measurement)
         self.ui.buttonSetting.clicked.connect(self._apply_settings)
 
-        # Anfangszustand der Schaltflächen
+        # Initial state of buttons
         self.ui.buttonStart.setEnabled(True)
         self.ui.buttonStop.setEnabled(False)
         self.ui.buttonSave.setEnabled(False)
@@ -156,9 +148,7 @@ class MainWindow(QMainWindow):
         self.ui.autoSave.toggled.connect(self._change_auto_save)
 
     def _setup_radioactive_sample_input(self):
-        """
-        Initialisiert das Eingabefeld für radioaktive Proben.
-        """
+        """Initialise the input field for radioactive samples."""
         samples = CONFIG["radioactive_samples"]
         radCombo = self.ui.radSample
         radCombo.clear()
@@ -166,29 +156,28 @@ class MainWindow(QMainWindow):
         Debug.debug(
             f"Radioaktive Proben geladen: {len(samples)} Proben",
         )
-        radCombo.setCurrentIndex(-1)  # Kein Standardwert
+        radCombo.setCurrentIndex(-1)  # No default selection
 
-        # QCompleter für radioaktive Proben
+        # QCompleter for radioactive samples
         completer = QCompleter(samples)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         completer.setFilterMode(Qt.MatchFlag.MatchContains)
         radCombo.setCompleter(completer)
 
     def _setup_timers(self):
-        """
-        Richtet alle Timer für die Anwendung ein.
+        """Initialise timers used by the application.
 
-        Messdaten werden im Hintergrund vom ``DeviceManager`` erfasst. Die
-        Geräteeinstellungen werden hingegen ausschließlich über diesen Timer
-        abgefragt, sobald keine Messung aktiv ist. Dadurch entfällt das
-        ``time.sleep`` in der Erfassungsschleife und die UI bleibt reaktionsfähig.
+        Measurement data are acquired in the background by ``DeviceManager``
+        while configuration polling happens only when no measurement is running.
+        This keeps the acquisition loop free of ``sleep`` calls and the GUI
+        responsive.
         """
-        # Timer für Steuerelemente-Updates
+        # Timer for control updates
         self.control_update_timer = QTimer(self)
         self.control_update_timer.timeout.connect(self._update_control_display)
         self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
 
-        # Timer für Statistik-Updates (nur noch für UI-Aktualisierung)
+        # Timer for statistics updates (UI only)
         self.stats_timer = QTimer(self)
         self.stats_timer.timeout.connect(self._update_statistics)
         self.stats_timer.start(CONFIG["timers"]["statistics_update_interval"])
@@ -198,9 +187,7 @@ class MainWindow(QMainWindow):
     #
 
     def _set_ui_measuring_state(self) -> None:
-        """
-        Setzt die UI in den Messmodus (Buttons und Timer entsprechend konfigurieren).
-        """
+        """Put the UI into measurement mode."""
         self.control_update_timer.stop()
         self.ui.buttonStart.setEnabled(False)
         self.ui.buttonSetting.setEnabled(False)
@@ -209,14 +196,12 @@ class MainWindow(QMainWindow):
         Debug.debug("UI in Messmodus gesetzt")
 
     def _set_ui_idle_state(self) -> None:
-        """
-        Setzt die UI in den Ruhemodus (nach beendeter Messung).
-        """
+        """Return the UI to idle mode after a measurement."""
         self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
         self.ui.buttonStart.setEnabled(True)
         self.ui.buttonSetting.setEnabled(True)
         self.ui.buttonStop.setEnabled(False)
-        # buttonSave wird separat basierend auf vorhandenen Daten aktiviert
+        # buttonSave is enabled separately based on existing data
         save_enabled = self.save_manager.has_unsaved()
         self.ui.buttonSave.setEnabled(save_enabled)
         Debug.debug(
@@ -224,14 +209,13 @@ class MainWindow(QMainWindow):
         )
 
     def _setup_progress_bar(self, duration_seconds: int) -> None:
-        """
-        Konfiguriert die ProgressBar basierend auf der Messdauer.
+        """Configure the progress bar for the given duration.
 
         Args:
-            duration_seconds (int): Dauer in Sekunden. 999 bedeutet unendliche Dauer.
+            duration_seconds: Duration in seconds (``999`` means infinite).
         """
         if duration_seconds != 999:
-            # Endliche Messdauer - Progress Bar mit Timer
+            # Finite duration - progress bar with timer
             self.ui.progressBar.setMaximum(duration_seconds)
             self.ui.progressBar.setValue(0)
             self._measurement_timer = QTimer(self)
@@ -239,21 +223,19 @@ class MainWindow(QMainWindow):
             self._measurement_timer.start(1000)  # Update every second
             Debug.debug(f"ProgressBar konfiguriert für {duration_seconds} Sekunden")
         else:
-            # Unendliche Messdauer - Indeterminate Progress Bar
+            # Infinite duration - indeterminate progress bar
             self.ui.progressBar.setMaximum(0)
             self.ui.progressBar.setValue(0)
             self._measurement_timer = None
             Debug.debug("ProgressBar konfiguriert für unendliche Messdauer")
 
     def _stop_progress_bar(self) -> None:
-        """
-        Stoppt die ProgressBar und den zugehörigen Timer.
-        """
+        """Stop the progress bar and its timer."""
         if self._measurement_timer:
             self._measurement_timer.stop()
             self._measurement_timer = None
 
-        # Reset ProgressBar to idle state
+        # Reset progress bar to idle state
         self.ui.progressBar.setMaximum(100)
         self.ui.progressBar.setValue(0)
         self._elapsed_seconds = 0
@@ -373,57 +355,40 @@ class MainWindow(QMainWindow):
             )
 
     #
-    # 2. DATENVERARBEITUNG UND STATISTIK
+    # 2. DATA PROCESSING AND STATISTICS
     #
 
     def handle_data(self, index, value):
-        """
-        Verarbeitet eingehende Daten vom Gerät.
-        Aktualisiert Anzeige, Historie und Plot mit dem Daten-Controller.
-        Nutzt jetzt die schnelle Queue-basierte Verarbeitung.
+        """Handle incoming data from the device.
+
+        The values are forwarded to ``DataController`` using the fast
+        queue-based API.
 
         Args:
-            index (int): Der Datenpunktindex
-            value (float): Der gemessene Wert
+            index: Index of the data point.
+            value: Measured value.
         """
-        # Verwende die schnelle Queue-basierte Methode für bessere Performance
-        # bei hochfrequenten Messungen
+        # Use the fast queue-based method for better performance
         self.data_controller.add_data_point_fast(index, value)
 
-        # Histogram mit aktuellen Daten aktualisieren
-        values = [p[1] for p in self.data_controller.data_points]
-        self.histogram.update_histogram(values)
-
-        # Daten als ungespeichert markieren
+        # Mark data as unsaved
         self.data_saved = False
         self.save_manager.mark_unsaved()
 
-        # Save-Button aktivieren wenn wir gerade nicht messen (im Idle-Zustand)
+        # Enable save button when not measuring (idle)
         if not self.is_measuring:
             self.ui.buttonSave.setEnabled(True)
 
-        # Statistiken werden jetzt über den eigenen Timer alle 2s aktualisiert
-        # Keine manuelle Aktualisierung mehr nötig - bessere Performance
+        # Statistics are now updated every 2s using their own timer
+        # No manual update necessary - better performance
 
     def _update_statistics(self):
-        """
-        Aktualisiert die Statistiken in der Benutzeroberfläche basierend
-        auf den aktuellen Daten im DataController.
-
-        Zusätzlich wird die Queue des DataControllers verarbeitet.
-        """
+        """Update statistics shown in the user interface."""
         try:
-            # WICHTIG: Queue-Verarbeitung für das neue Queue-basierte System
-            if (
-                hasattr(self, "data_controller")
-                and self.data_controller.has_queued_data()
-            ):
-                self.data_controller.process_queued_data()
-
-            # Statistiken vom DataController holen
+            # Retrieve statistics from DataController
             stats = self.data_controller.get_statistics()
 
-            # Nur aktualisieren, wenn Datenpunkte vorhanden sind
+            # Only update when data points are available
             if stats["count"] > 0:
                 stats_text = (
                     f"Datenpunkte: {int(stats['count'])} | "
@@ -432,11 +397,11 @@ class MainWindow(QMainWindow):
                     f"Mittelwert: {stats['avg']:.0f} µs"
                 )
 
-                # Standardabweichung hinzufügen, wenn genügend Datenpunkte vorhanden
+                # Add standard deviation when enough data points are present
                 if stats["count"] > 1:
                     stats_text += f" | σ: {stats['stdev']:.0f} µs"
 
-                # Statusleiste kurzzeitig aktualisieren, wenn eine Messung läuft
+                # Temporarily update status bar while a measurement is running
                 if self.is_measuring:
                     self.statusbar.temp_message(
                         CONFIG["messages"]["measurement_running"] + "\t" + stats_text,
@@ -460,21 +425,19 @@ class MainWindow(QMainWindow):
             self._stop_measurement()
 
     #
-    # 3. Gerätesteuerung
+    # 3. DEVICE CONTROL
     #
 
     def _update_control_display(self):
-        """
-        Aktualisiert die UI-Anzeige mit den aktuellen Einstellungen vom GM-Zähler.
-        """
+        """Update the displayed configuration values from the GM counter."""
         try:
-            # Frische Daten vom GM-Counter anfordern
+            # Request fresh data from the GM counter
             data = self.control.get_settings()
             if not data:
                 Debug.error("Keine Daten vom GM-Counter erhalten.")
                 return
 
-            # UI-Elemente aktualisieren
+            # Update UI elements
             label = CONFIG["gm_counter"]["label_map"]
 
             self.ui.currentCount.display(data["count"])
@@ -515,11 +478,10 @@ class MainWindow(QMainWindow):
             Debug.error(f"Fehler beim Anwenden der Einstellungen: {e}")
 
     def _change_auto_save(self, checked: bool) -> None:
-        """
-        Callback für die Änderung der Auto-Save-Einstellung.
+        """Handle a change of the auto-save option.
 
         Args:
-            checked (bool): Ob Auto-Save aktiviert ist
+            checked: ``True`` if auto save is enabled.
         """
         self.save_manager.auto_save = checked
         if checked:
@@ -543,13 +505,13 @@ class MainWindow(QMainWindow):
         """
         Debug.info("Anwendung wird geschlossen, fahre Komponenten herunter...")
 
-        # Stoppe die Datenerfassung im DeviceManager
+        # Stop data acquisition in the DeviceManager
         if hasattr(self, "device_manager"):
             try:
                 Debug.info("Stoppe Datenerfassung...")
                 self.device_manager.stop_acquisition()
 
-                # Wenn ein echtes Gerät verbunden ist, schließe die Verbindung
+                # Close the connection if a real device is connected
                 if (
                     hasattr(self.device_manager, "device")
                     and self.device_manager.device
@@ -559,7 +521,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 Debug.error(f"Fehler beim Herunterfahren des DeviceManagers: {e}")
 
-        # Stoppe alle Timer
+        # Stop all timers
         for timer_attr in ["control_update_timer", "stats_timer"]:
             if hasattr(self, timer_attr):
                 timer = getattr(self, timer_attr)
@@ -567,7 +529,7 @@ class MainWindow(QMainWindow):
                     Debug.debug(f"Stoppe Timer: {timer_attr}")
                     timer.stop()
 
-        # DataController Cleanup (falls vorhanden)
+        # Stop the DataController GUI update timer
         if hasattr(self, "data_controller"):
             try:
                 Debug.info("DataController Cleanup...")
@@ -576,6 +538,6 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 Debug.error(f"Fehler beim DataController Cleanup: {e}")
 
-        # Event weitergeben
+        # Pass event to base class
         Debug.info("Anwendung wird geschlossen")
         event.accept()

@@ -158,29 +158,27 @@ class AlertWindow(QDialog):
                 except:
                     pass
 
-            # Bestehende Buttons löschen
+            # Delete existing buttons
             self.ui.buttonBox.clear()
 
-            # Neue Buttons hinzufügen und mit Callbacks verbinden
+            # Add new buttons and connect callbacks
             for button_text, role in buttons:
                 button = self.ui.buttonBox.addButton(button_text, role)
-                # Button-Klick-Handler hinzufügen
+                # Add button click handler
                 button.clicked.connect(
                     lambda checked=False, b=button, r=role, t=button_text: self._handle_button_clicked(
                         b, r, t
                     )
                 )
 
-            # Allgemeine Dialog-Ereignisse mit unseren Button-Tracking verbinden
+            # Connect generic dialog events with our button tracking
             if old_accepted:
                 self.ui.buttonBox.accepted.connect(self.accept)
             if old_rejected:
                 self.ui.buttonBox.rejected.connect(self.reject)
 
     def _handle_button_clicked(self, button, role, text):
-        """
-        Speichert Informationen über den angeklickten Button.
-        """
+        """Store information about the clicked button."""
         Debug.info(f"Button geklickt: {text} mit Rolle {role}")
         self.clicked_button = button
         self.clicked_role = role
@@ -194,30 +192,15 @@ class AlertWindow(QDialog):
         # Bei anderen Rollen (ActionRole, ResetRole, etc.) lassen wir den Dialog offen
 
     def get_clicked_button(self):
-        """
-        Gibt den angeklickten Button zurück.
-
-        Returns:
-            QPushButton: Der angeklickte Button oder None
-        """
+        """Return the clicked button if available."""
         return self.clicked_button
 
     def get_clicked_role(self):
-        """
-        Gibt die Rolle des angeklickten Buttons zurück.
-
-        Returns:
-            QDialogButtonBox.ButtonRole: Die Rolle des angeklickten Buttons oder None
-        """
+        """Return the role of the clicked button."""
         return self.clicked_role
 
     def get_clicked_text(self):
-        """
-        Gibt den Text des angeklickten Buttons zurück.
-
-        Returns:
-            str: Der Text des angeklickten Buttons oder None
-        """
+        """Return the text of the clicked button."""
         return self.clicked_text
 
 
@@ -231,7 +214,7 @@ class Helper:
 
     @staticmethod
     def close_event(parent, event):
-        # Debug-Logging hinzufügen
+        # Add debug logging
         print("Schließen-Event wurde ausgelöst - frage Benutzer nach Bestätigung")
         reply = QMessageBox.question(
             parent,

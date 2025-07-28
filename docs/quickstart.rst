@@ -292,10 +292,10 @@ Langsame Performance
 
 Nach dem Schnellstart:
 
-1. **`Konfiguration <configuration.md>`_** anpassen
-2. **`Benutzeroberfläche <user-interface.md>`_** im Detail kennenlernen
-3. **`Datenanalyse <data-analysis.md>`_** vertiefen
-4. **`Hardware-Dokumentation <hardware/gm-counter-protocol.md>`_** studieren
+1. **`Konfiguration <configuration>`_** anpassen
+2. **`Benutzeroberfläche <user-interface>`_** im Detail kennenlernen
+3. **`Datenanalyse <data-analysis>`_** vertiefen
+4. **`Hardware-Dokumentation <hardware/gm-counter-protocol>`_** studieren
 
 10. Hilfe und Unterstützung
 ---------------------------
@@ -303,9 +303,9 @@ Nach dem Schnellstart:
 Dokumentation
 ~~~~~~~~~~~~~
 
-* **`Benutzerhandbuch <user-interface.md>`_**: Detaillierte Bedienungsanleitung
-* **`API-Dokumentation <api/README.md>`_**: Für Entwickler
-* **`FAQ <faq.md>`_**: Häufige Fragen und Antworten
+* **`Benutzerhandbuch <user-interface>`_**: Detaillierte Bedienungsanleitung
+* **`API-Dokumentation <api>`_**: Für Entwickler
+* **`FAQ <faq>`_**: Häufige Fragen und Antworten
 
 Support
 ~~~~~~~

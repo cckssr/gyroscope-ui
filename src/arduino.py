@@ -159,17 +159,15 @@ class Arduino:
         timeout_ms: int = 100,
         start_byte: Optional[int] = None,
     ) -> bytes:
-        """
-        Hochperformante byte-weise Lesefunktion für extrem schnelles Lesen von seriellen Daten.
-        Minimaler Overhead für maximale Geschwindigkeit.
+        """Read raw bytes at very high speed with minimal overhead.
 
         Args:
-            max_bytes (int): Maximale Anzahl Bytes zu lesen (Standard: 1024)
-            timeout_ms (int): Timeout in Millisekunden (Standard: 100)
-            start_byte (Optional[int]): Optionales Start-Byte, ab dem gelesen wird (Standard: None)
+            max_bytes (int): Maximum number of bytes to read (default ``1024``).
+            timeout_ms (int): Timeout in milliseconds (default ``100``).
+            start_byte (Optional[int]): Optional start byte to synchronise on.
 
         Returns:
-            bytes: Die gelesenen Rohdaten als Bytes-Objekt
+            bytes: The raw data read from the serial port.
         """
         if not self.serial or not self.serial.is_open:
             return b""
@@ -200,16 +198,14 @@ class Arduino:
     def read_stream_fast(
         self, delimiter: bytes = b"\n", max_buffer: int = 4096
     ) -> Optional[bytes]:
-        """
-        Liest kontinuierlich Bytes bis ein Delimiter gefunden wird.
-        Optimiert für streaming data von Arduino.
+        """Read bytes until ``delimiter`` is encountered.
 
         Args:
-            delimiter (bytes): Trennzeichen zum Beenden der Lesung (Standard: b'\n')
-            max_buffer (int): Maximale Puffergröße (Standard: 4096)
+            delimiter (bytes): Delimiter indicating end of message.
+            max_buffer (int): Maximum buffer size in bytes.
 
         Returns:
-            Optional[bytes]: Komplette Nachricht bis delimiter, oder None bei Fehler
+            Optional[bytes]: Complete message or ``None`` on error.
         """
         if not self.serial or not self.serial.is_open:
             Debug.error("Error: Serial connection not open")
@@ -219,32 +215,32 @@ class Arduino:
 
         try:
             while len(buffer) < max_buffer:
-                # Sehr kleine Chunks lesen für Effizienz
+                # Read very small chunks for efficiency
                 chunk = self.read_bytes_fast(max_bytes=64, timeout_ms=50)
 
                 if not chunk:
-                    # Keine neuen Daten, prüfen ob wir schon Daten im Buffer haben
+                    # No new data, check if buffer already has data
                     if buffer:
-                        # Kurz warten falls mehr Daten kommen
+                        # Wait briefly in case more data arrives
                         sleep(0.005)  # 5ms
                         continue
                     else:
-                        # Kein Buffer und keine neuen Daten
+                        # No buffer and no new data
                         return None
 
                 buffer.extend(chunk)
 
-                # Prüfen ob Delimiter gefunden wurde
+                # Check whether the delimiter was found
                 delimiter_pos = buffer.find(delimiter)
                 if delimiter_pos != -1:
-                    # Delimiter gefunden, Message extrahieren
+                    # Delimiter found, extract message
                     message = bytes(buffer[:delimiter_pos])
 
-                    # Verbleibende Daten zurück in den seriellen Buffer schreiben ist nicht möglich,
-                    # aber wir können sie für den nächsten Aufruf zwischenspeichern
+                    # Writing remaining data back to the serial buffer is not possible,
+                    # but we can store them for the next call
                     remaining = buffer[delimiter_pos + len(delimiter) :]
                     if remaining:
-                        # Für vereinfachte Implementierung loggen wir nur
+                        # For simplicity we only log
                         Debug.debug(
                             f"Remaining bytes after delimiter: {len(remaining)}"
                         )
@@ -252,7 +248,7 @@ class Arduino:
                     Debug.debug(f"Stream read complete: {len(message)} bytes")
                     return message
 
-            # Buffer voll, aber kein Delimiter gefunden
+            # Buffer full but no delimiter found
             Debug.info(f"Buffer full ({max_buffer} bytes) without finding delimiter")
             return bytes(buffer)
 
@@ -261,18 +257,17 @@ class Arduino:
             return None
 
     def flush_input_buffer(self) -> bool:
-        """
-        Leert den Eingangspuffer komplett für saubere Neustart.
+        """Clear the serial input buffer for a clean restart.
 
         Returns:
-            bool: True wenn erfolgreich, False bei Fehler
+            bool: ``True`` on success, ``False`` otherwise.
         """
         if not self.serial or not self.serial.is_open:
             Debug.error("Error: Serial connection not open")
             return False
 
         try:
-            # Alle verfügbaren Daten lesen und verwerfen
+            # Read and discard all available data
             discarded_bytes = 0
             while self.serial.in_waiting > 0:
                 chunk = self.serial.read(self.serial.in_waiting)
