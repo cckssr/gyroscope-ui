@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
 from PySide6.QtCore import QTimer, Qt  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
 from src.control import ControlWidget
-from src.plot import PlotWidget
+from src.plot import PlotWidget, HistogramWidget
 from src.debug_utils import Debug
 from src.helper_classes import (
     import_config,
@@ -111,22 +111,23 @@ class MainWindow(QMainWindow):
         """Initialise the plot widget."""
         self.plot = PlotWidget(
             max_plot_points=CONFIG["plot"]["max_points"],
-            width=self.ui.timePlot.width(),
-            height=self.ui.timePlot.height(),
-            dpi=self.logicalDpiX(),
             fontsize=self.ui.timePlot.fontInfo().pixelSize(),
             xlabel=CONFIG["plot"]["x_label"],
             ylabel=CONFIG["plot"]["y_label"],
         )
         QVBoxLayout(self.ui.timePlot).addWidget(self.plot)
 
+        # Histogram plot
+        self.histogram = HistogramWidget(xlabel=CONFIG["plot"]["x_label"])
+        QVBoxLayout(self.ui.histogramm).addWidget(self.histogram)
+
     def _setup_data_controller(self):
         """Initialise the data controller."""
         self.data_controller = DataController(
             plot_widget=self.plot,
             display_widget=self.ui.currentCount,
+            table_widget=self.ui.tableView,
             max_history=CONFIG["data_controller"]["max_history_size"],
-            gui_update_interval=CONFIG["timers"]["gui_update_interval"],
         )
 
     def _setup_buttons(self):
@@ -531,10 +532,11 @@ class MainWindow(QMainWindow):
         # Stop the DataController GUI update timer
         if hasattr(self, "data_controller"):
             try:
-                Debug.info("Stoppe DataController GUI-Updates...")
-                self.data_controller.stop_gui_updates()
+                Debug.info("DataController Cleanup...")
+                # Daten können noch geleert werden, falls gewünscht
+                # self.data_controller.clear_data()  # Optional
             except Exception as e:
-                Debug.error(f"Fehler beim Stoppen der DataController GUI-Updates: {e}")
+                Debug.error(f"Fehler beim DataController Cleanup: {e}")
 
         # Pass event to base class
         Debug.info("Anwendung wird geschlossen")

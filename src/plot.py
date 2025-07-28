@@ -1,39 +1,50 @@
-from typing import Tuple, Optional
+"""Plot widgets using :mod:`pyqtgraph`."""
+
+from __future__ import annotations
+
+from typing import Iterable, Optional, Tuple, List
 import numpy as np
-import matplotlib
 
-try:  # pragma: no cover - optional Qt backend for headless tests
-    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+try:  # pragma: no cover - optional dependency during headless tests
+    import pyqtgraph as pg
+except Exception:  # pragma: no cover - fallback stubs
+    from PySide6.QtWidgets import QWidget
 
-    matplotlib.use("Qt5Agg")
-except Exception:  # If no Qt backend is available fall back to Agg
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasQTAgg
+    class _DummyPlotWidget(QWidget, object):
+        def __init__(self, *_, **__):
+            super().__init__()
 
-    matplotlib.use("Agg")
+        def plot(self, *_, **__):
+            return self
 
-from matplotlib.figure import Figure
-from src.debug_utils import Debug
+        def clear(self):
+            pass
+
+        def setLabel(self, *_, **__):
+            pass
+
+        def setTitle(self, *_):
+            pass
+
+        def autoRange(self, *_, **__):
+            pass
+
+    pg = type("MockPyQtGraph", (), {"PlotWidget": _DummyPlotWidget})()
 
 
-class PlotWidget(FigureCanvasQTAgg):
-    """
-    A matplotlib-based plot widget for displaying data in real-time.
-    Optimized for efficient updates and memory usage.
-    """
+class PlotWidget(pg.PlotWidget):
+    """A real-time plot widget using pyqtgraph."""
 
     def __init__(
         self,
-        max_plot_points: int = 100,
-        width: int = 5,
-        height: int = 4,
-        dpi: int = 100,
-        fontsize: int = 10,
-        xlabel: str = "X",
-        ylabel: str = "Y",
-        title: str = "Data",
+        title: Optional[str] = None,
+        xlabel: str = "Index",
+        ylabel: str = "Time (µs)",
+        max_plot_points: int = 500,
+        fontsize: int = 12,
     ):
         """
-        Initialize the plot widget with the given parameters.
+        Initialize the plot widget.
 
         Args:
             max_plot_points (int): Maximum number of points to display in the plot
@@ -45,267 +56,157 @@ class PlotWidget(FigureCanvasQTAgg):
             ylabel (str): Label for the y-axis
             title (str): Title of the plot
         """
-        # Debugging plot initialization
-        try:
-            Debug.info(
-                f"Initializing PlotWidget with max_points={max_plot_points}, title={title}"
-            )
+        super().__init__()
 
-            # Set up the figure and axes for the plot
-            self.fig = Figure(figsize=(width / dpi, height / dpi), dpi=dpi)
-            self.axes = self.fig.add_subplot(111)
+        self.max_plot_points = max_plot_points
+        self.fontsize = fontsize
+        self._user_interacted = False
 
-            # Initialize the canvas with transparent background
-            super().__init__(self.fig)
-            # Setze den Hintergrund des Canvas auf transparent
-            self.setStyleSheet("background-color: transparent;")
+        # Set up the plot appearance
+        self.setBackground(None)
+        self.showGrid(x=True, y=True, alpha=0.3)
+        self.setLabel("bottom", xlabel)
+        self.setLabel("left", ylabel)
+        self.setTitle(title)
 
-            # Configure plot settings
-            self.max_plot_points = max_plot_points
-            self.fontsize = fontsize
-            self.axes.tick_params(labelsize=self.fontsize)
+        # Store config for potential future use
+        self._plot_config = {"xlabel": xlabel, "ylabel": ylabel, "title": title}
 
-            # Initialize data arrays with pre-allocated buffers for efficiency
-            self._x_data = np.zeros(max_plot_points)
-            self._y_data = np.zeros(max_plot_points)
-            self._data_count = 0
-
-            # Set up the plot line with increased visibility
-            (self.line,) = self.axes.plot(
-                [], [], "w-", linewidth=1.5, marker="o", markersize=3
-            )
-
-            # Configure axes labels and appearance
-            self.axes.set_xlabel(xlabel, fontsize=fontsize)
-            self.axes.set_ylabel(ylabel, fontsize=fontsize)
-            self.axes.set_title(title, fontsize=fontsize + 2)
-            self.axes.grid(True, alpha=0.3)
-
-            # Make background transparent to match application theme
-            self.fig.patch.set_facecolor("none")  # Explizit transparent setzen
-            self.axes.patch.set_facecolor("none")  # Explizit transparent setzen
-            self.fig.patch.set_alpha(0.0)
-            self.axes.patch.set_alpha(0.0)
-
-            # Explicitly set clear=True for FigureCanvasQTAgg to allow transparency
-            self.fig.set_facecolor("none")
-            self.fig.tight_layout(pad=1.0)
-
-            # Axes and text in white for better visibility
-            for spine in ["top", "bottom", "left", "right"]:
-                self.axes.spines[spine].set_color("white")
-            self.axes.tick_params(colors="white")
-            self.axes.yaxis.label.set_color("white")
-            self.axes.xaxis.label.set_color("white")
-            self.axes.title.set_color("white")
-
-            # Initial plot appearance
-            # self.fig.tight_layout()
-            self.axes.autoscale(enable=True, axis="both", tight=True)
-
-            # Store plot configuration
-            self._plot_config = {"xlabel": xlabel, "ylabel": ylabel, "title": title}
-
-            Debug.info("PlotWidget initialization complete")
-        except Exception as e:
-            Debug.error(f"Error initializing PlotWidget: {e}")
-
-    def update_plot(self, new_point: Tuple[float, float]) -> None:
-        """
-        Add a new data point to the plot and update the display.
-        Optimized for efficient updates with large datasets.
-
-        Args:
-            new_point (Tuple[float, float]): The new point to add (x, y)
-        """
-        x, y = new_point
-
-        # Add the new point to our data arrays
-        if self._data_count < self.max_plot_points:
-            # Still filling the initial buffer
-            self._x_data[self._data_count] = x
-            self._y_data[self._data_count] = y
-            self._data_count += 1
-        else:
-            # Buffer full, shift data and add new point at the end
-            self._x_data = np.roll(self._x_data, -1)
-            self._y_data = np.roll(self._y_data, -1)
-            self._x_data[-1] = x
-            self._y_data[-1] = y
-
-        # Update the line data for display
-        self.line.set_data(
-            self._x_data[: self._data_count], self._y_data[: self._data_count]
-        )
-
-        # Adjust plot limits only when needed for efficiency
-        self._adjust_limits()
 
         # Redraw the canvas
         self.fig.canvas.draw()  # Use draw() instead of draw_idle() for immediate update
         self.fig.canvas.flush_events()
         self.update()  # Triggers an explicit QWidget repaint
 
-    def update_plot_batch(self, new_points: list) -> None:
+    def _on_view_changed(self):
+        """Called when user pans or zooms the plot"""
+        self._user_interacted = True
+
+    def update_plot(self, data_points: List[Tuple[int, float, str]]):
         """
-        Add multiple new data points to the plot in a single batch operation.
-        This is much more efficient than calling update_plot() multiple times.
+        Updates the plot using external data source
 
         Args:
-            new_points (list): List of tuples (x, y) to add to the plot
+            data_points: List of (index_num, value_num, timestamp) tuples
         """
-        if not new_points:
+        if not data_points:
             return
 
-        for x, y in new_points:
-            # Add each point to our data arrays
-            if self._data_count < self.max_plot_points:
-                # Still filling the initial buffer
-                self._x_data[self._data_count] = x
-                self._y_data[self._data_count] = y
-                self._data_count += 1
+        # Plot ALL data points for complete history
+        all_indices = np.array([point[0] for point in data_points])
+        all_values_us = np.array([point[1] for point in data_points])
+
+        # Clear and update plot with ALL data points
+        self.clear()
+        self._plot_item = self.plot(
+            all_indices,
+            all_values_us,
+            pen="w",  # White connecting line
+            symbol="o",
+            symbolSize=4,
+            symbolBrush="r",
+            symbolPen="r",
+        )
+
+        # AutoRange calculation based only on LAST max_plot_points for consistent view
+        display_data_for_range = (
+            data_points[-self.max_plot_points :]
+            if len(data_points) > self.max_plot_points
+            else data_points
+        )
+
+        if len(display_data_for_range) > 0:
+            # Extract indices and values for range calculation only
+            range_indices = np.array([point[0] for point in display_data_for_range])
+            range_values_us = np.array([point[1] for point in display_data_for_range])
+
+            # Calculate proper ranges with minimal padding
+            x_min, x_max = range_indices.min(), range_indices.max()
+            y_min, y_max = range_values_us.min(), range_values_us.max()
+
+            # Ensure minimum range for single-point plots
+            if x_max == x_min:
+                x_padding = max(1, x_min * 0.1)  # 10% of index or at least 1
+                final_x_range = [x_min - x_padding, x_max + x_padding]
             else:
-                # Buffer full, shift data and add new point at the end
-                self._x_data = np.roll(self._x_data, -1)
-                self._y_data = np.roll(self._y_data, -1)
-                self._x_data[-1] = x
-                self._y_data[-1] = y
+                x_range = x_max - x_min
+                x_padding = x_range * 0.05
+                final_x_range = [x_min - x_padding, x_max + x_padding]
 
-        # Update the line data for display (only once after all points are added)
-        self.line.set_data(
-            self._x_data[: self._data_count], self._y_data[: self._data_count]
-        )
+            if y_max == y_min:
+                y_padding = max(1000, y_min * 0.1)  # 10% of value or at least 1000µs
+                final_y_range = [y_min - y_padding, y_max + y_padding]
+            else:
+                y_range = y_max - y_min
+                y_padding = y_range * 0.05
+                final_y_range = [y_min - y_padding, y_max + y_padding]
 
-        # Adjust plot limits only once for all new points
-        self._adjust_limits()
+            # Disable automatic autoRange and set manual range
+            viewbox = self.plotItem.getViewBox()
+            viewbox.enableAutoRange(enable=False)  # Disable PyQtGraph's autoRange
+            viewbox.setRange(xRange=final_x_range, yRange=final_y_range, padding=0)
 
-        # Redraw the canvas only once
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
-        self.update()
-
-    def _adjust_limits(self) -> None:
+    def get_data_in_range(self, max_points: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Adjust the plot limits to show all data points with some margin.
-        Uses smart rescaling to avoid constant limit changes.
+        Legacy method - no longer needed with centralized data management
         """
-        if self._data_count <= 1:
-            # Not enough data for meaningful limits
-            self.axes.set_xlim(0, 10)
-            self.axes.set_ylim(0, 10)
+        return np.array([]), np.array([])
+
+
+class HistogramWidget(pg.PlotWidget):
+    """A histogram widget using pyqtgraph."""
+
+    def __init__(
+        self, title: Optional[str] = None, xlabel: str = "CPM", ylabel: str = "Count"
+    ):
+        """
+        Initialize the histogram widget.
+
+        Args:
+            title: Plot title
+            xlabel: X-axis label (CPM values)
+            ylabel: Y-axis label (frequency count)
+        """
+        super().__init__()
+
+        self.setBackground(None)
+        self.showGrid(x=True, y=True, alpha=0.3)
+        self.setLabel("bottom", xlabel)
+        self.setLabel("left", ylabel)
+        self.setTitle(title)
+
+        self._hist_item = None
+
+    def update_histogram(self, data: Iterable[float], bins: int = 50):
+        """
+        Update the histogram with new data.
+
+        Args:
+            data: CPM values to create histogram from
+            bins: Number of histogram bins
+        """
+        if not data:
             return
 
-        # Get current data ranges
-        x_min, x_max = np.min(self._x_data[: self._data_count]), np.max(
-            self._x_data[: self._data_count]
+        # Calculate histogram
+        hist, bin_edges = np.histogram(data, bins=bins)
+
+        # Calculate bin centers and width
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        width = bin_edges[1] - bin_edges[0]
+
+        # Clear previous histogram
+        if self._hist_item is not None:
+            self.removeItem(self._hist_item)
+
+        # Create new histogram
+        self._hist_item = pg.BarGraphItem(
+            x=bin_centers,
+            height=hist,
+            width=width * 0.8,  # Slightly smaller bars
+            brush="w",
         )
-        y_min, y_max = np.min(self._y_data[: self._data_count]), np.max(
-            self._y_data[: self._data_count]
-        )
+        self.addItem(self._hist_item)
 
-        # Add margin to the limits (5% on each side)
-        x_margin = np.float64(max(0.5, (x_max - x_min) * 0.05))
-        y_margin = np.float64(max(0.5, (y_max - y_min) * 0.05))
-
-        # Get current view limits
-        curr_x_min, curr_x_max = self.axes.get_xlim()
-        curr_y_min, curr_y_max = self.axes.get_ylim()
-
-        # Only adjust if data is outside current view or view is much larger than needed
-        need_x_update = (
-            x_min < curr_x_min + x_margin / 2
-            or x_max > curr_x_max - x_margin / 2
-            or curr_x_max - curr_x_min > (x_max - x_min + 2 * x_margin) * 1.5
-        )
-
-        need_y_update = (
-            y_min < curr_y_min + y_margin / 2
-            or y_max > curr_y_max - y_margin / 2
-            or curr_y_max - curr_y_min > (y_max - y_min + 2 * y_margin) * 1.5
-        )
-
-        if need_x_update:
-            self.axes.set_xlim(x_min - x_margin, x_max + x_margin)
-
-        if need_y_update:
-            self.axes.set_ylim(y_min - y_margin, y_max + y_margin)
-
-    def clear(self) -> None:
-        """
-        Clear all data points and reset the plot.
-        """
-        self._data_count = 0
-        self.line.set_data([], [])
-
-        # Reset to default limits
-        self.axes.set_xlim(0, 10)
-        self.axes.set_ylim(0, 10)
-
-        # Redraw the canvas
-        self.draw_idle()
-
-    def set_title(self, title: str) -> None:
-        """
-        Set the title of the plot.
-
-        Args:
-            title (str): The new title
-        """
-        self.axes.set_title(title, fontsize=self.fontsize + 2)
-        self._plot_config["title"] = title
-        self.draw_idle()
-
-    def set_axis_labels(
-        self, xlabel: Optional[str] = None, ylabel: Optional[str] = None
-    ) -> None:
-        """
-        Set the labels for the x and y axes.
-
-        Args:
-            xlabel (str, optional): Label for the x-axis
-            ylabel (str, optional): Label for the y-axis
-        """
-        if xlabel is not None:
-            self.axes.set_xlabel(xlabel, fontsize=self.fontsize)
-            self._plot_config["xlabel"] = xlabel
-
-        if ylabel is not None:
-            self.axes.set_ylabel(ylabel, fontsize=self.fontsize)
-            self._plot_config["ylabel"] = ylabel
-
-        self.draw_idle()
-
-    def set_max_points(self, max_points: int) -> None:
-        """
-        Change the maximum number of points to display.
-
-        Args:
-            max_points (int): New maximum number of points
-        """
-        if max_points <= 0:
-            return
-
-        self.max_plot_points = max_points
-
-        # Create new data arrays with the new size
-        new_x_data = np.zeros(max_points)
-        new_y_data = np.zeros(max_points)
-
-        # Copy existing data, truncating if needed
-        if self._data_count > 0:
-            copy_count = min(self._data_count, max_points)
-            start_idx = max(0, self._data_count - max_points)
-            new_x_data[:copy_count] = self._x_data[start_idx : start_idx + copy_count]
-            new_y_data[:copy_count] = self._y_data[start_idx : start_idx + copy_count]
-
-        # Update data arrays and count
-        self._x_data = new_x_data
-        self._y_data = new_y_data
-        self._data_count = min(self._data_count, max_points)
-
-        # Update the plot
-        self.line.set_data(
-            self._x_data[: self._data_count], self._y_data[: self._data_count]
-        )
-        self._adjust_limits()
-        self.draw_idle()
+        # Auto-range to fit data
+        self.autoRange()

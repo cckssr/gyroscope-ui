@@ -7,10 +7,18 @@ from typing import Optional, List, Tuple, Dict, Union
 import queue
 import threading
 from time import time
+from datetime import datetime
 
 try:  # pragma: no cover - optional dependency for headless testing
-    from PySide6.QtWidgets import QLCDNumber, QListWidget  # type: ignore
-    from PySide6.QtCore import Qt, QTimer  # type: ignore
+    from PySide6.QtWidgets import (
+        QLCDNumber,
+        QListWidget,
+        QTableView,
+    )  # type: ignore
+    from PySide6.QtGui import QStandardItemModel, QStandardItem  # type: ignore
+    from PySide6.QtCore import Qt  # type: ignore
+
+
 except Exception:  # ImportError or missing Qt libraries
 
     class QLCDNumber:  # pragma: no cover - fallback stub
@@ -35,6 +43,26 @@ except Exception:  # ImportError or missing Qt libraries
             pass
 
         def clear(self):
+            pass
+
+    class QTableView:  # pragma: no cover - fallback stub
+        def setModel(self, *args, **kwargs):
+            pass
+
+    class QStandardItemModel:  # pragma: no cover - fallback stub
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def setHorizontalHeaderLabels(self, *args, **kwargs):
+            pass
+
+        def appendRow(self, *args, **kwargs):
+            pass
+
+        def rowCount(self):
+            return 0
+
+        def removeRow(self, *args, **kwargs):
             pass
 
     class _Alignment:
@@ -74,6 +102,7 @@ class DataController:
         plot_widget: PlotWidget,
         display_widget: Optional[QLCDNumber] = None,
         history_widget: Optional[QListWidget] = None,
+        table_widget: Optional[QTableView] = None,
         max_history: int = MAX_HISTORY_SIZE,
         gui_update_interval: int = 200,  # ms (optimised for performance)
     ):
@@ -84,11 +113,13 @@ class DataController:
             display_widget: Optional LCD display for the current value.
             history_widget: Optional list widget for history display.
             max_history: Maximum number of data points for GUI display (not file storage).
-            gui_update_interval: GUI update interval in milliseconds.
         """
         self.plot = plot_widget
         self.display = display_widget
         self.history = history_widget
+        self.table = table_widget
+        self.table_model: Optional[QStandardItemModel] = None
+        self.max_history = max_history
 
         # Full data storage (for CSV export, etc.)
         self.data_points: List[Tuple[int, float]] = []
@@ -119,6 +150,11 @@ class DataController:
         self._total_points_received = 0
         self._points_processed_in_last_update = 0
 
+        if self.table is not None:
+            self.table_model = QStandardItemModel(0, 3, self.table)
+            self.table_model.setHorizontalHeaderLabels(["Index", "Value (µs)", "Time"])
+            self.table.setModel(self.table_model)
+
     def add_data_point_fast(
         self, index: Union[int, str], value: Union[float, str]
     ) -> None:
@@ -136,10 +172,14 @@ class DataController:
             # Fast validation and conversion
             index_num = int(index)
             value_num = float(value)
+            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+
+            # Vollständige Daten sofort hinzufügen (für CSV-Export, unbegrenzt)
+            self.data_points.append((index_num, value_num, timestamp))
 
             # Thread-safe enqueue
             with self._queue_lock:
-                self.data_queue.put((index_num, value_num, time()))
+                self.data_queue.put((index_num, value_num, timestamp))
                 self._total_points_received += 1
 
         except (ValueError, TypeError) as e:
@@ -159,7 +199,7 @@ class DataController:
                 while not self.data_queue.empty():
                     try:
                         index_num, value_num, timestamp = self.data_queue.get_nowait()
-                        new_points.append((index_num, value_num))
+                        new_points.append((index_num, value_num, timestamp))
                     except queue.Empty:
                         break
 
@@ -182,8 +222,8 @@ class DataController:
 
             # Update GUI only once with the last value
             if new_points:
-                last_index, last_value = new_points[-1]
-                self._update_gui_widgets(last_index, last_value)
+                last_index, last_value, last_timestamp = new_points[-1]
+                self._update_gui_widgets(last_index, last_value, last_timestamp)
 
             # Performance logging
             time_since_last = current_time - self._last_update_time
@@ -211,7 +251,7 @@ class DataController:
 
                 # Use the efficient batch update method when available
                 if hasattr(self.plot, "update_plot_batch"):
-                    self.plot.update_plot_batch(new_plot_points)
+                    self.plot.update_plot_batch(self.gui_data_points)
                 else:
                     # Fallback for older PlotWidget versions
                     for point in new_plot_points:
@@ -228,9 +268,24 @@ class DataController:
                 # Right align text for readability
                 self.history.item(0).setTextAlignment(Qt.AlignmentFlag.AlignRight)
 
-                # Keep list size within limit
                 while self.history.count() > self.max_history:
                     self.history.takeItem(self.history.count() - 1)
+
+            # Update table model with new data
+            if self.table_model is not None:
+                try:
+                    row = [
+                        QStandardItem(str(index)),
+                        QStandardItem(str(value)),
+                        QStandardItem(timestamp),
+                    ]
+                    self.table_model.appendRow(row)
+                    while self.table_model.rowCount() > self.max_history:
+                        self.table_model.removeRow(0)
+                except Exception as table_error:
+                    Debug.error(
+                        f"Failed to update table model: {table_error}", exc_info=True
+                    )
 
         except (AttributeError, RuntimeError) as e:
             Debug.error(f"Failed to update GUI widgets: {e}", exc_info=True)
@@ -247,22 +302,24 @@ class DataController:
             # Ensure values are numeric
             index_num = int(index)
             value_num = float(value)
+            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
             # Add data to full storage (unbounded for file saving)
-            self.data_points.append((index_num, value_num))
+            self.data_points.append((index_num, value_num, timestamp))
 
             # Add data to GUI storage (bounded for display)
-            self.gui_data_points.append((index_num, value_num))
+            self.gui_data_points.append((index_num, value_num, timestamp))
             if len(self.gui_data_points) > self.max_history:
                 self.gui_data_points.pop(0)
 
-            # Update GUI widgets
-            self._update_gui_widgets(index_num, value_num)
+            # Update GUI widgets directly
+            self._update_gui_widgets(index_num, value_num, timestamp)
 
         except (ValueError, TypeError) as e:
             Debug.error(f"Failed to convert values: {e}", exc_info=True)
         except (AttributeError, RuntimeError) as e:
             Debug.error(f"Failed to update UI elements: {e}", exc_info=True)
+
 
     def stop_gui_updates(self) -> None:
         """Stop the GUI update timer."""
@@ -314,6 +371,16 @@ class DataController:
             if self.history:
                 self.history.clear()
 
+            # Clear the table model
+            if self.table_model is not None:
+                try:
+                    while self.table_model.rowCount() > 0:
+                        self.table_model.removeRow(0)
+                except Exception as table_error:
+                    Debug.error(
+                        f"Failed to clear table model: {table_error}", exc_info=True
+                    )
+
         except (AttributeError, RuntimeError) as e:
             Debug.error(f"Failed to reset UI elements: {e}", exc_info=True)
 
@@ -353,15 +420,15 @@ class DataController:
 
         return stats
 
-    def get_data_as_list(self) -> List[Tuple[int, float]]:
+    def get_data_as_list(self) -> List[Tuple[int, float, str]]:
         """Return all stored data points as a list."""
         return self.data_points.copy()
 
     def get_csv_data(self) -> List[List[str]]:
         """Prepare the stored data for CSV export."""
-        result: List[List[str]] = [["Index", "Value (µs)"]]
-        for idx, value in self.data_points:
-            result.append([str(idx), str(value)])
+        result: List[List[str]] = [["Index", "Value (µs)", "Time"]]
+        for idx, value, timestamp in self.data_points:
+            result.append([str(idx), str(value), timestamp])
         return result
 
     def get_performance_stats(self) -> Dict[str, Union[int, float]]:
@@ -389,5 +456,9 @@ class DataController:
         }
 
     def get_all_data_for_export(self) -> List[Tuple[int, float]]:
-        """Return all collected data points without cropping."""
+        """Return all collected data points without cropping.
+        
+        Return:
+          List[Tuple[int, float]]: All datapoints with timestamp
+         """
         return self.data_points.copy()

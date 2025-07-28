@@ -31,6 +31,7 @@ class MockGMCounter:
         self.baudrate = baudrate
         self.timeout = timeout
         self.max_tick = max_tick
+        self._min_tick = 0.000_08  # Minimal tick (80 us)
         self._voltage = 500
         self._repeat = False
         self._counting = False
@@ -40,6 +41,7 @@ class MockGMCounter:
         self._measurement_start_time = 0.0
         self._last_pulse_time = 0.0
         self.next_pulse_time = 0
+        self._next_pulse_interval = 0.0  # Das nächste zufällige Intervall
         Debug.info(f"MockGMCounter für Port {port} initialisiert")
         print(
             f"Baudrate: {self.baudrate}, timeout: {self.timeout:2f}, max_tick: {self.max_tick:6f}"
@@ -94,9 +96,14 @@ class MockGMCounter:
             self._last_count = self._count
             self._count = 0
             self._measurement_start_time = time.time()
-            self._last_pulse_time = self._measurement_start_time
-            self.next_pulse_time = time.time() + random.uniform(0.1, 1.0)
-            Debug.info("MockGMCounter: Zählung gestartet.")
+
+            # Generiere das erste zufällige Intervall
+            self._next_pulse_interval = random.uniform(self._min_tick, self.max_tick)
+            self.next_pulse_time = time.time() + self._next_pulse_interval
+
+            Debug.info(
+                f"MockGMCounter: Zählung gestartet. Erstes Intervall: {self._next_pulse_interval:.6f}s"
+            )
         elif not value and self._counting:  # Stop counting
             self._counting = False
             Debug.info(f"MockGMCounter: Zählung gestoppt. Finaler Count: {self._count}")
@@ -146,7 +153,11 @@ class MockGMCounter:
         return response
 
     def tick(self) -> Optional[int]:
-        """Wird periodisch aufgerufen, um spontane Daten zu erzeugen."""
+        """Wird periodisch aufgerufen, um spontane Daten zu erzeugen.
+
+        Returns:
+            Optional[int]: Zeitintervall in Mikrosekunden als int, oder None wenn keine Daten
+        """
         if not self._counting:
             return None
 
@@ -161,14 +172,21 @@ class MockGMCounter:
 
         # Nächsten Impuls erzeugen
         if time.time() >= self.next_pulse_time:
-            value = self.read_time_fast()
-            if value is not None:
-                self._count += 1  # Zähler bei einem Impuls erhöhen
-                self.next_pulse_time = time.time() + random.uniform(
-                    self.max_tick / 100, self.max_tick
-                )
-                Debug.debug(f"Mock Pulse! Count: {self._count}, Time: {value} us")
-                return value
+            current_time = time.time()
+
+            # Verwende das vorgenerierte Intervall für diesen Puls
+            current_interval_us = int(self._next_pulse_interval * 1_000_000)
+
+            self._count += 1  # Zähler bei einem Impuls erhöhen
+
+            # Generiere das nächste zufällige Intervall
+            self._next_pulse_interval = random.uniform(self._min_tick, self.max_tick)
+            self.next_pulse_time = current_time + self._next_pulse_interval
+
+            Debug.debug(
+                f"Mock Pulse! Count: {self._count}, Time: {current_interval_us} us, Next in: {self._next_pulse_interval:.6f}s"
+            )
+            return current_interval_us  # Rückgabe als int, nicht als String
         return None
 
 
@@ -221,10 +239,18 @@ def main(device_class=MockGMCounter):
             # Spontane Daten vom Gerät verarbeiten
             spontaneous_data = mock_device.tick()
             if spontaneous_data:
-                os.write(
-                    master,
-                    bytes([0xAA]) + spontaneous_data.to_bytes(4, byteorder="big"),
+                # Korrektes Binärformat: 0xAA + 4 Bytes (little-endian) + 0x55
+                packet = (
+                    bytes([0xAA])  # Start-Byte
+                    + spontaneous_data.to_bytes(
+                        4, byteorder="little"
+                    )  # 4 Daten-Bytes (little-endian)
+                    + bytes([0x55])  # End-Byte
                 )
+                print(
+                    f"Sende Binärpaket: 0x{packet.hex()} (Wert: {spontaneous_data} µs)"
+                )
+                os.write(master, packet)
 
     except KeyboardInterrupt:
         print("\nProgramm wird beendet...")
@@ -259,12 +285,14 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    def device_factory(port):
-        return MockGMCounter(
-            port=port,
-            baudrate=args.baudrate,
-            timeout=args.timeout,
-            max_tick=args.max_tick,
-        )
+    # Konfigurierte MockGMCounter-Klasse erstellen
+    class ConfiguredMockGMCounter(MockGMCounter):
+        def __init__(self, port):
+            super().__init__(
+                port=port,
+                baudrate=args.baudrate,
+                timeout=args.timeout,
+                max_tick=args.max_tick,
+            )
 
-    main(device_class=device_factory)
+    main(device_class=ConfiguredMockGMCounter)
