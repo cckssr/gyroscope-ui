@@ -45,7 +45,7 @@ class PlotWidget(FigureCanvasQTAgg):
             ylabel (str): Label for the y-axis
             title (str): Title of the plot
         """
-        # Debugging für Plot-Initialisierung
+        # Debugging plot initialization
         try:
             Debug.info(
                 f"Initializing PlotWidget with max_points={max_plot_points}, title={title}"
@@ -87,11 +87,11 @@ class PlotWidget(FigureCanvasQTAgg):
             self.fig.patch.set_alpha(0.0)
             self.axes.patch.set_alpha(0.0)
 
-            # Setze explizit clear=True für FigureCanvasQTAgg, um Transparenz zu ermöglichen
+            # Explicitly set clear=True for FigureCanvasQTAgg to allow transparency
             self.fig.set_facecolor("none")
             self.fig.tight_layout(pad=1.0)
 
-            # Achsen und Text in Weiß für bessere Sichtbarkeit
+            # Axes and text in white for better visibility
             for spine in ["top", "bottom", "left", "right"]:
                 self.axes.spines[spine].set_color("white")
             self.axes.tick_params(colors="white")
@@ -142,9 +142,9 @@ class PlotWidget(FigureCanvasQTAgg):
         self._adjust_limits()
 
         # Redraw the canvas
-        self.fig.canvas.draw()  # Statt draw_idle() für sofortige Aktualisierung
+        self.fig.canvas.draw()  # Use draw() instead of draw_idle() for immediate update
         self.fig.canvas.flush_events()
-        self.update()  # Löst ein explizites QWidget repaint aus
+        self.update()  # Triggers an explicit QWidget repaint
 
     def update_plot_batch(self, new_points: list) -> None:
         """

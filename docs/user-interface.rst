@@ -1,127 +1,73 @@
 Benutzeroberfläche
-==================
+====================
 
-Übersicht der HRNGGUI-Bedienelemente für effiziente Nutzung.
+Dieses Kapitel beschreibt das Hauptfenster der HRNGGUI und erklärt die Anordnung
+der einzelnen Elemente.
 
-Hauptfenster-Layout
--------------------
+Übersicht
+----------
 
-**Menüleiste:**
-- **Datei**: Export, Konfiguration laden/speichern
-- **Geräte**: Verbindungseinstellungen, COM-Port Auswahl
-- **Ansicht**: Diagramm-Optionen, Layout anpassen
-- **Extras**: Erweiterte Einstellungen
+.. figure:: img/main_window_placeholder.png
+   :alt: Main window overview
+   :width: 70%
 
-**Steuerungsbereich (links):**
-- Verbindungsstatus mit grün/rot Indikator
-- Start/Stop Buttons für Datenerfassung
-- Aktuelle Messrate (counts/min)
-- Hardware-Parameter (Spannung, Timeout)
+   Placeholder for a screenshot of the main window.
 
-**Datenvisualisierung (zentral):**
-- Echtzeit-Diagramm der Zählrate
-- Histogramm der Zeitintervalle
-- Statistische Übersicht (Mittelwert, Standardabweichung)
-- Chi-Quadrat-Test Ergebnisse
+Das Fenster ist in drei Bereiche unterteilt:
 
-**Datenexport (rechts):**
-- Raw-Data Anzeige
-- Export-Buttons (CSV, JSON, Binary)
-- Datei-Info (Größe, Zeitstempel)
+* **Bedienfeld** – Start/Stopp-Schaltflächen, aktuelle Spannung und Messzeit
+* **Plot-Bereich** – Live-Diagramm der Messwerte
+* **Status- und Exportbereich** – zeigt Statistiken und ermöglicht das Speichern der Daten
 
-Bedienelemente
+Häufige Aktionen
+-----------------
+
+*Messung starten*
+
+1. Den GM-Zähler per USB anschließen.
+2. Gewünschte Spannung und Messzeit einstellen.
+3. :guilabel:`Start` drücken, um die Aufzeichnung zu beginnen.
+
+*Messung beenden*
+
+:guilabel:`Stop` kann jederzeit gedrückt werden. Die Fortschrittsanzeige zeigt
+an, wie lange der aktuelle Durchlauf noch dauert.
+
+*Daten speichern*
+
+Mit :guilabel:`Save` öffnet sich ein Dateidialog. Ein Dateiname wird anhand der
+ausgewählten Probe und Gruppe vorgeschlagen.
+
+Hinweise zum Design
 --------------
 
-**Datenerfassung starten:**
-1. Hardware anschließen → Status wird grün
-2. "Start" klicken → Echtzeit-Erfassung beginnt
-3. Gewünschte Dauer abwarten
-4. "Stop" oder automatisches Ende
+Die Benutzeroberfläche ist bewusst schlank gehalten. Die Datenerfassung läuft
+in einem Hintergrundthread, der vom ``DataController`` gesteuert wird, während
+die Arduino-Schnittstelle alle seriellen Befehle abwickelt. Die GUI leitet nur
+Benutzereingaben weiter und zeigt die aufbereiteten Ergebnisse an. Dadurch
+bleibt sie auch bei langen Messungen reaktionsfähig.
 
-**Analyse-Tools:**
-- **Live-Statistik**: Automatische Berechnung während Messung
-- **Qualitätstests**: Chi-Quadrat, Kolmogorov-Smirnov
-- **Verteilungsdiagramme**: Histogramme mit konfigurierbaren Bins
+Platzhalter
+-----------
 
-**Konfiguration:**
-- **Sampling-Rate**: Einstellbar von 1-1000 Hz
-- **Puffergröße**: Memory-Management für lange Messungen
-- **Export-Format**: Metadaten und Komprimierung
+.. figure:: img/control_flow_placeholder.png
+   :alt: Control flow between GUI and backend
+   :width: 70%
 
-Tastenkombinationen
--------------------
+   Platzhalter, der das Zusammenspiel zwischen Hauptfenster, DataController und
+   Arduino-Schnittstelle zeigt.
 
-========== ================
-Funktion   Shortcut
-========== ================
-Start      ``Ctrl+R``
-Stop       ``Ctrl+S``
-Export     ``Ctrl+E``
-Hilfe      ``F1``
-Vollbild   ``F11``
-========== ================
-
-Troubleshooting
----------------
-
-**Grauer Verbindungsstatus:**
-- COM-Port in Geräteeinstellungen überprüfen
-- USB-Kabel und Hardware-Verbindung testen
-
-**Keine Daten trotz grünem Status:**
-- Baudrate prüfen (Standard: 115200)
-- Protokoll-Einstellungen überprüfen
-
-**Diagramm bleibt leer:**
-- Mindest-Sampling-Zeit abwarten (1-2 Sekunden)
-- Debug-Modus für detaillierte Logs aktivieren
-~~~~~~~~~~~~~~~
-
-Unten im Fenster:
-
-* **Verbindungsstatus**
-* **Aktuelle Aktivität**
-* **Fehlermeldungen**
-
-Bedienelemente
---------------
-
-Schaltflächen
-~~~~~~~~~~~~~
-
-* **Start**: Messung beginnen
-* **Stopp**: Messung beenden
-* **Zurücksetzen**: Daten löschen
-* **Verbinden**: Geräteverbindung herstellen
-
-Eingabefelder
-~~~~~~~~~~~~~
-
-* **Spannung**: 400-700V
-* **Port**: Auswahl des seriellen Ports
-* **Suffix**: Benutzerdefinierte Bezeichnung
-
-Auswahlfelder
-~~~~~~~~~~~~~
-
-* **Zählzeit**: Vordefinierte Zeiträume
-* **Modus**: Einzel oder Wiederholung
-* **Gruppe**: Praktikumsgruppe
-
-Tastenkombinationen
--------------------
-
-* **Ctrl+N**: Neue Messung
-* **Ctrl+S**: Speichern
-* **Ctrl+Q**: Beenden
-* **F1**: Hilfe
-* **F11**: Vollbild
-
-Customization
+Tastenkürzel
 -------------
 
-Die Benutzeroberfläche kann angepasst werden:
+======================= ==============
+Aktion                  Tastenkürzel
+======================= ==============
+Messung starten       ``Ctrl+R``
+Messung stoppen        ``Ctrl+S``
+Daten speichern               ``Ctrl+E``
+Vollbild umschalten      ``F11``
+Hilfe anzeigen               ``F1``
+======================= ==============
 
-* **Themen**: Hell/Dunkel
-* **Layout**: Dockable Widgets
-* **Sprache**: Deutsch/Englisch
+*** End of file

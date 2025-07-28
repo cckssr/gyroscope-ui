@@ -75,7 +75,7 @@ class DataController:
         display_widget: Optional[QLCDNumber] = None,
         history_widget: Optional[QListWidget] = None,
         max_history: int = MAX_HISTORY_SIZE,
-        gui_update_interval: int = 200,  # ms (optimiert für Performance)
+        gui_update_interval: int = 200,  # ms (optimised for performance)
     ):
         """Initialise the data controller.
 
@@ -90,19 +90,19 @@ class DataController:
         self.display = display_widget
         self.history = history_widget
 
-        # Vollständige Datenspeicherung (für CSV-Export, etc.)
+        # Full data storage (for CSV export, etc.)
         self.data_points: List[Tuple[int, float]] = []
 
-        # GUI-limitierte Daten (für Plot und History Widget)
+        # GUI-limited data (for plot and history widget)
         self.gui_data_points: List[Tuple[int, float]] = []
         self.max_history = max_history
 
-        # Queue für hochfrequente Datenerfassung
+        # Queue for high-frequency data acquisition
         self.data_queue: queue.Queue = queue.Queue()
         self._queue_lock = threading.Lock()
         self._last_update_time = time()
 
-        # Timer für GUI-Updates alle 100ms
+        # Timer for GUI updates every 100ms
         try:
             self.gui_update_timer = QTimer()
             if hasattr(self.gui_update_timer.timeout, "connect"):
@@ -111,33 +111,33 @@ class DataController:
             else:
                 self.gui_update_timer = None
         except Exception:
-            # Fallback für headless testing
+            # Fallback for headless testing
             self.gui_update_timer = None
             Debug.info("GUI update timer not available (headless mode)")
 
-        # Performance-Zähler
+        # Performance counters
         self._total_points_received = 0
         self._points_processed_in_last_update = 0
 
     def add_data_point_fast(
         self, index: Union[int, str], value: Union[float, str]
     ) -> None:
-        """Schnelles Hinzufügen von Datenpunkten in die Queue ohne GUI-Update.
+        """Quickly enqueue data points without immediate GUI update.
 
-        Diese Methode ist für hochfrequente Datenerfassung optimiert und aktualisiert
-        die GUI nicht sofort. Stattdessen werden die Daten in eine Queue eingereiht
-        und alle 100ms verarbeitet.
+        This method is optimised for high-frequency acquisition and updates
+        does not update the GUI immediately. Instead the data are enqueued
+        and processed every 100ms.
 
         Args:
-            index: Der Datenpunktindex
-            value: Der gemessene Wert
+            index: The data point index
+            value: The measured value
         """
         try:
-            # Schnelle Validierung und Konvertierung
+            # Fast validation and conversion
             index_num = int(index)
             value_num = float(value)
 
-            # Thread-sicher in Queue einreihen
+            # Thread-safe enqueue
             with self._queue_lock:
                 self.data_queue.put((index_num, value_num, time()))
                 self._total_points_received += 1
@@ -146,7 +146,7 @@ class DataController:
             Debug.error(f"Failed to convert values for fast queue: {e}")
 
     def _process_queued_data(self) -> None:
-        """Verarbeitet alle Daten aus der Queue und aktualisiert die GUI."""
+        """Process all queued data points and update the GUI."""
         if self.data_queue.empty():
             return
 
@@ -154,7 +154,7 @@ class DataController:
         current_time = time()
 
         try:
-            # Alle verfügbaren Datenpunkte aus der Queue holen
+            # Retrieve all available data points from the queue
             with self._queue_lock:
                 while not self.data_queue.empty():
                     try:
@@ -168,24 +168,24 @@ class DataController:
 
             self._points_processed_in_last_update = len(new_points)
 
-            # Alle neuen Punkte zu den vollständigen Daten hinzufügen (für CSV-Export)
+            # Add all new points to the full data set (for CSV export)
             for index_num, value_num in new_points:
                 self.data_points.append((index_num, value_num))
 
-            # Alle neuen Punkte auch zu GUI-Daten hinzufügen (mit Limit)
+            # Add all new points to GUI data as well (with limit)
             for index_num, value_num in new_points:
                 self.gui_data_points.append((index_num, value_num))
 
-            # Nur GUI-Daten begrenzen, vollständige Daten bleiben unbegrenzt
+            # Only limit GUI data; full data remain unlimited
             while len(self.gui_data_points) > self.max_history:
                 self.gui_data_points.pop(0)
 
-            # GUI nur einmal mit dem letzten Wert aktualisieren
+            # Update GUI only once with the last value
             if new_points:
                 last_index, last_value = new_points[-1]
                 self._update_gui_widgets(last_index, last_value)
 
-            # Performance-Logging
+            # Performance logging
             time_since_last = current_time - self._last_update_time
             if time_since_last > 0:
                 rate = len(new_points) / time_since_last
@@ -200,28 +200,28 @@ class DataController:
             Debug.error(f"Error processing queued data: {e}", exc_info=True)
 
     def _update_gui_widgets(self, index: int, value: float) -> None:
-        """Aktualisiert die GUI-Widgets mit einem einzelnen Datenpunkt."""
+        """Update plot, LCD and history list with a single data point."""
         try:
-            # Update plot widget - alle neuen Punkte in einem Batch hinzufügen
+            # Update plot widget - add all new points in one batch
             if self.plot and self._points_processed_in_last_update > 0:
-                # Hole alle neuen Punkte für den Plot-Update (aus GUI-limitierten Daten)
+                # Retrieve all new points for the plot update (from GUI limited data)
                 new_plot_points = self.gui_data_points[
                     -self._points_processed_in_last_update :
                 ]
 
-                # Verwende die effiziente Batch-Update-Methode wenn verfügbar
+                # Use the efficient batch update method when available
                 if hasattr(self.plot, "update_plot_batch"):
                     self.plot.update_plot_batch(new_plot_points)
                 else:
-                    # Fallback für alte PlotWidget-Versionen
+                    # Fallback for older PlotWidget versions
                     for point in new_plot_points:
                         self.plot.update_plot(point)
 
-            # Update current value display mit dem letzten Wert
+            # Update current value display with the last value
             if self.display:
                 self.display.display(value)
 
-            # Update history list widget mit dem letzten Wert
+            # Update history list widget with the last value
             if self.history:
                 # Insert new item at the top
                 self.history.insertItem(0, f"{value} µs : {index}")
@@ -236,15 +236,15 @@ class DataController:
             Debug.error(f"Failed to update GUI widgets: {e}", exc_info=True)
 
     def add_data_point(self, index: Union[int, str], value: Union[float, str]) -> None:
-        """Add a new point and update the optional UI widgets.
+        """Add a point and update optional widgets.
 
-        Hinweis: Diese Methode ist für Kompatibilität beibehalten. Für hochfrequente
-        Datenerfassung sollte add_data_point_fast() verwendet werden.
+        Note: ``add_data_point_fast`` should be used for high frequency data
+        acquisition, this method is kept for compatibility.
         """
 
         # Ensure numeric values
         try:
-            # Sicherstellen, dass die Werte numerisch sind
+            # Ensure values are numeric
             index_num = int(index)
             value_num = float(value)
 
@@ -265,7 +265,7 @@ class DataController:
             Debug.error(f"Failed to update UI elements: {e}", exc_info=True)
 
     def stop_gui_updates(self) -> None:
-        """Stoppt den GUI-Update-Timer."""
+        """Stop the GUI update timer."""
         if hasattr(self, "gui_update_timer") and self.gui_update_timer is not None:
             try:
                 self.gui_update_timer.stop()
@@ -274,7 +274,7 @@ class DataController:
                 Debug.debug(f"Error stopping GUI timer: {e}")
 
     def start_gui_updates(self, interval: int = 100) -> None:
-        """Startet den GUI-Update-Timer."""
+        """Start the GUI update timer."""
         if hasattr(self, "gui_update_timer") and self.gui_update_timer is not None:
             try:
                 self.gui_update_timer.start(interval)
@@ -333,12 +333,12 @@ class DataController:
                 # Werte extrahieren (zweites Element jedes Tupels)
                 values = [float(point[1]) for point in self.data_points]
 
-                # Grundlegende Statistiken berechnen
+                # Calculate basic statistics
                 stats["min"] = min(values)
                 stats["max"] = max(values)
                 stats["avg"] = sum(values) / len(values)
 
-                # Standardabweichung berechnen (wenn mehr als ein Wert verfügbar)
+                # Calculate standard deviation (if more than one value available)
                 if len(values) > 1:
                     mean = stats["avg"]
                     variance = sum((x - mean) ** 2 for x in values) / len(values)
@@ -365,7 +365,7 @@ class DataController:
         return result
 
     def get_performance_stats(self) -> Dict[str, Union[int, float]]:
-        """Gibt Performance-Statistiken für die Datenerfassung zurück."""
+        """Return performance statistics for data acquisition."""
         queue_size = 0
         with self._queue_lock:
             queue_size = self.data_queue.qsize()
@@ -379,25 +379,15 @@ class DataController:
         }
 
     def get_data_info(self) -> dict:
-        """
-        Gibt Informationen über die gespeicherten Daten zurück.
-
-        Returns:
-            dict: Informationen über vollständige und GUI-Daten
-        """
+        """Return information about the stored data."""
         return {
             "total_data_points": len(self.data_points),
             "gui_data_points": len(self.gui_data_points),
             "max_history_limit": self.max_history,
-            "data_points_for_export": self.data_points,  # Vollständige Daten für CSV-Export
-            "gui_points_for_display": self.gui_data_points,  # Begrenzte Daten für GUI
+            "data_points_for_export": self.data_points,  # Full data for CSV export
+            "gui_points_for_display": self.gui_data_points,  # Limited data for GUI
         }
 
     def get_all_data_for_export(self) -> List[Tuple[int, float]]:
-        """
-        Gibt alle Datenpunkte für den Export zurück (unbegrenzt).
-
-        Returns:
-            List[Tuple[int, float]]: Alle Datenpunkte von Start bis Stop
-        """
+        """Return all collected data points without cropping."""
         return self.data_points.copy()
