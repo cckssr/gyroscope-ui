@@ -55,14 +55,6 @@ HRNGGUI/
 
 ## Verwendung
 
-1. Nach dem Start wird ein Verbindungsdialog angezeigt, in dem Sie den seriellen Port auswählen können.
-
-2. Im Hauptfenster können Sie:
-   - Die Messparameter (Spannung, Zähldauer, etc.) einstellen
-   - Messungen starten und stoppen
-   - Messdaten in Echtzeit anzeigen
-   - Statistiken zur laufenden Messung anzeigen
-   - Messdaten als CSV exportieren
 
 ## Entwicklung
 
@@ -80,31 +72,5 @@ Das Projekt enthält umfangreiche Tests, um die Korrektheit der Implementierung 
 
 ### Automatisierte Tests
 
-Die Tests können mit dem Test-Runner ausgeführt werden:
-
-```bash
-python run_tests.py
-```
-
-Verfügbare Tests:
-
-- **Unit-Tests**: Testen einzelne Komponenten isoliert
-
-  - `arduino_test.py`: Tests für die Arduino-Kommunikation
-  - `data_controller_test.py`: Tests für die Datenverwaltung
-  - `main_window_test.py`: Tests für das Hauptfenster
-
-- **Integrationstests**: Testen das Zusammenspiel mehrerer Komponenten
-  - `integration_test.py`: Überprüft das Zusammenspiel der Hauptkomponenten
 
 ### Manueller Testplan
-
-Der Datei `testplan.md` enthält einen strukturierten Plan für manuelle Tests mit verschiedenen Testszenarien und Checklisten. Dieser sollte nach größeren Änderungen durchlaufen werden, um sicherzustellen, dass alle Funktionen korrekt arbeiten.
-
-Zur komfortablen Durchführung dieser Checkliste kann das Skript `manual_checklist.py` verwendet werden:
-
-```bash
-python manual_checklist.py --file tests/testplan.md --output checklist_results.json
-```
-
-Das Skript liest alle Aufgaben aus der Markdown-Datei, fragt sie nacheinander ab und speichert die Ergebnisse im angegebenen JSON-File.

@@ -2,20 +2,23 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import Union
-from PySide6.QtWidgets import QWidget  # pylint: disable=no-name-in-module
+import glob
+import time
+from tempfile import gettempdir
+from typing import Union, Optional, Tuple
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QWidget,
     QApplication,
     QDialog,
     QDialogButtonBox,
 )
-from tempfile import gettempdir
-from serial.tools import list_ports
+from PySide6.QtCore import Slot  # pylint: disable=no-name-in-module
 from pyqt.ui_connection import Ui_Dialog as Ui_Connection
-from src.helper_classes import AlertWindow
 from src.debug_utils import Debug
 from src.device_manager import DeviceManager
+from helper_classes import import_config
+
+CONFIG = import_config()["connection"]
 
 
 class ConnectionWindow(QDialog):
@@ -23,54 +26,60 @@ class ConnectionWindow(QDialog):
         self,
         parent: QWidget = None,
         demo_mode: bool = False,
-        default_device: str = "None",
+        default_ip: str = "127.0.0.1:8080",
     ):
         """
         Initializes the connection window.
-
         Args:
             parent (QWidget, optional): Parent widget for the dialog. Defaults to None.
             demo_mode (bool, optional): If True, uses a mock port for demonstration purposes.
-            default_device (str, optional): The default device to connect to. Defaults to "None".
+            default_ip (str, optional): The default IP address to connect to.
+                Defaults to "127.0.0.1:8080".
         """
+        # DeviceManager einmalig initialisieren (vermeidet doppelte Socket-Logik)
         self.device_manager = DeviceManager(status_callback=self.status_message)
         self.connection_successful = False
-        self.default_device = default_device
-        self.ports = []  # List to hold available ports
+        self.ip = default_ip
 
-        # Check if demo mode is active and mock port is available
-        mock_port = self.check_mock_port()
-        self.demo_mode = demo_mode and mock_port is not None
+        # Check if demo mode is active and mock arduino is available
+        mock_arduino = self.check_mock_port()
+        self.demo_mode = demo_mode and mock_arduino is not None
         Debug.debug(f"Demo mode is {'enabled' if self.demo_mode else 'disabled'}")
         if self.demo_mode:
-            self.ports.append(
-                [mock_port, "Mock Device", "Virtual device for demonstration purposes"]
-            )
+            self.ip = mock_arduino[0] + ":" + mock_arduino[1]
 
         # Initialize parent and connection windows
         super().__init__(parent)
         self.ui = Ui_Connection()
         self.ui.setupUi(self)
-        self.combo = self.ui.comboSerial  # Use the combo box from the UI
-        self._update_ports()  # Initialize available ports
+        self._set_ssid_text(f"'{CONFIG['default_ssid']}'")
 
         # Attach functions to UI elements
-        self.ui.buttonRefreshSerial.clicked.connect(self._update_ports)
-        self.combo.currentIndexChanged.connect(self._update_port_description)
+        self.ui.buttonBox.accepted.connect(self.on_accept)
+        self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Retry).clicked.connect(
+            self.on_retry
+        )
 
-    def check_mock_port(self) -> Union[str, None]:
+        # Attempt connection
+        time.sleep(1)  # short delay to ensure connection is ready
+        self._update_connection()
+
+    def check_mock_port(self) -> Union[tuple[str, str], None]:
         """
         Checks if the mock virtual port is available.
         Returns:
             str: The mock port name if available, otherwise None.
         """
-        path = os.path.join(gettempdir(), "virtual_serial_port.txt")
-        Debug.debug(f"Checking for mock port at: {path}")
-        if os.path.exists(path):
-            with open(path, "r", encoding="utf-8") as f:
-                port = f.read().strip()
-                Debug.debug(f"Mock port found: {port}")
-                return port
+        filename = "mock_arduino_server_*.marker"
+        matches = glob.glob(os.path.join(gettempdir(), filename))
+        if matches:
+            start = matches[0].find("server_")
+            end = matches[0].find(".marker")
+            ip = matches[0][start + len("server_") : end].split("_")
+            host = ip[0]
+            mock_port = ip[1]
+            Debug.debug(f"Mock server found with IP {host}:{mock_port}")
+            return host, mock_port
         return None
 
     def status_message(self, message, color="white"):
@@ -79,142 +88,71 @@ class ConnectionWindow(QDialog):
         """
         self.ui.status_msg.setText(message)
         self.ui.status_msg.setStyleSheet(f"color: {color};")
+        Debug.debug(f"Status message: {message}")
         QApplication.processEvents()  # Process events to update UI immediately
         self.ui.status_msg.repaint()  # Force repaint to ensure message is shown
 
-    def _update_ports(self):
+    def _set_ssid_text(self, ssid: str):
         """
-        Initializes and updates the available serial ports.
+        Set the SSID text in the UI.
         """
-        # Clear existing ports
-        self.ui.comboSerial.clear()
-        for field in [self.ui.device_name, self.ui.device_address, self.ui.device_desc]:
-            field.clear()
-        if self.demo_mode:
-            self.ports = self.ports[:1]  # Clear all but the mock port
-        else:
-            self.ports = []
+        prev_text = self.ui.desc.text()
+        new_text = prev_text.replace("{ssid}", ssid)
+        self.ui.desc.setText(new_text)
 
-        Debug.info(f"Resetting available ports to {self.ports}")
-
-        # Get available ports
-        ports = list_ports.comports()
-        arduino_index = -1  # Index if the default device is found
-
-        for i, port in enumerate(ports):
-            Debug.debug(f"Found port: {port.device} - {port.description}")
-            self.ports.append(
-                [port.device, port.name, port.description]
-            )  # Store port object for later use
-            # Check if the port matches the default device
-            if self.default_device in port.description and arduino_index == -1:
-                arduino_index = i + int(self.demo_mode)
-
-        Debug.debug(f"Available ports updated: {self.ports}")
-        # Add ports to the combo box
-        for port in self.ports:
-            self.combo.addItem(port[0], port[2])
-
-        # Setze Arduino-Port als vorausgewählt, wenn gefunden
-        if arduino_index != -1:
-            self.combo.setCurrentIndex(arduino_index)
-            self._update_port_description()
-
-    def _update_port_description(self):
+    def _update_connection(self):
         """
-        Updates the port description based on the selected port.
+        Update the current connection status.
+
+        Check if the current IP is reachable and update the UI accordingly.
         """
-        index = self.combo.currentIndex()
-        if index >= 0:
-            port = self.ports[index]
-            device = port[1]
-            description = port[2]
-            address = port[0]
-        # If no valid index, clear the fields
-        else:
-            device = ""
-            address = ""
-            description = ""
-
-        self.ui.device_name.setText(device)
-        self.ui.device_address.setText(address)
-        self.ui.device_desc.setText(description)
-
-    def attempt_connection(self):
-        """
-        Attempts to connect to the selected device.
-
-        Returns:
-            tuple: (success, device_manager) - success is a boolean, device_manager is the
-                  configured DeviceManager if successful, None otherwise.
-        """
-        port = self.combo.currentText()
-        baudrate = int(self.ui.comboBox.currentText())
-        self.status_message(f"Connecting to {port}...", "white")
-        Debug.info(f"ConnectionWindow: Attempting to connect to port: {port}")
-
-        # Check if connected
-        success = self.device_manager.connect(port, baudrate)
-
+        success = self._test_ip_connectivity(self.ip)
         if success:
-            self.status_message(f"Successfully connected to {port}", "green")
-            Debug.info(f"Successfully connected to port: {port}")
             self.connection_successful = True
-            return True, self.device_manager
+            # Acquisition dauerhaft starten (Thread läuft unabhängig vom Mess-Flag)
+            self.device_manager.start_acquisition()
         else:
-            Debug.error(f"Failed to connect to port: {port}")
             self.connection_successful = False
-            return False, None
+        return success
 
-    def accept(self):
-        """
-        Called when the user clicks OK. Attempts connection before accepting.
-        """
-        success, _ = self.attempt_connection()
+    def _test_ip_connectivity(self, ip: str, timeout: float = 2.0) -> bool:
+        """Verwendet den DeviceManager.connect für einen Verbindungsversuch.
 
+        Gibt True/False zurück; Statusmeldungen werden über den Callback gesetzt.
+        """
+        success = self.device_manager.connect(ip, timeout)
+        # DeviceManager setzt bereits Status-Message über Callback.
         if success:
-            return super().accept()
+            self.status_message(f"Verbindung zu {ip} erfolgreich", "green")
         else:
-            Debug.error(
-                f"Connection attempt failed for port: {self.combo.currentText()}"
-            )
+            self.status_message(f"Keine Verbindung zu {ip}", "red")
+        return success
 
-            # Show error dialog with retry options
-            error_msg = f"Failed to connect to {self.combo.currentText()}"
-            alert = AlertWindow(
-                self,
-                message=f"{error_msg}\n\nPlease check if the device is connected properly and try again.",
-                title="Connection Error",
-                buttons=[
-                    ("Retry", QDialogButtonBox.ButtonRole.ResetRole),
-                    ("Select Another Port", QDialogButtonBox.ButtonRole.ActionRole),
-                    ("Cancel", QDialogButtonBox.ButtonRole.RejectRole),
-                ],
-            )
+    def closeEvent(self, event):  # noqa: N802 (Qt Namenskonvention)
+        """Sicheres Beenden: Thread stoppen und Socket schließen.
 
-            # Dialog anzeigen und auf Benutzeraktion warten
-            result = alert.exec()
+        Verhindert Absturz beim Schließen des Dialogs durch laufenden QThread.
+        """
+        try:
+            if hasattr(self, "device_manager") and self.device_manager:
+                # Thread stoppen
+                self.device_manager.stop_acquisition()
+                # Verbindung schließen
+                self.device_manager.disconnect()
+        except Exception as e:  # pragma: no cover
+            Debug.error(f"Fehler beim Schließen der Verbindung: {e}")
+        super().closeEvent(event)
 
-            # Benutzerentscheidung verarbeiten
-            role = alert.get_clicked_role()
+    @Slot()
+    def on_accept(self):
+        """Handle the accept button click."""
+        if self.connection_successful:
+            self.accept()
+        else:
+            self.status_message("Connection failed", "red")
 
-            if (
-                role == QDialogButtonBox.ButtonRole.RejectRole
-                or result == QDialog.Rejected
-            ):
-                # Benutzer hat "Abbrechen" gewählt oder Dialog abgebrochen
-                Debug.info("User canceled connection attempt")
-                return super().reject()
-
-            elif role == QDialogButtonBox.ButtonRole.ActionRole:
-                # Benutzer möchte einen anderen Port auswählen
-                Debug.info("User chose to select another port")
-                return False  # Dialog offen lassen
-
-            elif role == QDialogButtonBox.ButtonRole.ResetRole:
-                # Erneut mit demselben Port versuchen
-                Debug.info(f"Retrying connection with port: {self.combo.currentText()}")
-                return self.accept()  # Rekursiver Aufruf
-
-            # Fallback, wenn kein Button erfasst wurde
-            return False
+    @Slot()
+    def on_retry(self):
+        """Handle the retry button click."""
+        self.status_message("Retrying connection...", "yellow")
+        self._update_connection()

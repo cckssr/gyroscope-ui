@@ -1,15 +1,15 @@
 {
   "de": {
-    "description": "Zentrale Konfigurationsdatei für die HRNGGUI-Anwendung. Stellt Konstanten und Standardwerte für die gesamte Anwendung bereit.",
+    "description": "Zentrale Konfigurationsdatei für die GYRO-UI-Anwendung. Stellt Konstanten und Standardwerte für die gesamte Anwendung bereit.",
 
     "application": {
-      "name": "Geiger-Müller Zähler GUI",
+      "name": "Gyroskope GUI",
       "version": "1.0.0",
-      "author": "C. Kessler, H. Celik"
+      "author": "C. Kessler, M. Metschl"
     },
 
     "debug": {
-      "level_default": "off"
+      "level_default": "verbose"
     },
 
     "plot": {
@@ -55,38 +55,11 @@
       "orange": "orange",
       "blue": "blue"
     },
-
-    "radioactive_samples": [
-      "E87198",
-      "E93652",
-      "E62894",
-      "E89152",
-      "E99208",
-      "E30347",
-      "E95829",
-      "E96269",
-      "E55600",
-      "E76054",
-      "E44367",
-      "E82518",
-      "E23303",
-      "E92206",
-      "E03607",
-      "E00200",
-      "E34316",
-      "E32090",
-      "E52165",
-      "E54024",
-      "E43002",
-      "E38069",
-      "E93945",
-      "E78857",
-      "E80533",
-      "E67594",
-      "E63699",
-      "E75572"
-    ],
-
+    "connection": {
+      "default_ip": "127.0.0.1:8080",
+      "timeout": 2.0,
+      "default_ssid": "Kreisel-*"
+    },
     "messages": {
       "app_init": "Anwendung wird initialisiert...",
       "connected": "Verbunden mit {}. Bereit für Messungen.",

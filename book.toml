@@ -3,8 +3,8 @@ authors = ["Cedric Kessler <cedric.kessler@me.com>"]
 language = "de"
 multilingual = false
 src = "docs"
-title = "HRNGGUI - Geiger-Müller Counter GUI"
-description = "Dokumentation der HRNGGUI-Anwendung - Eine GUI für Hardware-Zufallszahlengeneratoren mit GM-Zähler"
+title = "GYRO-UI - Gyroskope GUI"
+description = "Dokumentation - Eine GUI für Nutation und Präzession-Messungen mit digitalisierten Gyroskope"
 
 [build]
 build-dir = "book"
@@ -18,9 +18,9 @@ create-missing = true
 mathjax-support = true
 copy-fonts = true
 no-section-label = false
-git-repository-url = "https://github.com/cckssr/HRNGGUI"
-edit-url-template = "https://github.com/cckssr/HRNGGUI/edit/main/docs/{path}"
-site-url = "https://cckssr.github.io/HRNGGUI/"
+git-repository-url = "https://github.com/cckssr/gyroscope-ui"
+edit-url-template = "https://github.com/cckssr/gyroscope-ui/edit/main/docs/{path}"
+site-url = "https://cckssr.github.io/gyroscope-ui/"
 
 [output.html.print]
 enable = true

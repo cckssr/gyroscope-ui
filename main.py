@@ -42,39 +42,44 @@ def main():
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(True)
 
-    # Verbindungsdialog anzeigen
-    connection_dialog = ConnectionWindow(
-        demo_mode=CONFIG["gm_counter"]["demo_mode"],
-        default_device=CONFIG["gm_counter"]["default_arduino"],
-    )
-
-    # Wenn der Dialog bestätigt wurde, Verbindung herstellen
+    connection_dialog = ConnectionWindow(demo_mode=True)
     if connection_dialog.exec():
         success = connection_dialog.connection_successful
         device_manager = connection_dialog.device_manager
-
-        if success and device_manager is not None:
-            # Hauptfenster erstellen und anzeigen, wenn Verbindung erfolgreich
+        if success and device_manager is not None and device_manager.connected:
+            # Hauptfenster erstellen
             main_window = MainWindow(device_manager)
             main_window.show()
-
-            # Timer starten, wenn vorhanden
-            if hasattr(main_window, "timer"):
-                main_window.timer.start()
-
-            # Anwendung ausführen
-            sys.exit(app.exec())
+            # Event Loop starten
+            exit_code = app.exec()
+            # Sauber herunterfahren
+            try:
+                device_manager.shutdown()
+            except Exception:  # pragma: no cover
+                pass
+            sys.exit(exit_code)
         else:
-            # Fehlerfall: Verbindung fehlgeschlagen
+            # Verbindung fehlgeschlagen
             msg_box = QMessageBox()
             msg_box.setIcon(QMessageBox.Icon.Critical)
             msg_box.setText(CONFIG["messages"]["connection_failed"])
             msg_box.setWindowTitle("Verbindungsfehler")
             msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg_box.exec()
+            # DeviceManager dennoch schließen
+            try:
+                device_manager.shutdown()
+            except Exception:  # pragma: no cover
+                pass
             sys.exit(1)
     else:
-        # Benutzer hat den Dialog abgebrochen
+        # Benutzer hat Dialog abgebrochen -> DeviceManager ggf. schließen
+        try:
+            dm = getattr(connection_dialog, "device_manager", None)
+            if dm:
+                dm.shutdown()
+        except Exception:  # pragma: no cover
+            pass
         Debug.info("Verbindung vom Benutzer abgebrochen")
         sys.exit(0)
 
