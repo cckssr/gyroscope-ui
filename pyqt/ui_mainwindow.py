@@ -15,12 +15,11 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox,
-    QFormLayout, QFrame, QGridLayout, QGroupBox,
-    QHBoxLayout, QLCDNumber, QLabel, QLayout,
-    QLineEdit, QMainWindow, QMenuBar, QPushButton,
-    QSizePolicy, QSpacerItem, QStatusBar, QVBoxLayout,
-    QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout,
+    QFrame, QGridLayout, QGroupBox, QHBoxLayout,
+    QLCDNumber, QLabel, QLayout, QLineEdit,
+    QMainWindow, QMenuBar, QPushButton, QSizePolicy,
+    QSpacerItem, QStatusBar, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -36,31 +35,71 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.verticalLayout_2.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         self.verticalLayout_2.setContentsMargins(0, -1, -1, 0)
-        self.formLayout = QFormLayout()
-        self.formLayout.setObjectName(u"formLayout")
-        self.formLayout.setContentsMargins(-1, -1, -1, 0)
-        self.label_2 = QLabel(self.centralwidget)
+        self.groupBox_2 = QGroupBox(self.centralwidget)
+        self.groupBox_2.setObjectName(u"groupBox_2")
+        font = QFont()
+        font.setPointSize(13)
+        self.groupBox_2.setFont(font)
+        self.groupBox_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.formLayout_3 = QFormLayout(self.groupBox_2)
+        self.formLayout_3.setObjectName(u"formLayout_3")
+        self.label_2 = QLabel(self.groupBox_2)
         self.label_2.setObjectName(u"label_2")
 
-        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_2)
+        self.formLayout_3.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_2)
 
-        self.lcdNumber_2 = QLCDNumber(self.centralwidget)
-        self.lcdNumber_2.setObjectName(u"lcdNumber_2")
+        self.cDataPoints = QLCDNumber(self.groupBox_2)
+        self.cDataPoints.setObjectName(u"cDataPoints")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.cDataPoints.sizePolicy().hasHeightForWidth())
+        self.cDataPoints.setSizePolicy(sizePolicy)
+        self.cDataPoints.setMinimumSize(QSize(100, 30))
+        font1 = QFont()
+        font1.setPointSize(15)
+        self.cDataPoints.setFont(font1)
+        self.cDataPoints.setFrameShape(QFrame.Shape.Box)
+        self.cDataPoints.setFrameShadow(QFrame.Shadow.Raised)
+        self.cDataPoints.setDigitCount(6)
+        self.cDataPoints.setSegmentStyle(QLCDNumber.SegmentStyle.Flat)
 
-        self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.lcdNumber_2)
+        self.formLayout_3.setWidget(0, QFormLayout.ItemRole.FieldRole, self.cDataPoints)
 
-        self.label = QLabel(self.centralwidget)
+        self.label = QLabel(self.groupBox_2)
         self.label.setObjectName(u"label")
 
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label)
+        self.formLayout_3.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label)
 
-        self.lcdNumber = QLCDNumber(self.centralwidget)
-        self.lcdNumber.setObjectName(u"lcdNumber")
+        self.cFrequency = QLCDNumber(self.groupBox_2)
+        self.cFrequency.setObjectName(u"cFrequency")
+        sizePolicy.setHeightForWidth(self.cFrequency.sizePolicy().hasHeightForWidth())
+        self.cFrequency.setSizePolicy(sizePolicy)
+        self.cFrequency.setMinimumSize(QSize(100, 30))
+        self.cFrequency.setFont(font1)
+        self.cFrequency.setDigitCount(6)
+        self.cFrequency.setSegmentStyle(QLCDNumber.SegmentStyle.Flat)
 
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.lcdNumber)
+        self.formLayout_3.setWidget(1, QFormLayout.ItemRole.FieldRole, self.cFrequency)
+
+        self.label_4 = QLabel(self.groupBox_2)
+        self.label_4.setObjectName(u"label_4")
+
+        self.formLayout_3.setWidget(2, QFormLayout.ItemRole.LabelRole, self.label_4)
+
+        self.cZGyro = QLCDNumber(self.groupBox_2)
+        self.cZGyro.setObjectName(u"cZGyro")
+        sizePolicy.setHeightForWidth(self.cZGyro.sizePolicy().hasHeightForWidth())
+        self.cZGyro.setSizePolicy(sizePolicy)
+        self.cZGyro.setMinimumSize(QSize(100, 30))
+        self.cZGyro.setFont(font1)
+        self.cZGyro.setDigitCount(6)
+        self.cZGyro.setSegmentStyle(QLCDNumber.SegmentStyle.Flat)
+
+        self.formLayout_3.setWidget(2, QFormLayout.ItemRole.FieldRole, self.cZGyro)
 
 
-        self.verticalLayout_2.addLayout(self.formLayout)
+        self.verticalLayout_2.addWidget(self.groupBox_2)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -68,14 +107,12 @@ class Ui_MainWindow(object):
 
         self.groupBox = QGroupBox(self.centralwidget)
         self.groupBox.setObjectName(u"groupBox")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
-        self.groupBox.setSizePolicy(sizePolicy)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
+        self.groupBox.setSizePolicy(sizePolicy1)
         self.groupBox.setMinimumSize(QSize(0, 50))
-        font = QFont()
-        font.setPointSize(13)
         self.groupBox.setFont(font)
         self.groupBox.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.groupBox.setFlat(False)
@@ -110,11 +147,11 @@ class Ui_MainWindow(object):
         self.groupLetter.addItem("")
         self.groupLetter.addItem("")
         self.groupLetter.setObjectName(u"groupLetter")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.groupLetter.sizePolicy().hasHeightForWidth())
-        self.groupLetter.setSizePolicy(sizePolicy1)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.groupLetter.sizePolicy().hasHeightForWidth())
+        self.groupLetter.setSizePolicy(sizePolicy2)
         self.groupLetter.setMaxCount(24)
         self.groupLetter.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
 
@@ -127,8 +164,8 @@ class Ui_MainWindow(object):
 
         self.suffix = QLineEdit(self.groupBox)
         self.suffix.setObjectName(u"suffix")
-        sizePolicy1.setHeightForWidth(self.suffix.sizePolicy().hasHeightForWidth())
-        self.suffix.setSizePolicy(sizePolicy1)
+        sizePolicy2.setHeightForWidth(self.suffix.sizePolicy().hasHeightForWidth())
+        self.suffix.setSizePolicy(sizePolicy2)
         self.suffix.setText(u"")
         self.suffix.setMaxLength(20)
 
@@ -140,11 +177,11 @@ class Ui_MainWindow(object):
         self.buttonSave = QPushButton(self.groupBox)
         self.buttonSave.setObjectName(u"buttonSave")
         self.buttonSave.setEnabled(False)
-        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        sizePolicy2.setHorizontalStretch(0)
-        sizePolicy2.setVerticalStretch(0)
-        sizePolicy2.setHeightForWidth(self.buttonSave.sizePolicy().hasHeightForWidth())
-        self.buttonSave.setSizePolicy(sizePolicy2)
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.buttonSave.sizePolicy().hasHeightForWidth())
+        self.buttonSave.setSizePolicy(sizePolicy3)
         self.buttonSave.setMinimumSize(QSize(100, 30))
         self.buttonSave.setMaximumSize(QSize(1000, 40))
 
@@ -155,11 +192,11 @@ class Ui_MainWindow(object):
         self.horizontalLayout_5.setContentsMargins(-1, -1, 0, 0)
         self.autoSave = QCheckBox(self.groupBox)
         self.autoSave.setObjectName(u"autoSave")
-        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-        sizePolicy3.setHorizontalStretch(0)
-        sizePolicy3.setVerticalStretch(0)
-        sizePolicy3.setHeightForWidth(self.autoSave.sizePolicy().hasHeightForWidth())
-        self.autoSave.setSizePolicy(sizePolicy3)
+        sizePolicy4 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        sizePolicy4.setHorizontalStretch(0)
+        sizePolicy4.setVerticalStretch(0)
+        sizePolicy4.setHeightForWidth(self.autoSave.sizePolicy().hasHeightForWidth())
+        self.autoSave.setSizePolicy(sizePolicy4)
         self.autoSave.setMaximumSize(QSize(850, 16777215))
         self.autoSave.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.autoSave.setChecked(True)
@@ -210,11 +247,11 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setContentsMargins(-1, -1, 0, -1)
         self.gridGroupBox = QGroupBox(self.centralwidget)
         self.gridGroupBox.setObjectName(u"gridGroupBox")
-        sizePolicy4 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        sizePolicy4.setHorizontalStretch(0)
-        sizePolicy4.setVerticalStretch(0)
-        sizePolicy4.setHeightForWidth(self.gridGroupBox.sizePolicy().hasHeightForWidth())
-        self.gridGroupBox.setSizePolicy(sizePolicy4)
+        sizePolicy5 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        sizePolicy5.setHorizontalStretch(0)
+        sizePolicy5.setVerticalStretch(0)
+        sizePolicy5.setHeightForWidth(self.gridGroupBox.sizePolicy().hasHeightForWidth())
+        self.gridGroupBox.setSizePolicy(sizePolicy5)
         self.gridGroupBox.setFont(font)
         self.gridGroupBox.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.gridGroupBox.setFlat(False)
@@ -222,30 +259,6 @@ class Ui_MainWindow(object):
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_2.setHorizontalSpacing(-1)
         self.gridLayout_2.setContentsMargins(-1, 12, -1, -1)
-        self.plotFrequency = QWidget(self.gridGroupBox)
-        self.plotFrequency.setObjectName(u"plotFrequency")
-        sizePolicy5 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        sizePolicy5.setHorizontalStretch(0)
-        sizePolicy5.setVerticalStretch(1)
-        sizePolicy5.setHeightForWidth(self.plotFrequency.sizePolicy().hasHeightForWidth())
-        self.plotFrequency.setSizePolicy(sizePolicy5)
-
-        self.gridLayout_2.addWidget(self.plotFrequency, 1, 0, 1, 1)
-
-        self.plotGyro = QWidget(self.gridGroupBox)
-        self.plotGyro.setObjectName(u"plotGyro")
-        sizePolicy5.setHeightForWidth(self.plotGyro.sizePolicy().hasHeightForWidth())
-        self.plotGyro.setSizePolicy(sizePolicy5)
-
-        self.gridLayout_2.addWidget(self.plotGyro, 4, 0, 1, 1)
-
-        self.line_2 = QFrame(self.gridGroupBox)
-        self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShape(QFrame.Shape.HLine)
-        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.gridLayout_2.addWidget(self.line_2, 2, 0, 1, 1)
-
         self.label_3 = QLabel(self.gridGroupBox)
         self.label_3.setObjectName(u"label_3")
         sizePolicy6 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
@@ -257,13 +270,15 @@ class Ui_MainWindow(object):
 
         self.gridLayout_2.addWidget(self.label_3, 0, 0, 1, 1)
 
-        self.label_4 = QLabel(self.gridGroupBox)
-        self.label_4.setObjectName(u"label_4")
-        sizePolicy6.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
-        self.label_4.setSizePolicy(sizePolicy6)
-        self.label_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.plotWidget = QWidget(self.gridGroupBox)
+        self.plotWidget.setObjectName(u"plotWidget")
+        sizePolicy7 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        sizePolicy7.setHorizontalStretch(0)
+        sizePolicy7.setVerticalStretch(1)
+        sizePolicy7.setHeightForWidth(self.plotWidget.sizePolicy().hasHeightForWidth())
+        self.plotWidget.setSizePolicy(sizePolicy7)
 
-        self.gridLayout_2.addWidget(self.label_4, 3, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.plotWidget, 1, 0, 1, 1)
 
 
         self.verticalLayout_3.addWidget(self.gridGroupBox)
@@ -291,8 +306,10 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"GM-Counter", None))
+        self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"Aktuelle Messwerte", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"Datenpunkte", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", u"Rotationsfrequenz / Hz", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"Rotationsfrequenz (Hz)", None))
+        self.label_4.setText(QCoreApplication.translate("MainWindow", u"Z-Rot. Geschw. (\u00b0 / s)", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Speicherung", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"Gruppe*", None))
         self.groupLetter.setItemText(0, QCoreApplication.translate("MainWindow", u"A", None))
@@ -336,7 +353,6 @@ class Ui_MainWindow(object):
 #endif // QT_CONFIG(tooltip)
         self.buttonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
         self.gridGroupBox.setTitle("")
-        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Rotationsfrequenz", None))
-        self.label_4.setText(QCoreApplication.translate("MainWindow", u"Gyroskop-Daten", None))
+        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Live-Daten", None))
     # retranslateUi
 

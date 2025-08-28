@@ -67,7 +67,7 @@ class Debug:
         cls.logger.addHandler(console_handler)
 
         # Set up log file
-         # Use provided directory if given,
+        # Use provided directory if given,
         # otherwise use a "logs" folder in the project directory
         if log_dir:
             log_directory = log_dir
@@ -87,7 +87,7 @@ class Debug:
         # Always create a log.txt in the specified directory
         cls.LOG_FILE = os.path.join(
             log_directory,
-            f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_fringecounter_log.txt",
+            f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{app_name}.txt",
         )
 
         file_handler = logging.FileHandler(cls.LOG_FILE, encoding="utf-8")

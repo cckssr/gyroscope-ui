@@ -47,6 +47,7 @@ import socket
 import sys
 import threading
 import time
+import numpy as np
 from dataclasses import dataclass
 from tempfile import gettempdir
 import os
@@ -89,6 +90,24 @@ class DataRow:
             f"{self.ax:.2f},{self.ay:.2f},{self.az:.2f},{self.gx:.2f},{self.gy:.2f},{self.gz:.2f}"
         )
 
+class gyro_simulator:
+    def __init__(self, data: List[DataRow]):
+        self.data = data
+        self.index = 0
+        self.last_acc = 0
+
+    def get_next(self) -> DataRow | None:
+        if self.index < len(self.data):
+            row = self.data[self.index]
+            self.index += 1
+            return row
+        return None
+    
+    def frequency(self, t, f0, mu):
+        return f0 - mu * t
+    
+    def gyro(self, t, g0, omega, mu):
+        return g0 * np.sin(omega * t) * np.exp(-mu * t)
 
 def load_data(path: Path) -> List[DataRow]:
     if not path.exists():
@@ -146,7 +165,6 @@ def load_data(path: Path) -> List[DataRow]:
         raise ValueError(f"Keine gültigen Datenzeilen in {path} gefunden")
     return rows
 
-
 def apply_noise(row: DataRow, noise_amp: float) -> DataRow:
     if noise_amp <= 0:
         return row
@@ -174,6 +192,8 @@ def client_thread(
     extended: bool,
     loop: bool,
     http_mode: bool,
+    follow_timestamps: bool,
+    timestamp_scale: float,
 ):  # noqa: D401
     name = f"{addr[0]}:{addr[1]}"
     print(f"[MockArduino] Client verbunden: {name}")
@@ -220,24 +240,42 @@ def client_thread(
             except BrokenPipeError:
                 break
 
-            idx += 1
-            if idx >= n:
-                if not loop:
-                    if http_mode:
-                        # Sende abschließenden leeren Chunk, damit Browser sauber schließt
-                        try:
-                            conn.sendall(b"0\r\n\r\n")
-                        except OSError:
-                            pass
-                    break
-                idx = 0
+            next_idx = idx + 1
+            end_of_cycle = False
+            if next_idx >= n:
+                if loop:
+                    next_idx = 0
+                else:
+                    end_of_cycle = True
 
-            delay = interval_s
+            # Delay Berechnung
+            if follow_timestamps and not end_of_cycle:
+                # Nutze Differenz der current_time Felder
+                raw_delta = rows[next_idx].current_time - row.current_time
+                if raw_delta < 0:
+                    # Falls Zeit zurückspringt (unerwartet) -> kein Delay
+                    delay = 0.0
+                else:
+                    # timestamp_scale: z.B. 1000.0 wenn Werte in ms vorliegen
+                    delay = raw_delta / timestamp_scale
+            else:
+                delay = interval_s
+
             if jitter_ms > 0:
                 delta = random.uniform(-jitter_ms / 1000.0, jitter_ms / 1000.0)
                 delay = max(0.0, delay + delta)
             if delay > 0:
                 time.sleep(delay)
+
+            idx = next_idx
+            if end_of_cycle:
+                if not loop:
+                    if http_mode:
+                        try:
+                            conn.sendall(b"0\r\n\r\n")
+                        except OSError:
+                            pass
+                    break
     finally:
         try:
             conn.close()
@@ -256,6 +294,8 @@ def run_server(
     extended: bool,
     loop: bool,
     http_mode: bool,
+    follow_timestamps: bool,
+    timestamp_scale: float,
 ):
     interval_s = 1.0 / rate if rate > 0 else 0.01
     marker_filename = f"mock_arduino_server_{host}_{port}.marker"
@@ -274,9 +314,14 @@ def run_server(
             s.listen(5)
             s.settimeout(1.0)
             print(f"[MockArduino] Server gestartet auf {host}:{port}")
-            print(
-                f"[MockArduino] Format: {'EXTENDED (15 Werte)' if extended else 'BASIC (9 Werte)'} | Rate ~{rate} Zeilen/s | Loop={loop}"
-            )
+            if follow_timestamps:
+                print(
+                    f"[MockArduino] Format: {'EXTENDED (15 Werte)' if extended else 'BASIC (9 Werte)'} | Timing=CSV current_time Differenzen (Scale={timestamp_scale}) | Loop={loop}"
+                )
+            else:
+                print(
+                    f"[MockArduino] Format: {'EXTENDED (15 Werte)' if extended else 'BASIC (9 Werte)'} | Rate ~{rate} Zeilen/s | Loop={loop}"
+                )
             if http_mode:
                 print("[MockArduino] HTTP-Modus aktiv (chunked streaming)")
             print("[MockArduino] Zum Stoppen Ctrl+C drücken ...")
@@ -297,6 +342,8 @@ def run_server(
                         extended,
                         loop,
                         http_mode,
+                        follow_timestamps,
+                        timestamp_scale,
                     ),
                     daemon=True,
                 )
@@ -356,6 +403,22 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Einfacher HTTP (Transfer-Encoding: chunked) für Browser-Zugriff",
     )
+    p.add_argument(
+        "--follow-timestamps",
+        action="store_true",
+        help=(
+            "Aktiviere pacing durch Differenzen der 'Current Time' Spalte (ignoriert --rate)."
+        ),
+    )
+    p.add_argument(
+        "--timestamp-scale",
+        type=float,
+        default=1000.0,
+        help=(
+            "Divisor zur Umrechnung der Zeitdifferenzen in Sekunden (Default 1000.0 => Werte sind in ms). "
+            "Bei Mikrosekunden z.B. 1e6 setzen."
+        ),
+    )
     return p.parse_args(argv)
 
 
@@ -377,6 +440,8 @@ def main(argv: list[str]) -> int:
         extended=args.extended,
         loop=loop,
         http_mode=args.http,
+        follow_timestamps=args.follow_timestamps,
+        timestamp_scale=args.timestamp_scale,
     )
     return 0
 

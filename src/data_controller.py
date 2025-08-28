@@ -4,88 +4,21 @@
 """Data controller for managing measurements and plot updates."""
 
 from typing import Optional, List, Tuple, Dict, Union
+import math
 import queue
 import threading
 from time import time
 from datetime import datetime
 
-try:  # pragma: no cover - optional dependency for headless testing
-    from PySide6.QtWidgets import (
-        QLCDNumber,
-        QListWidget,
-        QTableView,
-    )  # type: ignore
-    from PySide6.QtGui import QStandardItemModel, QStandardItem  # type: ignore
-    from PySide6.QtCore import Qt  # type: ignore
-
-
-except Exception:  # ImportError or missing Qt libraries
-
-    class QLCDNumber:  # pragma: no cover - fallback stub
-        def display(self, *args, **kwargs):
-            pass
-
-    class QListWidget:  # pragma: no cover - fallback stub
-        def insertItem(self, *args, **kwargs):
-            pass
-
-        def item(self, *args, **kwargs):
-            class _Item:
-                def setTextAlignment(self, *a, **k):
-                    pass
-
-            return _Item()
-
-        def count(self) -> int:
-            return 0
-
-        def takeItem(self, *args, **kwargs):
-            pass
-
-        def clear(self):
-            pass
-
-    class QTableView:  # pragma: no cover - fallback stub
-        def setModel(self, *args, **kwargs):
-            pass
-
-    class QStandardItemModel:  # pragma: no cover - fallback stub
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def setHorizontalHeaderLabels(self, *args, **kwargs):
-            pass
-
-        def appendRow(self, *args, **kwargs):
-            pass
-
-        def rowCount(self):
-            return 0
-
-        def removeRow(self, *args, **kwargs):
-            pass
-
-    class _Alignment:
-        AlignRight = 0
-
-    class _Qt:
-        AlignmentFlag = _Alignment
-
-    class QTimer:  # pragma: no cover - fallback stub
-        def __init__(self):
-            self.timeout = self._MockSignal()
-
-        def start(self, interval):
-            pass
-
-        def stop(self):
-            pass
-
-        class _MockSignal:
-            def connect(self, callback):
-                pass
-
-    Qt = _Qt()
+from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
+    QLCDNumber,
+    QTableView,
+)  # type: ignore
+from PySide6.QtGui import (  # pylint: disable=no-name-in-module
+    QStandardItemModel,
+    QStandardItem,
+)
+from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 
 from src.plot import PlotWidget
 from src.debug_utils import Debug
@@ -99,9 +32,9 @@ class DataController:
 
     def __init__(
         self,
-        plot_widget: PlotWidget,
+        frequency_plot: Optional[PlotWidget],
+        gyroscope_plot: Optional[PlotWidget],
         display_widget: Optional[QLCDNumber] = None,
-        history_widget: Optional[QListWidget] = None,
         table_widget: Optional[QTableView] = None,
         max_history: int = MAX_HISTORY_SIZE,
         gui_update_interval: int = 200,  # ms (optimised for performance)
@@ -114,168 +47,125 @@ class DataController:
             history_widget: Optional list widget for history display.
             max_history: Maximum number of data points for GUI display (not file storage).
         """
-        self.plot = plot_widget
+        # Core widgets
+        self.f_plot = frequency_plot
+        self.g_plot = gyroscope_plot
         self.display = display_widget
-        self.history = history_widget
         self.table = table_widget
         self.table_model: Optional[QStandardItemModel] = None
         self.max_history = max_history
 
-        # Full data storage (for CSV export, etc.)
-        self.data_points: List[Tuple[int, float]] = []
+        # ---------------- Internal Storage ----------------
+        # Export buffer (only when recording True)
+        self.data_points: List[Tuple[float, float, float, float]] = []
+        # Live plot series (rolling window, always filled)
+        self.freq_series: List[Tuple[float, float, str]] = []
+        self.gyro_series: List[Tuple[float, float, str]] = []
 
-        # GUI-limited data (for plot and history widget)
-        self.gui_data_points: List[Tuple[int, float]] = []
-        self.max_history = max_history
+        # Recording flag
+        self.recording: bool = False
 
-        # Queue for high-frequency data acquisition
+        # Performance metrics placeholders
+        self._total_points_received: int = 0
+        self._points_processed_in_last_update: int = 0
+
+        # Queue infra (minimal)
         self.data_queue: queue.Queue = queue.Queue()
         self._queue_lock = threading.Lock()
         self._last_update_time = time()
 
-        # Timer for GUI updates every 100ms
+        # Removed history widget placeholder
+        self.history = None
+
+        # Optional timer (not currently used for batching)
         try:
             self.gui_update_timer = QTimer()
-            if hasattr(self.gui_update_timer.timeout, "connect"):
-                self.gui_update_timer.timeout.connect(self._process_queued_data)
-                self.gui_update_timer.start(gui_update_interval)
-            else:
-                self.gui_update_timer = None
-        except Exception:
-            # Fallback for headless testing
+            if gui_update_interval > 0:
+                self.gui_update_timer.setInterval(gui_update_interval)
+        except Exception:  # pragma: no cover
             self.gui_update_timer = None
-            Debug.info("GUI update timer not available (headless mode)")
-
-        # Performance counters
-        self._total_points_received = 0
-        self._points_processed_in_last_update = 0
 
         if self.table is not None:
             self.table_model = QStandardItemModel(0, 3, self.table)
-            self.table_model.setHorizontalHeaderLabels(["Index", "Value (µs)", "Time"])
+            self.table_model.setHorizontalHeaderLabels(["Time (s)", "Value", "Stamp"])
             self.table.setModel(self.table_model)
 
-    def add_data_point_fast(
-        self, index: Union[int, str], value: Union[float, str]
+    # ------------------------------------------------------------------
+    # New multi-signal callback (elapsed_time_s, frequency, accel_z, gyro_z)
+    # ------------------------------------------------------------------
+    def handle_multi_data_point(
+        self, elapsed_s: float, frequency: float, accel_z: float, gyro_z: float
     ) -> None:
-        """Quickly enqueue data points without immediate GUI update.
+        """Handle a multi channel data update.
 
-        This method is optimised for high-frequency acquisition and updates
-        does not update the GUI immediately. Instead the data are enqueued
-        and processed every 100ms.
-
-        Args:
-            index: The data point index
-            value: The measured value
+        Stores the full tuple and updates two plots:
+        - frequency_plot: time vs frequency (Hz)
+        - gyroscope_plot: time vs gyro Z (°/s)
+        NaN values are skipped for their respective series.
         """
+        ts = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        Debug.debug(
+            f"multi_data_point recv t={elapsed_s:.3f} f={frequency:.3f} accZ={accel_z:.3f} gyroZ={gyro_z:.3f} rec={'on' if self.recording else 'off'}"
+        )
+        if self.recording:
+            self.data_points.append((elapsed_s, frequency, accel_z, gyro_z))
+            Debug.debug(
+                f"Data point added to storage. Total points: {len(self.data_points)}"
+            )
+
+        # -------- Fallback Logik für leere Kanäle --------
+        # Wenn frequency NaN ist, aber accel_z vorhanden, nutze accel_z ersatzweise im Frequenz-Plot,
+        # damit der Nutzer überhaupt Aktivität sieht.
+        freq_for_plot = frequency
+        used_fallback = False
+        if math.isnan(freq_for_plot) and not math.isnan(accel_z):
+            freq_for_plot = accel_z
+            used_fallback = True
+
+        if not math.isnan(freq_for_plot):
+            self.freq_series.append((elapsed_s, freq_for_plot, ts))
+            if len(self.freq_series) > self.max_history:
+                self.freq_series = self.freq_series[-self.max_history :]
+            if used_fallback:
+                Debug.debug("Frequency fallback -> accel_z für Plot verwendet")
+
+        # Gyro Z series
+        if not math.isnan(gyro_z):
+            self.gyro_series.append((elapsed_s, gyro_z, ts))
+            if len(self.gyro_series) > self.max_history:
+                self.gyro_series = self.gyro_series[-self.max_history :]
+        else:
+            if math.isnan(freq_for_plot):
+                Debug.debug("Alle Kanäle NaN – nichts zu plotten in diesem Schritt")
+
+        # Update plots immediately (could be rate-limited if needed)
         try:
-            # Fast validation and conversion
-            index_num = int(index)
-            value_num = float(value)
-            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            if self.f_plot and self.freq_series:
+                self.f_plot.update_plot(self.freq_series)
+            if self.g_plot and self.gyro_series:
+                self.g_plot.update_plot(self.gyro_series)
+        except Exception as e:  # pragma: no cover
+            Debug.error(f"Plot update failed: {e}")
 
-            # Vollständige Daten sofort hinzufügen (für CSV-Export, unbegrenzt)
-            self.data_points.append((index_num, value_num, timestamp))
+    # Legacy single-value interfaces (no-op or thin wrappers) -----------------
+    def add_data_point_fast(self, *_args, **_kwargs) -> None:  # pragma: no cover
+        Debug.debug("add_data_point_fast legacy call ignored (multi-mode active)")
 
-            # Thread-safe enqueue
-            with self._queue_lock:
-                self.data_queue.put((index_num, value_num, timestamp))
-                self._total_points_received += 1
+    def _process_queued_data(self) -> None:  # pragma: no cover
+        pass
 
-        except (ValueError, TypeError) as e:
-            Debug.error(f"Failed to convert values for fast queue: {e}")
-
-    def _process_queued_data(self) -> None:
-        """Process all queued data points and update the GUI."""
-        if self.data_queue.empty():
-            return
-
-        new_points = []
-        current_time = time()
-
+    def _update_gui_widgets(self, t_sec: float, value: float, timestamp: str) -> None:
+        """Update value display and table (plots handled in multi callback)."""
         try:
-            # Retrieve all available data points from the queue
-            with self._queue_lock:
-                while not self.data_queue.empty():
-                    try:
-                        index_num, value_num, timestamp = self.data_queue.get_nowait()
-                        new_points.append((index_num, value_num, timestamp))
-                    except queue.Empty:
-                        break
-
-            if not new_points:
-                return
-
-            self._points_processed_in_last_update = len(new_points)
-
-            # Add all new points to the full data set (for CSV export)
-            for index_num, value_num in new_points:
-                self.data_points.append((index_num, value_num))
-
-            # Add all new points to GUI data as well (with limit)
-            for index_num, value_num in new_points:
-                self.gui_data_points.append((index_num, value_num))
-
-            # Only limit GUI data; full data remain unlimited
-            while len(self.gui_data_points) > self.max_history:
-                self.gui_data_points.pop(0)
-
-            # Update GUI only once with the last value
-            if new_points:
-                last_index, last_value, last_timestamp = new_points[-1]
-                self._update_gui_widgets(last_index, last_value, last_timestamp)
-
-            # Performance logging
-            time_since_last = current_time - self._last_update_time
-            if time_since_last > 0:
-                rate = len(new_points) / time_since_last
-                Debug.debug(
-                    f"Processed {len(new_points)} points in {time_since_last:.3f}s "
-                    f"(rate: {rate:.1f} Hz, total: {self._total_points_received})"
-                )
-
-            self._last_update_time = current_time
-
-        except Exception as e:
-            Debug.error(f"Error processing queued data: {e}", exc_info=True)
-
-    def _update_gui_widgets(self, index: int, value: float) -> None:
-        """Update plot, LCD and history list with a single data point."""
-        try:
-            # Update plot widget - add all new points in one batch
-            if self.plot and self._points_processed_in_last_update > 0:
-                # Retrieve all new points for the plot update (from GUI limited data)
-                new_plot_points = self.gui_data_points[
-                    -self._points_processed_in_last_update :
-                ]
-
-                # Use the efficient batch update method when available
-                if hasattr(self.plot, "update_plot_batch"):
-                    self.plot.update_plot_batch(self.gui_data_points)
-                else:
-                    # Fallback for older PlotWidget versions
-                    for point in new_plot_points:
-                        self.plot.update_plot(point)
-
             # Update current value display with the last value
             if self.display:
                 self.display.display(value)
-
-            # Update history list widget with the last value
-            if self.history:
-                # Insert new item at the top
-                self.history.insertItem(0, f"{value} µs : {index}")
-                # Right align text for readability
-                self.history.item(0).setTextAlignment(Qt.AlignmentFlag.AlignRight)
-
-                while self.history.count() > self.max_history:
-                    self.history.takeItem(self.history.count() - 1)
 
             # Update table model with new data
             if self.table_model is not None:
                 try:
                     row = [
-                        QStandardItem(str(index)),
+                        QStandardItem(f"{t_sec:.3f}"),
                         QStandardItem(str(value)),
                         QStandardItem(timestamp),
                     ]
@@ -290,36 +180,8 @@ class DataController:
         except (AttributeError, RuntimeError) as e:
             Debug.error(f"Failed to update GUI widgets: {e}", exc_info=True)
 
-    def add_data_point(self, index: Union[int, str], value: Union[float, str]) -> None:
-        """Add a point and update optional widgets.
-
-        Note: ``add_data_point_fast`` should be used for high frequency data
-        acquisition, this method is kept for compatibility.
-        """
-
-        # Ensure numeric values
-        try:
-            # Ensure values are numeric
-            index_num = int(index)
-            value_num = float(value)
-            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-
-            # Add data to full storage (unbounded for file saving)
-            self.data_points.append((index_num, value_num, timestamp))
-
-            # Add data to GUI storage (bounded for display)
-            self.gui_data_points.append((index_num, value_num, timestamp))
-            if len(self.gui_data_points) > self.max_history:
-                self.gui_data_points.pop(0)
-
-            # Update GUI widgets directly
-            self._update_gui_widgets(index_num, value_num, timestamp)
-
-        except (ValueError, TypeError) as e:
-            Debug.error(f"Failed to convert values: {e}", exc_info=True)
-        except (AttributeError, RuntimeError) as e:
-            Debug.error(f"Failed to update UI elements: {e}", exc_info=True)
-
+    def add_data_point(self, *_, **__):  # pragma: no cover
+        Debug.debug("add_data_point legacy call ignored (multi-mode active)")
 
     def stop_gui_updates(self) -> None:
         """Stop the GUI update timer."""
@@ -344,7 +206,8 @@ class DataController:
         try:
             # Remove stored points (both full and GUI data)
             self.data_points = []
-            self.gui_data_points = []
+            self.freq_series = []
+            self.gyro_series = []
 
             # Clear the queue
             with self._queue_lock:
@@ -360,16 +223,21 @@ class DataController:
             self._last_update_time = time()
 
             # Clear the plot
-            if self.plot:
-                self.plot.clear()
+            if self.f_plot:
+                self.f_plot.clear()
+            if self.g_plot:
+                self.g_plot.clear()
 
             # Reset displayed value
             if self.display:
                 self.display.display(0)
 
             # Clear the history list
-            if self.history:
-                self.history.clear()
+            if getattr(self, "history", None):
+                try:
+                    self.history.clear()  # type: ignore[union-attr]
+                except Exception:  # pragma: no cover
+                    pass
 
             # Clear the table model
             if self.table_model is not None:
@@ -383,6 +251,26 @@ class DataController:
 
         except (AttributeError, RuntimeError) as e:
             Debug.error(f"Failed to reset UI elements: {e}", exc_info=True)
+
+    # (Recording control methods defined at class scope below)
+
+    def stop_recording(self) -> None:
+        """Stop recording (plots continue updating live)."""
+        self.recording = False
+        Debug.debug(
+            f"Recording stopped. Stored points: {len(self.data_points)} (plots continue)"
+        )
+
+    # ---------------- Recording Control (exposed API) -----------------
+    def clear_storage_only(self) -> None:
+        """Clear only export buffer; keep live plot history intact."""
+        self.data_points = []
+        Debug.debug("Export-Puffer geleert (Live-Daten bleiben sichtbar)")
+
+    def start_recording(self) -> None:
+        """Start filling export buffer (live plotting always active)."""
+        self.recording = True
+        Debug.debug("Recording started (export buffer will fill)")
 
     def get_statistics(self) -> Dict[str, float]:
         """Return basic statistics for the stored data."""
@@ -420,15 +308,22 @@ class DataController:
 
         return stats
 
-    def get_data_as_list(self) -> List[Tuple[int, float, str]]:
-        """Return all stored data points as a list."""
+    def get_data_as_list(self) -> List[Tuple[float, float, float, float]]:
+        """Return all stored multi-channel data points as a list."""
         return self.data_points.copy()
 
     def get_csv_data(self) -> List[List[str]]:
         """Prepare the stored data for CSV export."""
-        result: List[List[str]] = [["Index", "Value (µs)", "Time"]]
-        for idx, value, timestamp in self.data_points:
-            result.append([str(idx), str(value), timestamp])
+        result: List[List[str]] = [["Time (s)", "Frequency (Hz)", "Accel Z", "Gyro Z"]]
+        for t_s, freq, acc_z, gyro_z in self.data_points:
+            result.append(
+                [
+                    f"{t_s:.6f}",
+                    f"{freq:.6f}" if not math.isnan(freq) else "",
+                    f"{acc_z:.6f}" if not math.isnan(acc_z) else "",
+                    f"{gyro_z:.6f}" if not math.isnan(gyro_z) else "",
+                ]
+            )
         return result
 
     def get_performance_stats(self) -> Dict[str, Union[int, float]]:
@@ -449,16 +344,51 @@ class DataController:
         """Return information about the stored data."""
         return {
             "total_data_points": len(self.data_points),
-            "gui_data_points": len(self.gui_data_points),
+            "frequency_points": len(self.freq_series),
+            "gyro_points": len(self.gyro_series),
             "max_history_limit": self.max_history,
-            "data_points_for_export": self.data_points,  # Full data for CSV export
-            "gui_points_for_display": self.gui_data_points,  # Limited data for GUI
+            "data_points_for_export": self.data_points,
         }
 
-    def get_all_data_for_export(self) -> List[Tuple[int, float]]:
-        """Return all collected data points without cropping.
-        
-        Return:
-          List[Tuple[int, float]]: All datapoints with timestamp
-         """
+    def get_all_data_for_export(self) -> List[Tuple[float, float, float, float]]:
+        """Return all collected multi-channel data points."""
         return self.data_points.copy()
+
+    def get_current_values(self) -> Dict[str, Union[float, int]]:
+        """Get current data point values for GUI display.
+
+        Returns:
+            Dictionary with current values:
+            - data_points_count: Number of total data points (recorded)
+            - current_frequency: Latest frequency value (Hz) from live data
+            - current_gyro_z: Latest gyro Z value (°/s) from live data
+        """
+        Debug.debug(
+            f"get_current_values called, data_points length: {len(self.data_points)}, freq_series: {len(self.freq_series)}, gyro_series: {len(self.gyro_series)}"
+        )
+
+        # Default values
+        values = {
+            "data_points_count": len(self.data_points),  # Only recorded data
+            "current_frequency": 0.0,
+            "current_gyro_z": 0.0,
+        }
+
+        # Get latest frequency from live plot data (always available)
+        if self.freq_series:
+            latest_freq = self.freq_series[-1]  # (elapsed_s, frequency, timestamp)
+            values["current_frequency"] = latest_freq[1]
+            Debug.debug(f"Using frequency from freq_series: {latest_freq[1]}")
+        else:
+            Debug.debug("No frequency data in freq_series")
+
+        # Get latest gyro_z from live plot data (always available)
+        if self.gyro_series:
+            latest_gyro = self.gyro_series[-1]  # (elapsed_s, gyro_z, timestamp)
+            values["current_gyro_z"] = latest_gyro[1]
+            Debug.debug(f"Using gyro_z from gyro_series: {latest_gyro[1]}")
+        else:
+            Debug.debug("No gyro_z data in gyro_series")
+
+        Debug.debug(f"Returning values: {values}")
+        return values  # (Duplicate recording control block removed above)

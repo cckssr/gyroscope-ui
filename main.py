@@ -26,11 +26,15 @@ def main():
     und erstellt das Hauptfenster.
     """
     # Debug-System initialisieren
-    debug_level = (
-        Debug.DEBUG_VERBOSE
-        if CONFIG["debug"]["level_default"] == "verbose"
-        else Debug.DEBUG_OFF
-    )
+    match CONFIG["debug"]["level_default"]:
+        case "verbose":
+            debug_level = Debug.DEBUG_VERBOSE
+        case "info":
+            debug_level = Debug.DEBUG_INFO
+        case "error":
+            debug_level = Debug.DEBUG_ERROR
+        case _:
+            debug_level = Debug.DEBUG_OFF
     Debug.init(debug_level=debug_level, app_name=CONFIG["application"]["name"])
 
     # Globalen Exception-Handler registrieren

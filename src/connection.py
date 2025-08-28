@@ -12,11 +12,11 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QDialog,
     QDialogButtonBox,
 )
-from PySide6.QtCore import Slot  # pylint: disable=no-name-in-module
+from PySide6.QtCore import Slot, QTimer  # pylint: disable=no-name-in-module
 from pyqt.ui_connection import Ui_Dialog as Ui_Connection
 from src.debug_utils import Debug
 from src.device_manager import DeviceManager
-from helper_classes import import_config
+from src.helper_classes import import_config
 
 CONFIG = import_config()["connection"]
 
@@ -58,6 +58,16 @@ class ConnectionWindow(QDialog):
         self.ui.buttonBox.accepted.connect(self.on_accept)
         self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Retry).clicked.connect(
             self.on_retry
+        )
+
+        # Setup auto-accept timer (2 seconds after successful connection)
+        self.auto_accept_timer = QTimer(self)
+        self.auto_accept_timer.setSingleShot(True)
+        self.auto_accept_timer.timeout.connect(self._auto_accept)
+
+        # Connect to device manager's connection successful signal
+        self.device_manager.connection_successful.connect(
+            self._on_connection_successful
         )
 
         # Attempt connection
@@ -120,7 +130,7 @@ class ConnectionWindow(QDialog):
 
         Gibt True/False zurück; Statusmeldungen werden über den Callback gesetzt.
         """
-        success = self.device_manager.connect(ip, timeout)
+        success = self.device_manager.connect_device(ip, timeout)
         # DeviceManager setzt bereits Status-Message über Callback.
         if success:
             self.status_message(f"Verbindung zu {ip} erfolgreich", "green")
@@ -134,11 +144,16 @@ class ConnectionWindow(QDialog):
         Verhindert Absturz beim Schließen des Dialogs durch laufenden QThread.
         """
         try:
+            # Stop auto-accept timer if running
+            if hasattr(self, "auto_accept_timer") and self.auto_accept_timer.isActive():
+                self.auto_accept_timer.stop()
+                Debug.debug("Auto-Accept Timer gestoppt")
+
             if hasattr(self, "device_manager") and self.device_manager:
                 # Thread stoppen
                 self.device_manager.stop_acquisition()
                 # Verbindung schließen
-                self.device_manager.disconnect()
+                self.device_manager.disconnect_device()
         except Exception as e:  # pragma: no cover
             Debug.error(f"Fehler beim Schließen der Verbindung: {e}")
         super().closeEvent(event)
@@ -146,6 +161,11 @@ class ConnectionWindow(QDialog):
     @Slot()
     def on_accept(self):
         """Handle the accept button click."""
+        # Stop auto-accept timer if running (user manually accepted)
+        if hasattr(self, "auto_accept_timer") and self.auto_accept_timer.isActive():
+            self.auto_accept_timer.stop()
+            Debug.debug("Auto-Accept Timer gestoppt (manuelle Akzeptierung)")
+
         if self.connection_successful:
             self.accept()
         else:
@@ -156,3 +176,24 @@ class ConnectionWindow(QDialog):
         """Handle the retry button click."""
         self.status_message("Retrying connection...", "yellow")
         self._update_connection()
+
+    @Slot()
+    def _on_connection_successful(self):
+        """Handle successful connection signal from device manager."""
+        Debug.info("Verbindung erfolgreich, starte Auto-Accept Timer (2 Sekunden)")
+        self.status_message(
+            "Verbindung erfolgreich! Auto-Accept in 2 Sekunden...", "green"
+        )
+        self.auto_accept_timer.start(2000)  # 2 seconds
+
+    @Slot()
+    def _auto_accept(self):
+        """Automatically accept the connection after timer expires."""
+        if self.connection_successful:
+            Debug.info("Auto-Accept: Verbindung wird automatisch akzeptiert")
+            self.status_message("Verbindung automatisch akzeptiert", "green")
+            self.accept()
+        else:
+            Debug.debug(
+                "Auto-Accept Timer abgelaufen, aber Verbindung nicht erfolgreich"
+            )

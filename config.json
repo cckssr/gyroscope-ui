@@ -9,46 +9,30 @@
     },
 
     "debug": {
-      "level_default": "verbose"
+      "level_default": "info"
     },
 
     "plot": {
-      "max_points": 100,
-      "x_label": "Ereignis k",
-      "y_label": "Zeit / µs"
+      "frequency": {
+        "max_points": 100,
+        "x_label": "Vergangene Zeit / s",
+        "y_label": "Rotationsfrequenz / Hz"
+      },
+      "acceleration": {
+        "max_points": 100,
+        "x_label": "Vergangene Zeit / s",
+        "y_label": "Z-Rotationsgeschwindigkeit / °/s"
+      }
     },
-
     "timers": {
       "control_update_interval": 1000,
-      "statistics_update_interval": 2000,
       "acquisition_timer_interval": 100,
-      "gui_update_interval": 100
+      "gui_update_interval": 100,
+      "statistics_update_interval": 2000
     },
-
     "data_controller": {
       "max_history_size": 1000
     },
-
-    "gm_counter": {
-      "demo_mode": true,
-      "default_arduino": "UNO",
-      "default_voltage": 500,
-      "count_time_map": {
-        "0": 999,
-        "1": 1,
-        "2": 10,
-        "3": 60,
-        "4": 100,
-        "5": 300
-      },
-      "label_map": {
-        "repeat_on": "Wiederholung",
-        "repeat_off": "Einzel",
-        "auto_on": "Automatik",
-        "auto_off": "Manuell"
-      }
-    },
-
     "colors": {
       "green": "green",
       "red": "red",

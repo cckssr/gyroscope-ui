@@ -3,43 +3,21 @@
 from __future__ import annotations
 
 from typing import Iterable, Optional, Tuple, List
+from collections import deque
+import queue
 import numpy as np
+import pyqtgraph as pg
+from PySide6.QtCore import Slot  # pylint: disable=no-name-in-module
 
-try:  # pragma: no cover - optional dependency during headless tests
-    import pyqtgraph as pg
-except Exception:  # pragma: no cover - fallback stubs
-    from PySide6.QtWidgets import QWidget
-
-    class _DummyPlotWidget(QWidget, object):
-        def __init__(self, *_, **__):
-            super().__init__()
-
-        def plot(self, *_, **__):
-            return self
-
-        def clear(self):
-            pass
-
-        def setLabel(self, *_, **__):
-            pass
-
-        def setTitle(self, *_):
-            pass
-
-        def autoRange(self, *_, **__):
-            pass
-
-    pg = type("MockPyQtGraph", (), {"PlotWidget": _DummyPlotWidget})()
+from src.debug_utils import Debug
 
 
-class PlotWidget(pg.PlotWidget):
+class PlotWidget(pg.GraphicsLayoutWidget):
     """A real-time plot widget using pyqtgraph."""
 
     def __init__(
         self,
-        title: Optional[str] = None,
-        xlabel: str = "Index",
-        ylabel: str = "Time (µs)",
+        series_cfg: List[dict[str, str | int]],
         max_plot_points: int = 500,
         fontsize: int = 12,
     ):
@@ -47,113 +25,183 @@ class PlotWidget(pg.PlotWidget):
         Initialize the plot widget.
 
         Args:
+            series_cfg (List[dict[str, str | int]]): Configuration for the series to plot
+                - 'name': str Defining the name of the plot
+                - 'y_index': int Index of the Signal for the y-axis
+                - 'title': str | int Title of the plot
             max_plot_points (int): Maximum number of points to display in the plot
-            width (int): Width of the plot in inches
-            height (int): Height of the plot in inches
-            dpi (int): DPI (dots per inch) of the plot
             fontsize (int): Font size to use in the plot
-            xlabel (str): Label for the x-axis
-            ylabel (str): Label for the y-axis
-            title (str): Title of the plot
         """
         super().__init__()
 
-        self.max_plot_points = max_plot_points
         self.fontsize = fontsize
+        self.max_points = max_plot_points
+        # Setup data buffers with common x-axis
+        self.x_data = deque(maxlen=max_plot_points)
+        self.series = {}
         self._user_interacted = False
 
-        # Set up the plot appearance
-        self.setBackground(None)
-        self.showGrid(x=True, y=True, alpha=0.3)
-        self.setLabel("bottom", xlabel)
-        self.setLabel("left", ylabel)
-        self.setTitle(title)
+        # Auto-scrolling control
+        self.auto_scroll_enabled = True
 
-        # Store config for potential future use
-        self._plot_config = {"xlabel": xlabel, "ylabel": ylabel, "title": title}
+        # Measurement markers
+        self.measurement_markers = []  # List of vertical line items
+        self.plots = []  # Store plot items for adding markers
 
+        # Queue for incoming data points
+        self.data_queue = queue.Queue()
 
-        # Redraw the canvas
-        self.fig.canvas.draw()  # Use draw() instead of draw_idle() for immediate update
-        self.fig.canvas.flush_events()
-        self.update()  # Triggers an explicit QWidget repaint
+        # Create plots for each series
+        self._setup_plots(series_cfg)
 
-    def _on_view_changed(self):
-        """Called when user pans or zooms the plot"""
-        self._user_interacted = True
+    def _setup_plots(self, series):
+        top_plot = None
+        for i, cfg in enumerate(series):
+            p = self.addPlot(
+                row=i, col=0, title=cfg.get("title", cfg.get("name", "Plot"))
+            )
+            p.showGrid(x=True, y=True, alpha=0.3)
 
-    def update_plot(self, data_points: List[Tuple[int, float, str]]):
-        """
-        Updates the plot using external data source
+            # Store plot reference for markers
+            self.plots.append(p)
 
-        Args:
-            data_points: List of (index_num, value_num, timestamp) tuples
-        """
-        if not data_points:
+            if top_plot is None:
+                top_plot = p
+            else:
+                p.setXLink(top_plot)
+            curve = p.plot(
+                [],
+                [],
+                pen="w",  # White connecting line
+                symbol="o",
+                symbolSize=4,
+                symbolBrush="r",
+                symbolPen="r",
+            )
+            self.series[cfg["name"]] = {
+                "curve": curve,
+                "y": deque(maxlen=self.max_points),
+                "y_index": cfg["y_index"],
+                "plot": p,  # Store plot reference in series
+            }
+
+    def autoRange(self):
+        """Automatically adjust the view range to fit all data."""
+        for s in self.series.values():
+            s["curve"].setAutoVisible(y=True)
+
+    # The data is emitted with the multi_data_signal
+    @Slot(float, float, float, float)
+    def on_new_point(self, elapsed_sec, freq, accel_z, gyro_z):
+        """Add a new data point to the queue for later processing."""
+        try:
+            # Put data in queue for batch processing
+            self.data_queue.put_nowait((elapsed_sec, freq, accel_z, gyro_z))
+        except queue.Full:
+            # Queue is full, skip this point (shouldn't happen with unlimited queue)
+            pass
+
+    def update_plots(self):
+        """Process queued data points and update plots. Called by external timer."""
+        if self.data_queue.empty():
             return
 
-        # Plot ALL data points for complete history
-        all_indices = np.array([point[0] for point in data_points])
-        all_values_us = np.array([point[1] for point in data_points])
+        # Process all queued data points
+        points_processed = 0
+        while (
+            not self.data_queue.empty() and points_processed < 100
+        ):  # Limit to avoid blocking
+            try:
+                elapsed_sec, freq, accel_z, gyro_z = self.data_queue.get_nowait()
+                self._add_data_point(elapsed_sec, freq, accel_z, gyro_z)
+                points_processed += 1
+            except queue.Empty:
+                break
 
-        # Clear and update plot with ALL data points
-        self.clear()
-        self._plot_item = self.plot(
-            all_indices,
-            all_values_us,
-            pen="w",  # White connecting line
-            symbol="o",
-            symbolSize=4,
-            symbolBrush="r",
-            symbolPen="r",
-        )
+        # Update all plot curves with new data
+        self._refresh_curves()
 
-        # AutoRange calculation based only on LAST max_plot_points for consistent view
-        display_data_for_range = (
-            data_points[-self.max_plot_points :]
-            if len(data_points) > self.max_plot_points
-            else data_points
-        )
+    def _add_data_point(self, elapsed_sec, freq, accel_z, gyro_z):
+        """Add a single data point to the internal buffers."""
+        vals = (elapsed_sec, freq, accel_z, gyro_z)
+        self.x_data.append(elapsed_sec)
 
-        if len(display_data_for_range) > 0:
-            # Extract indices and values for range calculation only
-            range_indices = np.array([point[0] for point in display_data_for_range])
-            range_values_us = np.array([point[1] for point in display_data_for_range])
+        # Update each series buffer
+        for name, s in self.series.items():
+            y = float(vals[s["y_index"]])
+            if not np.isfinite(y):
+                y = np.nan
+            s["y"].append(y)
 
-            # Calculate proper ranges with minimal padding
-            x_min, x_max = range_indices.min(), range_indices.max()
-            y_min, y_max = range_values_us.min(), range_values_us.max()
+    def _refresh_curves(self):
+        """Update all plot curves with current data."""
+        if not self.x_data:
+            return
 
-            # Ensure minimum range for single-point plots
-            if x_max == x_min:
-                x_padding = max(1, x_min * 0.1)  # 10% of index or at least 1
-                final_x_range = [x_min - x_padding, x_max + x_padding]
-            else:
-                x_range = x_max - x_min
-                x_padding = x_range * 0.05
-                final_x_range = [x_min - x_padding, x_max + x_padding]
+        x_arr = np.array(self.x_data, dtype=float)
+        for name, s in self.series.items():
+            if s["y"]:
+                y_arr = np.array(s["y"], dtype=float)
+                s["curve"].setData(x_arr, y_arr)
 
-            if y_max == y_min:
-                y_padding = max(1000, y_min * 0.1)  # 10% of value or at least 1000µs
-                final_y_range = [y_min - y_padding, y_max + y_padding]
-            else:
-                y_range = y_max - y_min
-                y_padding = y_range * 0.05
-                final_y_range = [y_min - y_padding, y_max + y_padding]
+                # Auto-scroll to latest data if enabled
+                if self.auto_scroll_enabled and len(x_arr) > 0:
+                    plot = s["plot"]
+                    plot.setXRange(x_arr[0], x_arr[-1], padding=0.02)
 
-            # Disable automatic autoRange and set manual range
-            viewbox = self.plotItem.getViewBox()
-            viewbox.enableAutoRange(enable=False)  # Disable PyQtGraph's autoRange
-            viewbox.setRange(xRange=final_x_range, yRange=final_y_range, padding=0)
+    def add_measurement_marker(self, x_position: float, is_start: bool = True):
+        """Add a vertical line marker to indicate measurement start/stop.
 
-    def get_data_in_range(self, max_points: int) -> Tuple[np.ndarray, np.ndarray]:
+        Args:
+            x_position: X-coordinate (time) where to place the marker
+            is_start: True for start marker (green), False for stop marker (red)
         """
-        Legacy method - no longer needed with centralized data management
+        color = "g" if is_start else "r"
+        marker_type = "START" if is_start else "STOP"
+
+        # Add marker to all plots
+        for plot in self.plots:
+            line = pg.InfiniteLine(
+                pos=x_position, angle=90, pen=pg.mkPen(color, width=2)
+            )
+            line.setToolTip(f"Measurement {marker_type} at {x_position:.2f}s")
+            plot.addItem(line)
+            self.measurement_markers.append(line)
+
+    def set_auto_scroll(self, enabled: bool):
+        """Enable or disable auto-scrolling to latest data.
+
+        Args:
+            enabled: True to enable auto-scrolling, False to disable
         """
-        return np.array([]), np.array([])
+        self.auto_scroll_enabled = enabled
+        if enabled:
+            # If re-enabling, scroll to latest data immediately
+            self._refresh_curves()
+
+    def clear_measurement_markers(self):
+        """Remove all measurement markers from the plots."""
+        for marker in self.measurement_markers:
+            for plot in self.plots:
+                try:
+                    plot.removeItem(marker)
+                except:
+                    pass  # Marker might already be removed
+        self.measurement_markers.clear()
+
+    def get_queue_size(self) -> int:
+        """Get the current size of the data queue.
+
+        Returns:
+            Current number of items in queue
+        """
+        try:
+            return self.data_queue.qsize()
+        except AttributeError:
+            return 0
 
 
-class HistogramWidget(pg.PlotWidget):
+class HistogramWidget(pg.PlotWidget):  # type: ignore
     """A histogram widget using pyqtgraph."""
 
     def __init__(
@@ -189,7 +237,14 @@ class HistogramWidget(pg.PlotWidget):
             return
 
         # Calculate histogram
-        hist, bin_edges = np.histogram(data, bins=bins)
+        # Ensure sequence
+        try:
+            data_seq = list(data)
+        except TypeError:
+            return
+        if not data_seq:
+            return
+        hist, bin_edges = np.histogram(np.asarray(data_seq, dtype=float), bins=bins)
 
         # Calculate bin centers and width
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2

@@ -2,12 +2,10 @@
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QMainWindow,
     QVBoxLayout,
-    QCompleter,
 )
-from PySide6.QtCore import QTimer, Qt  # pylint: disable=no-name-in-module
+from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
-from src.control import ControlWidget
-from src.plot import PlotWidget, HistogramWidget
+from src.plot import PlotWidget
 from src.debug_utils import Debug
 from src.helper_classes import (
     import_config,
@@ -63,23 +61,19 @@ class MainWindow(QMainWindow):
         self.statusbar = Statusbar(self.ui.statusBar)
         self.statusbar.temp_message(CONFIG["messages"]["app_init"])
 
-        # Set up device manager
-        self._setup_device_manager(device_manager)
-
-        # Initialise UI components
+        # Initialise UI components first (plot needs to be created before device manager)
         self._setup_plot()
         self._setup_data_controller()
-        self._setup_controls()
         self._setup_buttons()
-        self._setup_radioactive_sample_input()
         self._setup_timers()
 
-        # Initial update of the UI
-        self._update_control_display()
+        # Set up device manager after plot is created (acquisition thread runs continuously)
+        self._setup_device_manager(device_manager)
 
-        # Show success message
+        # Show success message (port attribute may not always be present)
+        port = getattr(self.device_manager, "port", "device")
         self.statusbar.temp_message(
-            CONFIG["messages"]["connected"].format(self.device_manager.port),
+            CONFIG["messages"]["connected"].format(port),
             CONFIG["colors"]["green"],
         )
 
@@ -88,45 +82,85 @@ class MainWindow(QMainWindow):
     #
 
     def _setup_device_manager(self, device_manager: DeviceManager):
-        """Configure the device manager and attach callbacks.
-
-        Args:
-            device_manager: The device manager instance to use.
-        """
+        """Configure the device manager and attach callbacks (multi-channel)."""
         self.device_manager = device_manager
-        self.device_manager.data_callback = self.handle_data
+        # Connect multi-channel callback; single value path kept unused
+        self.device_manager.multi_callback = self.handle_multi_data
         self.device_manager.status_callback = self.statusbar.temp_message
 
-        # Ensure the acquisition thread forwards data to this window. When the
-        # connection dialog created the DeviceManager the acquisition thread may
-        # already be running without our callback connected.
-        self.device_manager.start_acquisition()
-
-    def _setup_controls(self):
-        self.control = ControlWidget(
-            device_manager=self.device_manager,
+        # Connect connection monitoring signals
+        self.device_manager.connection_lost.connect(self._handle_connection_lost)
+        self.device_manager.reconnection_attempt.connect(
+            self._handle_reconnection_attempt
         )
+
+        # Connect plot widget signal
+        if hasattr(self, "plot_widget"):
+            # Ensure acquisition thread is running (continuous mode)
+            if not self.device_manager.acquire_thread:
+                self.device_manager.start_acquisition()
+
+            # Connect signals if thread is running
+            if (
+                self.device_manager.acquire_thread
+                and self.device_manager.acquire_thread.isRunning()
+            ):
+                try:
+                    self.device_manager.acquire_thread.multi_data_point.connect(
+                        self.handle_multi_data
+                    )
+                    self.device_manager.acquire_thread.multi_data_point.connect(
+                        self.plot_widget.on_new_point
+                    )
+                except Exception:  # pragma: no cover
+                    pass
+        else:
+            # Fallback: start acquisition without plot connection
+            if not self.device_manager.acquire_thread:
+                self.device_manager.start_acquisition()
+            else:
+                try:
+                    if self.device_manager.acquire_thread.isRunning():
+                        self.device_manager.acquire_thread.multi_data_point.connect(
+                            self.handle_multi_data
+                        )
+                except Exception:  # pragma: no cover
+                    pass
 
     def _setup_plot(self):
-        """Initialise the plot widget."""
-        self.plot = PlotWidget(
-            max_plot_points=CONFIG["plot"]["max_points"],
-            fontsize=self.ui.timePlot.fontInfo().pixelSize(),
-            xlabel=CONFIG["plot"]["x_label"],
-            ylabel=CONFIG["plot"]["y_label"],
-        )
-        QVBoxLayout(self.ui.timePlot).addWidget(self.plot)
+        """Initialise the plot widgets (frequency & gyro Z over elapsed time)."""
+        # Configuration for the two plots: frequency and gyro_z
+        series_cfg = [
+            {
+                "name": "frequency",
+                "y_index": 1,  # frequency is at index 1 in multi_data_point signal
+                "title": "Frequency (Hz)",
+            },
+            {
+                "name": "gyro_z",
+                "y_index": 3,  # gyro_z is at index 3 in multi_data_point signal
+                "title": "Gyroscope Z-Axis",
+            },
+        ]
 
-        # Histogram plot
-        self.histogram = HistogramWidget(xlabel=CONFIG["plot"]["x_label"])
-        QVBoxLayout(self.ui.histogramm).addWidget(self.histogram)
+        # Create the plot widget
+        self.plot_widget = PlotWidget(
+            series_cfg=series_cfg,
+            max_plot_points=CONFIG["data_controller"]["max_history_size"],
+        )
+
+        # Add the plot widget to the UI layout
+        plot_layout = QVBoxLayout()
+        plot_layout.addWidget(self.plot_widget)
+        self.ui.plotWidget.setLayout(plot_layout)
 
     def _setup_data_controller(self):
-        """Initialise the data controller."""
+        """Initialise the data controller (multi-channel)."""
         self.data_controller = DataController(
-            plot_widget=self.plot,
-            display_widget=self.ui.currentCount,
-            table_widget=self.ui.tableView,
+            frequency_plot=None,  # Plot handling is now done by PlotWidget
+            gyroscope_plot=None,  # Plot handling is now done by PlotWidget
+            display_widget=getattr(self.ui, "lcdNumber", None),
+            table_widget=None,
             max_history=CONFIG["data_controller"]["max_history_size"],
         )
 
@@ -136,7 +170,6 @@ class MainWindow(QMainWindow):
         self.ui.buttonStart.clicked.connect(self._start_measurement)
         self.ui.buttonStop.clicked.connect(self._stop_measurement)
         self.ui.buttonSave.clicked.connect(self._save_measurement)
-        self.ui.buttonSetting.clicked.connect(self._apply_settings)
 
         # Initial state of buttons
         self.ui.buttonStart.setEnabled(True)
@@ -147,40 +180,23 @@ class MainWindow(QMainWindow):
         self.ui.autoSave.setChecked(self.save_manager.auto_save)
         self.ui.autoSave.toggled.connect(self._change_auto_save)
 
-    def _setup_radioactive_sample_input(self):
-        """Initialise the input field for radioactive samples."""
-        samples = CONFIG["radioactive_samples"]
-        radCombo = self.ui.radSample
-        radCombo.clear()
-        radCombo.addItems(samples)
-        Debug.debug(
-            f"Radioaktive Proben geladen: {len(samples)} Proben",
-        )
-        radCombo.setCurrentIndex(-1)  # No default selection
-
-        # QCompleter for radioactive samples
-        completer = QCompleter(samples)
-        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        completer.setFilterMode(Qt.MatchFlag.MatchContains)
-        radCombo.setCompleter(completer)
-
     def _setup_timers(self):
-        """Initialise timers used by the application.
+        """Initialise timers (statistics and plot updates)."""
+        Debug.debug("Setting up timers")
 
-        Measurement data are acquired in the background by ``DeviceManager``
-        while configuration polling happens only when no measurement is running.
-        This keeps the acquisition loop free of ``sleep`` calls and the GUI
-        responsive.
-        """
-        # Timer for control updates
-        self.control_update_timer = QTimer(self)
-        self.control_update_timer.timeout.connect(self._update_control_display)
-        self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
-
-        # Timer for statistics updates (UI only)
+        # Statistics timer
         self.stats_timer = QTimer(self)
         self.stats_timer.timeout.connect(self._update_statistics)
         self.stats_timer.start(CONFIG["timers"]["statistics_update_interval"])
+        Debug.debug(
+            f"Statistics timer started with interval: {CONFIG['timers']['statistics_update_interval']}ms"
+        )
+
+        # Plot update timer (100ms for smooth updates without lag)
+        self.plot_update_timer = QTimer(self)
+        self.plot_update_timer.timeout.connect(self._update_plots)
+        self.plot_update_timer.start(100)  # 100ms = 10 FPS
+        Debug.debug("Plot update timer started with 100ms interval")
 
     #
     # 2a. MEASUREMENT CONTROL
@@ -188,58 +204,20 @@ class MainWindow(QMainWindow):
 
     def _set_ui_measuring_state(self) -> None:
         """Put the UI into measurement mode."""
-        self.control_update_timer.stop()
         self.ui.buttonStart.setEnabled(False)
-        self.ui.buttonSetting.setEnabled(False)
         self.ui.buttonStop.setEnabled(True)
         self.ui.buttonSave.setEnabled(False)
-        Debug.debug("UI in Messmodus gesetzt")
+        Debug.debug("UI switched to measuring mode")
 
     def _set_ui_idle_state(self) -> None:
         """Return the UI to idle mode after a measurement."""
-        self.control_update_timer.start(CONFIG["timers"]["control_update_interval"])
         self.ui.buttonStart.setEnabled(True)
-        self.ui.buttonSetting.setEnabled(True)
         self.ui.buttonStop.setEnabled(False)
-        # buttonSave is enabled separately based on existing data
         save_enabled = self.save_manager.has_unsaved()
         self.ui.buttonSave.setEnabled(save_enabled)
         Debug.debug(
-            f"UI in Ruhemodus gesetzt (Save-Button: {'aktiviert' if save_enabled else 'deaktiviert'})"
+            f"UI switched to idle mode (Save button: {'on' if save_enabled else 'off'})"
         )
-
-    def _setup_progress_bar(self, duration_seconds: int) -> None:
-        """Configure the progress bar for the given duration.
-
-        Args:
-            duration_seconds: Duration in seconds (``999`` means infinite).
-        """
-        if duration_seconds != 999:
-            # Finite duration - progress bar with timer
-            self.ui.progressBar.setMaximum(duration_seconds)
-            self.ui.progressBar.setValue(0)
-            self._measurement_timer = QTimer(self)
-            self._measurement_timer.timeout.connect(self._update_progress)
-            self._measurement_timer.start(1000)  # Update every second
-            Debug.debug(f"ProgressBar konfiguriert für {duration_seconds} Sekunden")
-        else:
-            # Infinite duration - indeterminate progress bar
-            self.ui.progressBar.setMaximum(0)
-            self.ui.progressBar.setValue(0)
-            self._measurement_timer = None
-            Debug.debug("ProgressBar konfiguriert für unendliche Messdauer")
-
-    def _stop_progress_bar(self) -> None:
-        """Stop the progress bar and its timer."""
-        if self._measurement_timer:
-            self._measurement_timer.stop()
-            self._measurement_timer = None
-
-        # Reset progress bar to idle state
-        self.ui.progressBar.setMaximum(100)
-        self.ui.progressBar.setValue(0)
-        self._elapsed_seconds = 0
-        Debug.debug("ProgressBar gestoppt und zurückgesetzt")
 
     def _start_measurement(self):
         """Start measurement and adjust UI."""
@@ -251,17 +229,28 @@ class MainWindow(QMainWindow):
             ):
                 return
 
-        self.data_controller.clear_data()
+        # Nur Export-Puffer leeren, Live-Plot Verlauf behalten
+        self.data_controller.clear_storage_only()
+        self.data_controller.start_recording()
 
         if self.device_manager.start_measurement():
             self.is_measuring = True
             self._set_ui_measuring_state()
             self.measurement_start = datetime.now()
             self._elapsed_seconds = 0
-            seconds = int(self.ui.cDuration.value())
-            if seconds == 0:
-                seconds = 999
-            self._setup_progress_bar(seconds)
+
+            # Add start marker to plot and enable auto-scroll
+            if hasattr(self, "plot_widget") and self.data_controller.freq_series:
+                # Use latest timestamp from data or 0 if no data yet
+                latest_time = (
+                    self.data_controller.freq_series[-1][0]
+                    if self.data_controller.freq_series
+                    else 0.0
+                )
+                self.plot_widget.add_measurement_marker(latest_time, is_start=True)
+                self.plot_widget.set_auto_scroll(True)
+                Debug.debug(f"Added START marker at time {latest_time}")
+
             self.statusbar.temp_message(
                 CONFIG["messages"]["measurement_running"],
                 CONFIG["colors"]["orange"],
@@ -270,9 +259,23 @@ class MainWindow(QMainWindow):
     def _stop_measurement(self):
         """Stop measurement and resume config polling."""
         self.device_manager.stop_measurement()
+        # Aufzeichnung beenden (Plots laufen weiter live)
+        self.data_controller.stop_recording()
         self.is_measuring = False
         self.measurement_end = datetime.now()
-        self._stop_progress_bar()
+
+        # Add stop marker to plot and disable auto-scroll
+        if hasattr(self, "plot_widget") and self.data_controller.freq_series:
+            # Use latest timestamp from data
+            latest_time = (
+                self.data_controller.freq_series[-1][0]
+                if self.data_controller.freq_series
+                else 0.0
+            )
+            self.plot_widget.add_measurement_marker(latest_time, is_start=False)
+            self.plot_widget.set_auto_scroll(False)
+            Debug.debug(f"Added STOP marker at time {latest_time}")
+
         self._set_ui_idle_state()
         self.statusbar.temp_message(
             CONFIG["messages"]["measurement_stopped"],
@@ -280,9 +283,9 @@ class MainWindow(QMainWindow):
         )
         if self.save_manager.auto_save and not self.save_manager.last_saved:
             data = self.data_controller.get_csv_data()
-            rad_sample = self.ui.radSample.currentText()
             group_letter = self.ui.groupLetter.currentText()
             suffix = self.ui.suffix.text().strip()
+            rad_sample = "MEAS"  # simplified placeholder (no separate sample selection)
             saved_path = self.save_manager.auto_save_measurement(
                 rad_sample,
                 group_letter,
@@ -319,7 +322,7 @@ class MainWindow(QMainWindow):
                 return
 
             data = self.data_controller.get_csv_data()
-            rad_sample = self.ui.radSample.currentText()
+            rad_sample = "MEAS"
             group_letter = self.ui.groupLetter.currentText()
 
             saved_path = self.save_manager.manual_save_measurement(
@@ -358,124 +361,122 @@ class MainWindow(QMainWindow):
     # 2. DATA PROCESSING AND STATISTICS
     #
 
-    def handle_data(self, index, value):
-        """Handle incoming data from the device.
+    def handle_multi_data(
+        self, elapsed_s: float, freq: float, accel_z: float, gyro_z: float
+    ):
+        """Handle incoming multi-channel data.
 
-        The values are forwarded to ``DataController`` using the fast
-        queue-based API.
-
-        Args:
-            index: Index of the data point.
-            value: Measured value.
+        Updates plots & table via DataController. Mark data unsaved if a
+        measurement session is active (saving toggled by start/stop buttons).
         """
-        # Use the fast queue-based method for better performance
-        self.data_controller.add_data_point_fast(index, value)
+        self.data_controller.handle_multi_data_point(elapsed_s, freq, accel_z, gyro_z)
 
-        # Mark data as unsaved
-        self.data_saved = False
-        self.save_manager.mark_unsaved()
+        # Update primary LCD display (frequency preferred, else gyro)
+        display_value = (
+            freq if not (freq is None or freq != freq) else gyro_z
+        )  # NaN check
+        lcd = getattr(self.ui, "lcdNumber", None)
+        if lcd:
+            try:
+                lcd.display(display_value if display_value == display_value else 0)
+            except Exception:  # pragma: no cover
+                pass
+        # Update count LCD if available
+        lcd_count = getattr(self.ui, "lcdNumber_2", None)
+        if lcd_count:
+            try:
+                lcd_count.display(len(self.data_controller.data_points))
+            except Exception:  # pragma: no cover
+                pass
 
-        # Enable save button when not measuring (idle)
-        if not self.is_measuring:
-            self.ui.buttonSave.setEnabled(True)
-
-        # Statistics are now updated every 2s using their own timer
-        # No manual update necessary - better performance
+        if self.is_measuring:
+            self.data_saved = False
+            self.save_manager.mark_unsaved()
+        else:
+            # If idle, allow user to save accumulated data
+            if self.save_manager.has_unsaved():
+                self.ui.buttonSave.setEnabled(True)
 
     def _update_statistics(self):
-        """Update statistics shown in the user interface."""
-        try:
-            # Retrieve statistics from DataController
-            stats = self.data_controller.get_statistics()
-
-            # Only update when data points are available
-            if stats["count"] > 0:
-                stats_text = (
-                    f"Datenpunkte: {int(stats['count'])} | "
-                    f"Min: {stats['min']:.0f} µs | "
-                    f"Max: {stats['max']:.0f} µs | "
-                    f"Mittelwert: {stats['avg']:.0f} µs"
-                )
-
-                # Add standard deviation when enough data points are present
-                if stats["count"] > 1:
-                    stats_text += f" | σ: {stats['stdev']:.0f} µs"
-
-                # Temporarily update status bar while a measurement is running
-                if self.is_measuring:
-                    self.statusbar.temp_message(
-                        CONFIG["messages"]["measurement_running"] + "\t" + stats_text,
-                        CONFIG["colors"]["orange"],
-                    )
-
-        except Exception as e:
-            Debug.error(
-                f"Fehler beim Aktualisieren der Statistiken: {e}", exc_info=True
+        """Update basic frequency statistics (Hz)."""
+        stats = self.data_controller.get_statistics()
+        if stats["count"] > 0 and self.is_measuring:
+            stats_text = (
+                f"Points: {int(stats['count'])} | "
+                f"Min: {stats['min']:.1f} Hz | "
+                f"Max: {stats['max']:.1f} Hz | "
+                f"Avg: {stats['avg']:.1f} Hz"
+            )
+            if stats["count"] > 1:
+                stats_text += f" | σ: {stats['stdev']:.1f}"
+            self.statusbar.temp_message(
+                CONFIG["messages"]["measurement_running"] + "  " + stats_text,
+                CONFIG["colors"]["orange"],
             )
 
-    def _update_progress(self) -> None:
-        """Update progress bar during finite measurements."""
+    def _update_plots(self):
+        """Update the plot widget with queued data and LCD displays."""
+        Debug.debug("_update_plots called")
 
-        self._elapsed_seconds += 1
-        self.ui.progressBar.setValue(self._elapsed_seconds)
-        if (
-            self.ui.progressBar.maximum() > 0
-            and self._elapsed_seconds >= self.ui.progressBar.maximum()
-        ):
-            self._stop_measurement()
+        # Update plots
+        if hasattr(self, "plot_widget"):
+            self.plot_widget.update_plots()
+            Debug.debug("Plot widget updated")
+        else:
+            Debug.debug("Plot widget not available")
+
+        # Update LCD displays with current values
+        self._update_lcd_displays()
+
+    def _update_lcd_displays(self):
+        """Update LCD displays with current data values."""
+        Debug.debug("_update_lcd_displays called")
+
+        if not hasattr(self, "data_controller"):
+            Debug.debug("DataController not available")
+            return
+
+        try:
+            # Get current values from data controller
+            current_values = self.data_controller.get_current_values()
+            Debug.debug(f"Current values from data_controller: {current_values}")
+
+            # Update cDataPoints (total number of data points)
+            if hasattr(self.ui, "cDataPoints"):
+                self.ui.cDataPoints.display(current_values["data_points_count"])
+                Debug.debug(
+                    f"Updated cDataPoints: {current_values['data_points_count']}"
+                )
+            else:
+                Debug.debug("cDataPoints widget not found")
+
+            # Update cFrequency (current frequency)
+            if hasattr(self.ui, "cFrequency"):
+                self.ui.cFrequency.display(current_values["current_frequency"])
+                Debug.debug(
+                    f"Updated cFrequency: {current_values['current_frequency']}"
+                )
+            else:
+                Debug.debug("cFrequency widget not found")
+
+            # Update cZGyro (current gyro Z value)
+            if hasattr(self.ui, "cZGyro"):
+                self.ui.cZGyro.display(current_values["current_gyro_z"])
+                Debug.debug(f"Updated cZGyro: {current_values['current_gyro_z']}")
+            else:
+                Debug.debug("cZGyro widget not found")
+
+        except Exception as e:  # pragma: no cover
+            Debug.error(f"Fehler beim Aktualisieren der LCD-Displays: {e}")
+
+    # _update_progress removed (legacy progress bar no longer in UI)
 
     #
     # 3. DEVICE CONTROL
     #
 
-    def _update_control_display(self):
-        """Update the displayed configuration values from the GM counter."""
-        try:
-            # Request fresh data from the GM counter
-            data = self.control.get_settings()
-            if not data:
-                Debug.error("Keine Daten vom GM-Counter erhalten.")
-                return
-
-            # Update UI elements
-            label = CONFIG["gm_counter"]["label_map"]
-
-            self.ui.currentCount.display(data["count"])
-            self.ui.lastCount.display(
-                data["last_count"]
-            )  # TODO: last_count implementieren mit check
-
-            self.ui.cVoltage.display(data["voltage"])
-            self.ui.cDuration.display(data["counting_time"])
-            self.ui.cMode.setText(
-                label["repeat_on"] if data["repeat"] else label["repeat_off"]
-            )
-            # self.ui.cQueryMode.setText(label["auto_on"] if data["auto_query"] else label["auto_off"]) # FEAT: auto_query implementieren
-
-        except Exception as e:
-            Debug.error(f"Fehler bei der Aktualisierung der Anzeige: {e}")
-
-    def _apply_settings(self):
-        """
-        Applies the current settings from the UI to the GM-Counter.
-        """
-        try:
-            settings = {
-                "voltage": int(self.ui.sVoltage.value()),
-                "counting_time": int(self.ui.sDuration.currentIndex()),
-                "repeat": self.ui.cMode.text() == "Repeat On",
-                # "auto_query": self.ui.cQueryMode.text() == "Auto On",
-            }
-            self.control.apply_settings(settings)
-            self.statusbar.temp_message(
-                CONFIG["messages"]["settings_applied"],
-                CONFIG["colors"]["green"],
-            )
-            Debug.info(
-                "Einstellungen erfolgreich angewendet: " + str(settings.values())
-            )
-        except Exception as e:
-            Debug.error(f"Fehler beim Anwenden der Einstellungen: {e}")
+    # Legacy GM counter UI elements removed: _update_control_display / _apply_settings
+    # (Controls like voltage, counting_time no longer polled.)
 
     def _change_auto_save(self, checked: bool) -> None:
         """Handle a change of the auto-save option.
@@ -507,22 +508,14 @@ class MainWindow(QMainWindow):
 
         # Stop data acquisition in the DeviceManager
         if hasattr(self, "device_manager"):
-            try:
-                Debug.info("Stoppe Datenerfassung...")
-                self.device_manager.stop_acquisition()
+            Debug.info("Stoppe Datenerfassung...")
+            self.device_manager.stop_acquisition()
+            if hasattr(self.device_manager, "device") and self.device_manager.device:
+                Debug.info("Schließe Geräteverbindung...")
+                self.device_manager.device.close()
 
-                # Close the connection if a real device is connected
-                if (
-                    hasattr(self.device_manager, "device")
-                    and self.device_manager.device
-                ):
-                    Debug.info("Schließe Geräteverbindung...")
-                    self.device_manager.device.close()
-            except Exception as e:
-                Debug.error(f"Fehler beim Herunterfahren des DeviceManagers: {e}")
-
-        # Stop all timers
-        for timer_attr in ["control_update_timer", "stats_timer"]:
+        # Stop active timers
+        for timer_attr in ["stats_timer", "plot_update_timer"]:
             if hasattr(self, timer_attr):
                 timer = getattr(self, timer_attr)
                 if timer.isActive():
@@ -531,13 +524,28 @@ class MainWindow(QMainWindow):
 
         # Stop the DataController GUI update timer
         if hasattr(self, "data_controller"):
-            try:
-                Debug.info("DataController Cleanup...")
-                # Daten können noch geleert werden, falls gewünscht
-                # self.data_controller.clear_data()  # Optional
-            except Exception as e:
-                Debug.error(f"Fehler beim DataController Cleanup: {e}")
+            Debug.info("DataController Cleanup...")
 
         # Pass event to base class
         Debug.info("Anwendung wird geschlossen")
-        event.accept()
+        if event:
+            event.accept()
+
+    def _handle_connection_lost(self) -> None:
+        """Handle connection loss signal from device manager."""
+        Debug.info("Connection lost detected in main window")
+        # Update UI to show connection lost state
+        self.statusbar.temp_message(
+            "Connection lost - attempting reconnection...", "red"
+        )
+        # Optionally disable measurement controls while reconnecting
+        if hasattr(self, "ui"):
+            # You could disable buttons here if needed
+            pass
+
+    def _handle_reconnection_attempt(self, attempt_number: int) -> None:
+        """Handle reconnection attempt signal from device manager."""
+        Debug.info(f"Reconnection attempt {attempt_number}")
+        self.statusbar.temp_message(
+            f"Reconnecting... (attempt {attempt_number})", "orange"
+        )
