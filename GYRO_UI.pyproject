@@ -1,12 +1,7 @@
 {
     "files": [
         "main.py",
-        "pyqt/form.ui",
-        "pyqt/toolbox.ui",
-        "pyqt/alert.ui",
-        "pyqt/control.ui",
         "pyqt/connection.ui",
-        "pyqt/main_template.ui",
         "pyqt/mainwindow.ui"
     ]
 }
