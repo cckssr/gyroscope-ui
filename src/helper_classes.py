@@ -3,7 +3,7 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QStatusBar,
     QLabel,
@@ -266,8 +266,15 @@ class MessageHelper:
 class SaveManager:
     """Utility class for storing measurement data and metadata."""
 
-    def __init__(self, base_dir: Path = None, auto_save: bool = False) -> None:
-        self.base_dir = Path(base_dir or Path.home() / "Documents" / "GMCounter")
+    def __init__(
+        self, base_dir: Optional[Path | str] = None, auto_save: bool = False
+    ) -> None:
+        if base_dir is None:
+            base_dir = Path.home() / "Documents" / "Application"
+        if isinstance(base_dir, str):
+            base_dir = Path.home() / "Documents" / base_dir
+        self.base_dir = Path(base_dir)
+        Debug.info(f"Using base directory for saving: {self.base_dir}")
         try:
             self.base_dir.mkdir(parents=True, exist_ok=True)
         except Exception as exc:  # pragma: no cover - unlikely

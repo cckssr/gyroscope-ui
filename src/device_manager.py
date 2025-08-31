@@ -11,7 +11,8 @@ from PySide6.QtCore import (
     Signal,
     QObject,
     QTimer,
-)  # pylint: disable=no-name-in-module
+)
+from matplotlib.pylab import f  # pylint: disable=no-name-in-module
 
 from src.debug_utils import Debug
 
@@ -246,7 +247,8 @@ class DataAcquisitionThread(QThread):
         if last_interrupt is not None and second_last is not None:
             delta = last_interrupt - second_last
             if delta and delta > 0:
-                frequency = 1_000_000.0 / delta
+                # Since interrupt times are in microseconds, divide by 1,000,000 to get Hz
+                frequency = 1_000.0 / delta
 
         # Elapsed time computation from 'Current Time'
         current_time_raw = getf("Current Time")
@@ -254,17 +256,16 @@ class DataAcquisitionThread(QThread):
             if self._time_base_raw is None:
                 self._time_base_raw = current_time_raw
             raw_delta = max(0.0, current_time_raw - self._time_base_raw)
-            # Assume microseconds if large value, milliseconds if medium
-            if raw_delta > 1e6:  # improbable for first delta, safeguard
-                elapsed_sec = raw_delta / 1_000_000.0
-            elif raw_delta > 1e5:  # >0.1s in microseconds scale
-                elapsed_sec = raw_delta / 1_000_000.0
-            elif raw_delta > 1e3 and raw_delta < 5e5:
-                # Likely milliseconds
-                elapsed_sec = raw_delta / 1_000.0
-            else:
-                # Already seconds
-                elapsed_sec = raw_delta
+
+            # Convert from microseconds to seconds for consistent display
+            # Input is in microseconds, output should be seconds
+            elapsed_sec = raw_delta / 1_000.0
+
+            # Debug log for troubleshooting
+            if self._index < 5:  # Only log first few conversions
+                Debug.debug(
+                    f"Time conversion: raw={current_time_raw}μs, base={self._time_base_raw}μs, delta={raw_delta}μs, result={elapsed_sec:.6f}s"
+                )
         else:
             # Fallback: synthesize from internal counter (legacy)
             elapsed_sec = float(self._index)
@@ -353,8 +354,13 @@ class DeviceManager(QObject):
         """Connect over TCP to the device."""
         host, port = self._parse_host_port(ip)
         try:
+            Debug.debug(
+                f"Attempting to connect to {host}:{port} with timeout {timeout}"
+            )
             self.connection = socket.create_connection((host, port), timeout=timeout)
             self.connection.settimeout(0.5)  # Short timeout for read ops
+            Debug.debug("Sending initial handshake")
+            self.connection.sendall(b"\r\n")
             # Try to read a few bytes without assuming a protocol
             try:
                 temp = self.connection.recv(32)
@@ -368,6 +374,7 @@ class DeviceManager(QObject):
                 # Emit signal for successful connection
                 self.connection_successful.emit()
             except socket.timeout:
+                Debug.error("Connection timed out")
                 pass  # No data is also fine
             return True
         except Exception as e:  # pragma: no cover - network dependent

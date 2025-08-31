@@ -46,7 +46,7 @@ def main():
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(True)
 
-    connection_dialog = ConnectionWindow(demo_mode=True)
+    connection_dialog = ConnectionWindow(demo_mode=True, default_ip=CONFIG["connection"]["default_ip"])
     if connection_dialog.exec():
         success = connection_dialog.connection_successful
         device_manager = connection_dialog.device_manager

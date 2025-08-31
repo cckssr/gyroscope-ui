@@ -90,6 +90,7 @@ class DataRow:
             f"{self.ax:.2f},{self.ay:.2f},{self.az:.2f},{self.gx:.2f},{self.gy:.2f},{self.gz:.2f}"
         )
 
+
 class gyro_simulator:
     def __init__(self, data: List[DataRow]):
         self.data = data
@@ -102,18 +103,25 @@ class gyro_simulator:
             self.index += 1
             return row
         return None
-    
+
     def frequency(self, t, f0, mu):
         return f0 - mu * t
-    
+
     def gyro(self, t, g0, omega, mu):
         return g0 * np.sin(omega * t) * np.exp(-mu * t)
+
 
 def load_data(path: Path) -> List[DataRow]:
     if not path.exists():
         raise FileNotFoundError(f"Datei nicht gefunden: {path}")
 
     rows: List[DataRow] = []
+
+    # Check if this is the extended format file
+    if "mock_daten_ext.csv" in str(path):
+        return load_data_extended(path)
+
+    # Original format loading
     with path.open("r", encoding="utf-8") as f:
         reader = csv.reader(f)
         header = next(reader, None)
@@ -164,6 +172,75 @@ def load_data(path: Path) -> List[DataRow]:
     if not rows:
         raise ValueError(f"Keine gültigen Datenzeilen in {path} gefunden")
     return rows
+
+
+def load_data_extended(path: Path) -> List[DataRow]:
+    """Load data from mock_daten_ext.csv and fill missing columns with averages from mock_data.csv"""
+    rows: List[DataRow] = []
+
+    # Default values from mock_data.csv averages
+    DEFAULT_CURRENT_TIME = 4525213
+    DEFAULT_LAST_INTERRUPT = 4033276
+    DEFAULT_SECOND_LAST_INTERRUPT = 4031878
+    DEFAULT_ACCEL_X = -0.806
+    DEFAULT_ACCEL_Y = 1.379
+    DEFAULT_GYRO_X = 0.020
+    DEFAULT_GYRO_Y = -0.080
+
+    with path.open("r", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        header = next(
+            reader, None
+        )  # Skip header: Time (s),Frequency (Hz),Accel Z,Gyro Z
+
+        for line_num, line in enumerate(reader):
+            if not line or len(line) < 4:
+                continue
+            try:
+                # Parse: Time (s), Frequency (Hz), Accel Z, Gyro Z
+                time_s = float(line[0])
+                frequency_hz = float(line[1])
+                accel_z = float(line[2])
+                gyro_z = float(line[3])
+
+                # Convert time from seconds to microseconds (approximate current_time)
+                current_time = int(DEFAULT_CURRENT_TIME + time_s * 1000000)
+
+                # Calculate interrupt times based on frequency
+                # last_interrupt is derived from frequency (period in microseconds)
+                if frequency_hz > 0:
+                    period_us = int(1000000 / frequency_hz)
+                    last_interrupt = current_time - period_us
+                    second_last_interrupt = last_interrupt - period_us
+                else:
+                    last_interrupt = DEFAULT_LAST_INTERRUPT
+                    second_last_interrupt = DEFAULT_SECOND_LAST_INTERRUPT
+
+                rows.append(
+                    DataRow(
+                        current_time=current_time,
+                        last_interrupt=last_interrupt,
+                        second_last_interrupt=second_last_interrupt,
+                        ax=DEFAULT_ACCEL_X,  # Use average from old file
+                        ay=DEFAULT_ACCEL_Y,  # Use average from old file
+                        az=accel_z,  # Use value from new file
+                        gx=DEFAULT_GYRO_X,  # Use average from old file
+                        gy=DEFAULT_GYRO_Y,  # Use average from old file
+                        gz=gyro_z,  # Use value from new file
+                    )
+                )
+            except (ValueError, IndexError) as e:
+                print(f"Warnung: Zeile {line_num + 2} übersprungen: {e}")
+                continue
+
+    if not rows:
+        raise ValueError(f"Keine gültigen Datenzeilen in {path} gefunden")
+
+    print(
+        f"[MockArduino] {len(rows)} Zeilen aus {path} geladen (erweiterte Format mit Fallback-Werten)"
+    )
+    return rows
+
 
 def apply_noise(row: DataRow, noise_amp: float) -> DataRow:
     if noise_amp <= 0:
@@ -380,7 +457,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--file",
         "-f",
         type=Path,
-        default=Path("tests/mock_data.csv"),
+        default=Path("tests/mock_daten_ext.csv"),
         help="CSV-Datei mit Basisdaten",
     )
     p.add_argument("--jitter", type=int, default=0, help="Zeit-Jitter in ms (+/-)")

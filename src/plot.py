@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Iterable, Optional, Tuple, List
 from collections import deque
 import queue
+from matplotlib.pyplot import xlabel
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Slot  # pylint: disable=no-name-in-module
@@ -29,6 +30,8 @@ class PlotWidget(pg.GraphicsLayoutWidget):
                 - 'name': str Defining the name of the plot
                 - 'y_index': int Index of the Signal for the y-axis
                 - 'title': str | int Title of the plot
+                - 'x_label': str | int Label for the x-axis
+                - 'y_label': str | int Label for the y-axis
             max_plot_points (int): Maximum number of points to display in the plot
             fontsize (int): Font size to use in the plot
         """
@@ -44,7 +47,12 @@ class PlotWidget(pg.GraphicsLayoutWidget):
         # Auto-scrolling control
         self.auto_scroll_enabled = True
 
-        # Measurement markers
+        # Measurement mode control (only update curves during measurement)
+        self.measurement_mode = (
+            False  # Initially disabled - no curve updates until measurement starts
+        )
+
+        # Measurement markers (deprecated but kept for compatibility)
         self.measurement_markers = []  # List of vertical line items
         self.plots = []  # Store plot items for adding markers
 
@@ -54,11 +62,48 @@ class PlotWidget(pg.GraphicsLayoutWidget):
         # Create plots for each series
         self._setup_plots(series_cfg)
 
+    def apply_theme_colors(self, bg_color=None, text_color=None, base_color=None):
+        """Apply theme colors to the plot widget.
+
+        Args:
+            bg_color: Background color as RGB tuple (r, g, b)
+            text_color: Text color as RGB tuple (r, g, b)
+            base_color: Base color as hex string (e.g., '#ffffff')
+        """
+        try:
+            if bg_color:
+                # Set background color for the entire widget
+                self.setBackground(bg_color)
+
+            if base_color and text_color:
+                # Update plot backgrounds and text colors
+                for plot in self.plots:
+                    plot.setBackground(base_color)
+
+                    # Update axis colors
+                    plot.getAxis("left").setPen(text_color)
+                    plot.getAxis("bottom").setPen(text_color)
+                    plot.getAxis("left").setTextPen(text_color)
+                    plot.getAxis("bottom").setTextPen(text_color)
+
+                    # Update title color if present
+                    if hasattr(plot, "titleLabel"):
+                        plot.titleLabel.setColor(text_color)
+
+        except Exception as e:
+            # Fallback to default colors if theme application fails
+            Debug.error(f"Failed to apply theme colors: {e}")
+            pass
+
     def _setup_plots(self, series):
         top_plot = None
         for i, cfg in enumerate(series):
             p = self.addPlot(
-                row=i, col=0, title=cfg.get("title", cfg.get("name", "Plot"))
+                row=i,
+                col=0,
+                title=cfg.get("title", cfg.get("name", "Plot")),
+                xlabel=cfg.get("x_label", ""),
+                ylabel=cfg.get("y_label", ""),
             )
             p.showGrid(x=True, y=True, alpha=0.3)
 
@@ -118,8 +163,9 @@ class PlotWidget(pg.GraphicsLayoutWidget):
             except queue.Empty:
                 break
 
-        # Update all plot curves with new data
-        self._refresh_curves()
+        # Update visual curves only if in measurement mode
+        if self.measurement_mode:
+            self._refresh_curves()
 
     def _add_data_point(self, elapsed_sec, freq, accel_z, gyro_z):
         """Add a single data point to the internal buffers."""
@@ -152,21 +198,14 @@ class PlotWidget(pg.GraphicsLayoutWidget):
     def add_measurement_marker(self, x_position: float, is_start: bool = True):
         """Add a vertical line marker to indicate measurement start/stop.
 
+        DEPRECATED: Markers are no longer used in the current implementation.
+
         Args:
             x_position: X-coordinate (time) where to place the marker
             is_start: True for start marker (green), False for stop marker (red)
         """
-        color = "g" if is_start else "r"
-        marker_type = "START" if is_start else "STOP"
-
-        # Add marker to all plots
-        for plot in self.plots:
-            line = pg.InfiniteLine(
-                pos=x_position, angle=90, pen=pg.mkPen(color, width=2)
-            )
-            line.setToolTip(f"Measurement {marker_type} at {x_position:.2f}s")
-            plot.addItem(line)
-            self.measurement_markers.append(line)
+        # This method is kept for backward compatibility but does nothing
+        pass
 
     def set_auto_scroll(self, enabled: bool):
         """Enable or disable auto-scrolling to latest data.
@@ -179,15 +218,43 @@ class PlotWidget(pg.GraphicsLayoutWidget):
             # If re-enabling, scroll to latest data immediately
             self._refresh_curves()
 
+    def set_measurement_mode(self, enabled: bool):
+        """Enable or disable measurement mode for plot updates.
+
+        Args:
+            enabled: True to enable plot curve updates, False to disable
+        """
+        self.measurement_mode = enabled
+        if enabled:
+            # If enabling measurement mode, clear old data and update curves immediately
+            self.clear_plot_data()
+            self._refresh_curves()
+        else:
+            # When disabling measurement mode, keep current data visible
+            pass
+
+    def clear_plot_data(self):
+        """Clear all plot data buffers."""
+        self.x_data.clear()
+        for series in self.series.values():
+            series["y"].clear()
+            # Clear the visual curves immediately
+            series["curve"].setData([], [])
+
+        # Clear data queue as well
+        while not self.data_queue.empty():
+            try:
+                self.data_queue.get_nowait()
+            except queue.Empty:
+                break
+
     def clear_measurement_markers(self):
-        """Remove all measurement markers from the plots."""
-        for marker in self.measurement_markers:
-            for plot in self.plots:
-                try:
-                    plot.removeItem(marker)
-                except:
-                    pass  # Marker might already be removed
-        self.measurement_markers.clear()
+        """Remove all measurement markers from the plots.
+
+        DEPRECATED: Markers are no longer used in the current implementation.
+        """
+        # This method is kept for backward compatibility but does nothing
+        pass
 
     def get_queue_size(self) -> int:
         """Get the current size of the data queue.

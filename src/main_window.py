@@ -2,8 +2,11 @@
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QMainWindow,
     QVBoxLayout,
+    QApplication,
+    QWidget,
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
+from PySide6.QtGui import QPalette  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
 from src.plot import PlotWidget
 from src.debug_utils import Debug
@@ -51,7 +54,9 @@ class MainWindow(QMainWindow):
         # Measurement status
         self.is_measuring = False
         self.data_saved = True
-        self.save_manager = SaveManager()
+        self.save_manager = SaveManager(
+            base_dir=CONFIG["data_controller"]["default_save_dir"]
+        )
         self.measurement_start = None
         self.measurement_end = None
         self._elapsed_seconds = 0
@@ -135,11 +140,15 @@ class MainWindow(QMainWindow):
                 "name": "frequency",
                 "y_index": 1,  # frequency is at index 1 in multi_data_point signal
                 "title": "Frequency (Hz)",
+                "x_label": CONFIG["plot"]["frequency"]["x_label"],
+                "y_label": CONFIG["plot"]["frequency"]["y_label"],
             },
             {
                 "name": "gyro_z",
                 "y_index": 3,  # gyro_z is at index 3 in multi_data_point signal
                 "title": "Gyroscope Z-Axis",
+                "x_label": CONFIG["plot"]["acceleration"]["x_label"],
+                "y_label": CONFIG["plot"]["acceleration"]["y_label"],
             },
         ]
 
@@ -153,6 +162,40 @@ class MainWindow(QMainWindow):
         plot_layout = QVBoxLayout()
         plot_layout.addWidget(self.plot_widget)
         self.ui.plotWidget.setLayout(plot_layout)
+
+        # Apply system theme colors to plots
+        self._apply_system_theme_to_plots()
+
+        # Plot widget is always visible, but data updates are controlled by measurement state
+
+    def _apply_system_theme_to_plots(self):
+        """Apply system theme colors to the plot widget."""
+        try:
+            app = QApplication.instance()
+            if app is None:
+                return
+
+            # Get a widget to access the palette
+            widget = QWidget()
+            palette = widget.palette()
+
+            # Get system colors
+            bg_color = palette.color(QPalette.ColorRole.Window)
+            text_color = palette.color(QPalette.ColorRole.WindowText)
+            base_color = palette.color(QPalette.ColorRole.Base)
+
+            # Convert to RGB tuples and hex string for pyqtgraph
+            bg_rgb = (bg_color.red(), bg_color.green(), bg_color.blue())
+            text_rgb = (text_color.red(), text_color.green(), text_color.blue())
+            base_hex = base_color.name()
+
+            # Apply colors to plot widget
+            self.plot_widget.apply_theme_colors(
+                bg_color=bg_rgb, text_color=text_rgb, base_color=base_hex
+            )
+
+        except Exception as e:
+            Debug.error(f"Failed to apply system theme to plots: {e}")
 
     def _setup_data_controller(self):
         """Initialise the data controller (multi-channel)."""
@@ -239,17 +282,13 @@ class MainWindow(QMainWindow):
             self.measurement_start = datetime.now()
             self._elapsed_seconds = 0
 
-            # Add start marker to plot and enable auto-scroll
-            if hasattr(self, "plot_widget") and self.data_controller.freq_series:
-                # Use latest timestamp from data or 0 if no data yet
-                latest_time = (
-                    self.data_controller.freq_series[-1][0]
-                    if self.data_controller.freq_series
-                    else 0.0
-                )
-                self.plot_widget.add_measurement_marker(latest_time, is_start=True)
+            # Enable plot data updates and clear old data for new measurement
+            if hasattr(self, "plot_widget"):
+                self.plot_widget.set_measurement_mode(True)
                 self.plot_widget.set_auto_scroll(True)
-                Debug.debug(f"Added START marker at time {latest_time}")
+                Debug.debug(
+                    "Plot widget enabled for measurement data updates and cleared"
+                )
 
             self.statusbar.temp_message(
                 CONFIG["messages"]["measurement_running"],
@@ -264,17 +303,11 @@ class MainWindow(QMainWindow):
         self.is_measuring = False
         self.measurement_end = datetime.now()
 
-        # Add stop marker to plot and disable auto-scroll
-        if hasattr(self, "plot_widget") and self.data_controller.freq_series:
-            # Use latest timestamp from data
-            latest_time = (
-                self.data_controller.freq_series[-1][0]
-                if self.data_controller.freq_series
-                else 0.0
-            )
-            self.plot_widget.add_measurement_marker(latest_time, is_start=False)
+        # Disable plot data updates and auto-scroll
+        if hasattr(self, "plot_widget"):
+            self.plot_widget.set_measurement_mode(False)
             self.plot_widget.set_auto_scroll(False)
-            Debug.debug(f"Added STOP marker at time {latest_time}")
+            Debug.debug("Plot widget disabled for measurement data updates")
 
         self._set_ui_idle_state()
         self.statusbar.temp_message(
@@ -415,17 +448,17 @@ class MainWindow(QMainWindow):
             )
 
     def _update_plots(self):
-        """Update the plot widget with queued data and LCD displays."""
+        """Update the plot widget (only update curves during measurement) and LCD displays."""
         Debug.debug("_update_plots called")
 
-        # Update plots
+        # Always update plot widget (data processing), but curves only during measurement
         if hasattr(self, "plot_widget"):
             self.plot_widget.update_plots()
             Debug.debug("Plot widget updated")
         else:
             Debug.debug("Plot widget not available")
 
-        # Update LCD displays with current values
+        # Always update LCD displays (regardless of measurement state)
         self._update_lcd_displays()
 
     def _update_lcd_displays(self):
@@ -505,6 +538,29 @@ class MainWindow(QMainWindow):
             event: The close event from Qt.
         """
         Debug.info("Anwendung wird geschlossen, fahre Komponenten herunter...")
+
+        # Check for unsaved data before closing
+        if hasattr(self, "save_manager") and self.save_manager.has_unsaved():
+            from src.helper_classes import MessageHelper
+
+            response = MessageHelper.question(
+                self,
+                "Es gibt ungespeicherte Messdaten. Möchten Sie diese vor dem Schließen speichern?",
+                "Ungespeicherte Daten",
+            )
+            if response:
+                # User wants to save - trigger save dialog
+                self._save_measurement()
+                # Check if save was successful (user might have cancelled)
+                if self.save_manager.has_unsaved():
+                    # User cancelled save dialog - ask if they still want to quit
+                    if not MessageHelper.question(
+                        self,
+                        "Speichern wurde abgebrochen. Möchten Sie trotzdem beenden und die Daten verlieren?",
+                        "Warnung",
+                    ):
+                        event.ignore()
+                        return
 
         # Stop data acquisition in the DeviceManager
         if hasattr(self, "device_manager"):

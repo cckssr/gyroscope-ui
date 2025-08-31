@@ -14,14 +14,14 @@
 
     "plot": {
       "frequency": {
-        "max_points": 100,
+        "max_points": 20000,
         "x_label": "Vergangene Zeit / s",
         "y_label": "Rotationsfrequenz / Hz"
       },
       "acceleration": {
-        "max_points": 100,
+        "max_points": 20000,
         "x_label": "Vergangene Zeit / s",
-        "y_label": "Z-Rotationsgeschwindigkeit / °/s"
+        "y_label": "Z-Rotationsgeschwindigkeit / 2π / s"
       }
     },
     "timers": {
@@ -31,7 +31,8 @@
       "statistics_update_interval": 2000
     },
     "data_controller": {
-      "max_history_size": 1000
+      "max_history_size": 20000,
+      "default_save_dir": "Kreisel"
     },
     "colors": {
       "green": "green",
@@ -40,7 +41,7 @@
       "blue": "blue"
     },
     "connection": {
-      "default_ip": "127.0.0.1:8080",
+      "default_ip": "192.168.4.1:80",
       "timeout": 2.0,
       "default_ssid": "Kreisel-*"
     },
