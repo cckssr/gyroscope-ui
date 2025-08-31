@@ -4,6 +4,7 @@
 import os
 import glob
 import time
+import socket
 from tempfile import gettempdir
 from typing import Union, Optional, Tuple
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
@@ -102,6 +103,35 @@ class ConnectionWindow(QDialog):
         QApplication.processEvents()  # Process events to update UI immediately
         self.ui.status_msg.repaint()  # Force repaint to ensure message is shown
 
+    def _parse_host_port(self, ip: str) -> Tuple[str, int]:
+        """Parse host:port from a string.
+
+        Supports forms like 'host:port', 'http://host:port', '[ipv6]:port'.
+        """
+        ip = ip.strip()
+        # Remove scheme
+        if "://" in ip:
+            ip = ip.split("://", 1)[1]
+        # IPv6 wrapped in []
+        if ip.startswith("["):
+            host, rest = ip.split("]", 1)
+            host = host[1:]
+            if rest.startswith(":"):
+                port = int(rest[1:])
+            else:
+                port = 80
+            return host, port
+        # Regular host:port
+        if ip.count(":") == 1:
+            host, port_s = ip.split(":", 1)
+            try:
+                port = int(port_s)
+            except ValueError:
+                port = 80
+            return host, port
+        # Host only
+        return ip, 80
+
     def _set_ssid_text(self, ssid: str):
         """
         Set the SSID text in the UI.
@@ -112,30 +142,27 @@ class ConnectionWindow(QDialog):
 
     def _update_connection(self):
         """
-        Update the current connection status.
+        Update the current connection status for UDP.
 
-        Check if the current IP is reachable and update the UI accordingly.
+        Use DeviceManager directly to establish the real connection.
         """
-        success = self._test_ip_connectivity(self.ip)
+        self.status_message("Verbinde über DeviceManager...", "yellow")
+
+        # Verwende DeviceManager direkt für die Verbindung
+        success = self.device_manager.connect_device(self.ip, 5.0)
+
         if success:
             self.connection_successful = True
             # Acquisition dauerhaft starten (Thread läuft unabhängig vom Mess-Flag)
             self.device_manager.start_acquisition()
+            Debug.info(
+                "UDP-Verbindung über DeviceManager erfolgreich, Datenerfassung gestartet"
+            )
+            self.status_message("UDP-Verbindung erfolgreich hergestellt", "green")
         else:
             self.connection_successful = False
-        return success
-
-    def _test_ip_connectivity(self, ip: str, timeout: float = 2.0) -> bool:
-        """Verwendet den DeviceManager.connect für einen Verbindungsversuch.
-
-        Gibt True/False zurück; Statusmeldungen werden über den Callback gesetzt.
-        """
-        success = self.device_manager.connect_device(ip, timeout)
-        # DeviceManager setzt bereits Status-Message über Callback.
-        if success:
-            self.status_message(f"Verbindung zu {ip} erfolgreich", "green")
-        else:
-            self.status_message(f"Keine Verbindung zu {ip}", "red")
+            Debug.info("UDP-Verbindung über DeviceManager fehlgeschlagen")
+            self.status_message("UDP-Verbindung fehlgeschlagen", "red")
         return success
 
     def closeEvent(self, event):  # noqa: N802 (Qt Namenskonvention)
@@ -173,8 +200,13 @@ class ConnectionWindow(QDialog):
 
     @Slot()
     def on_retry(self):
-        """Handle the retry button click."""
-        self.status_message("Retrying connection...", "yellow")
+        """Handle the retry button click for UDP connection."""
+        self.status_message("Teste UDP-Verbindung erneut...", "yellow")
+        # Stoppe vorherige Verbindung falls vorhanden
+        if hasattr(self, "device_manager") and self.device_manager:
+            self.device_manager.stop_acquisition()
+            self.device_manager.disconnect_device()
+        # Versuche erneut zu verbinden
         self._update_connection()
 
     @Slot()
