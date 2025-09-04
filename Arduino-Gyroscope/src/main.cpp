@@ -47,7 +47,7 @@
 // ================================
 
 /** @brief Gerätekennzeichnung für Identifikation */
-const char *DEVICE_ID = "E12345";
+const char *DEVICE_ID = "E95454";
 
 /** @brief Software-Versionsnummer */
 const char *SOFTWARE_VERSION = "0.9";
@@ -56,14 +56,14 @@ const char *SOFTWARE_VERSION = "0.9";
 // HARDWARE PIN DEFINITIONS
 // ================================
 
-/** @brief SPI Chip Select Pin für LSM6DS3 */
-#define LSM_CS 7
-/** @brief SPI Clock Pin */
-#define LSM_SCK 13
-/** @brief SPI Master In Slave Out (MISO) Pin */
-#define LSM_MISO 12
-/** @brief SPI Master Out Slave In (MOSI) Pin */
-#define LSM_MOSI 11
+/** @brief SPI Chip Select Pin (CS) für LSM6DS3 */
+#define LSM_CS 5
+/** @brief SPI Clock Pin (SCK) */
+#define LSM_SCK 3
+/** @brief SPI Master In Slave Out (SA0) Pin */
+#define LSM_MISO 4
+/** @brief SPI Master Out Slave In (MOSI, SDA) Pin */
+#define LSM_MOSI 6
 
 /** @brief Digital Pin für Hall-Sensor */
 const int HALL_DIGITAL_PIN = 2;
@@ -375,24 +375,30 @@ bool initializeWiFiConnection(bool waitForConnection = true)
 
 /**
  * @brief Fügt einen UDP-Client zur Unicast-Liste hinzu
- * 
+ *
  * @param clientIP IP-Adresse des Clients
  */
-void addUDPClient(IPAddress clientIP) {
+void addUDPClient(IPAddress clientIP)
+{
   // Prüfe ob Client bereits in der Liste ist
-  for (int i = 0; i < udpClientCount; i++) {
-    if (udpClientIPs[i] == clientIP) {
+  for (int i = 0; i < udpClientCount; i++)
+  {
+    if (udpClientIPs[i] == clientIP)
+    {
       return; // Client bereits in der Liste
     }
   }
-  
+
   // Füge neuen Client hinzu (falls Platz vorhanden)
-  if (udpClientCount < 5) {
+  if (udpClientCount < 5)
+  {
     udpClientIPs[udpClientCount] = clientIP;
     udpClientCount++;
-    Serial.printf("UDP-Client hinzugefügt: %s (Total: %d)\n", 
+    Serial.printf("UDP-Client hinzugefügt: %s (Total: %d)\n",
                   clientIP.toString().c_str(), udpClientCount);
-  } else {
+  }
+  else
+  {
     Serial.println("WARNUNG: Maximale Anzahl UDP-Clients erreicht!");
   }
 }
@@ -400,23 +406,27 @@ void addUDPClient(IPAddress clientIP) {
 /**
  * @brief Verarbeitet eingehende UDP-Pakete und registriert Clients
  */
-void handleUDPClients() {
+void handleUDPClients()
+{
   int packetSize = udpSocket.parsePacket();
-  if (packetSize) {
+  if (packetSize)
+  {
     IPAddress remoteIP = udpSocket.remoteIP();
-    
+
     // Lese das Paket (auch wenn wir den Inhalt ignorieren)
     char incomingPacket[255];
     int len = udpSocket.read(incomingPacket, 255);
-    if (len > 0) {
+    if (len > 0)
+    {
       incomingPacket[len] = 0;
     }
-    
+
     // Füge Client zur Liste hinzu
     addUDPClient(remoteIP);
-    
-    if (isDebugMode) {
-      Serial.printf("DEBUG: UDP-Registrierung von %s, Paket: %s\n", 
+
+    if (isDebugMode)
+    {
+      Serial.printf("DEBUG: UDP-Registrierung von %s, Paket: %s\n",
                     remoteIP.toString().c_str(), incomingPacket);
     }
   }
@@ -605,10 +615,13 @@ void setup()
     Serial.println("Sensordaten:");
     if (USE_UDP_FOR_DATA)
     {
-      if (USE_UDP_BROADCAST) {
+      if (USE_UDP_BROADCAST)
+      {
         Serial.printf("  UDP-Broadcast: %s:%d (automatisch)\n", UDP_BROADCAST_IP.toString().c_str(), UDP_PORT);
         Serial.printf("  UDP-Empfang: socat udp-recv:%d -\n", UDP_PORT);
-      } else {
+      }
+      else
+      {
         Serial.printf("  UDP-Unicast: Port %d (Client-Registrierung erforderlich)\n", UDP_PORT);
         Serial.printf("  Registrierung: echo 'register' | nc -u %s %d\n", serverIP.toString().c_str(), UDP_PORT);
         Serial.printf("  Empfang: nc -u -l %d\n", UDP_PORT);
@@ -633,7 +646,7 @@ void setup()
   if (isDebugMode)
   {
     Serial.println("Datenformat: Zeitstempel,Frequenz,Accel_X,Accel_Y,Accel_Z,Gyro_X,Gyro_Y,Gyro_Z");
-    Serial.printf("Übertragungsmodus: %s (%s)\n", 
+    Serial.printf("Übertragungsmodus: %s (%s)\n",
                   USE_UDP_FOR_DATA ? "UDP" : "TCP",
                   USE_UDP_FOR_DATA ? (USE_UDP_BROADCAST ? "Broadcast" : "Unicast") : "Point-to-Point");
     Serial.println("HTTP-API auch im Debug-Modus verfügbar");
@@ -717,27 +730,33 @@ void loop()
     // ========== UDP-Client-Verwaltung ==========
     // Prüfe auf eingehende UDP-Pakete zur Client-Registrierung
     handleUDPClients();
-    
+
     // ========== UDP-Datenübertragung ==========
-    if (USE_UDP_BROADCAST) {
+    if (USE_UDP_BROADCAST)
+    {
       // Broadcast an alle Clients im Netzwerk
       udpSocket.beginPacket(UDP_BROADCAST_IP, UDP_PORT);
       udpSocket.println(outputBuffer); // println für Newline
       udpSocket.endPacket();
-      
-      if (isDebugMode) {
+
+      if (isDebugMode)
+      {
         Serial.printf("DEBUG: UDP-Broadcast gesendet: %s\n", outputBuffer);
       }
-    } else {
+    }
+    else
+    {
       // Unicast an registrierte Clients
-      for (int i = 0; i < udpClientCount; i++) {
+      for (int i = 0; i < udpClientCount; i++)
+      {
         udpSocket.beginPacket(udpClientIPs[i], UDP_PORT);
         udpSocket.println(outputBuffer); // println für Newline
         udpSocket.endPacket();
       }
-      
-      if (isDebugMode && udpClientCount > 0) {
-        Serial.printf("DEBUG: UDP-Unicast an %d Clients gesendet: %s\n", 
+
+      if (isDebugMode && udpClientCount > 0)
+      {
+        Serial.printf("DEBUG: UDP-Unicast an %d Clients gesendet: %s\n",
                       udpClientCount, outputBuffer);
       }
     }
