@@ -40,6 +40,7 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <esp_wifi.h>
 #include "secrets.h"
 
 // ================================
@@ -159,6 +160,19 @@ uint32_t lastFrequencyChangeMs = 0;
 /** @brief Letzte gemessene Frequenz für Änderungserkennung */
 float lastFrequency = 0.0f;
 
+// ================================
+// WIFI DEBUG VARIABLES
+// ================================
+
+/** @brief Anzahl der verbundenen Clients beim letzten Check */
+int lastConnectedClients = 0;
+
+/** @brief Zeitpunkt des letzten WiFi-Status-Prints */
+uint32_t lastWiFiStatusPrintMs = 0;
+
+/** @brief Intervall für periodische WiFi-Status-Ausgabe (ms) */
+const uint32_t WIFI_STATUS_PRINT_INTERVAL_MS = 10000; // 10 Sekunden
+
 /** @brief Ausgabepuffer für Sensordaten */
 char outputBuffer[256];
 
@@ -230,10 +244,136 @@ void printWiFiAPStatus()
 {
   Serial.println("========== WiFi Access Point Status ==========");
   Serial.printf("SSID: %s\n", WIFI_AP_SSID);
+  Serial.printf("Passwort: %s\n", WIFI_AP_PASSWORD);
+  Serial.printf("Kanal: %d\n", WiFi.channel());
   Serial.printf("IP-Adresse: %s\n", WiFi.softAPIP().toString().c_str());
+  Serial.printf("Gateway: %s\n", AP_GATEWAY.toString().c_str());
+  Serial.printf("Subnet: %s\n", AP_SUBNET.toString().c_str());
   Serial.printf("MAC-Adresse: %s\n", WiFi.softAPmacAddress().c_str());
   Serial.printf("Verbundene Clients: %d\n", WiFi.softAPgetStationNum());
+  Serial.printf("Max. Verbindungen: 4 (Standard ESP32)\n");
   Serial.println("=============================================");
+}
+
+/**
+ * @brief WiFi-Event-Handler für Access Point Events
+ * 
+ * Wird aufgerufen bei Client-Verbindungen und -Trennungen
+ * 
+ * @param event WiFi-Event-Type
+ * @param info Event-Informationen
+ */
+void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
+{
+  switch (event)
+  {
+    case ARDUINO_EVENT_WIFI_AP_START:
+      Serial.println("[WiFi-Event] Access Point gestartet");
+      Serial.printf("[WiFi-Event] Warte auf Client-Verbindungen...\n");
+      break;
+      
+    case ARDUINO_EVENT_WIFI_AP_STOP:
+      Serial.println("[WiFi-Event] Access Point gestoppt");
+      break;
+      
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+      Serial.println("\n========== CLIENT VERBUNDEN ==========");
+      Serial.printf("[WiFi-Event] Neuer Client verbunden!\n");
+      Serial.printf("[WiFi-Event] MAC-Adresse: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                    info.wifi_ap_staconnected.mac[0],
+                    info.wifi_ap_staconnected.mac[1],
+                    info.wifi_ap_staconnected.mac[2],
+                    info.wifi_ap_staconnected.mac[3],
+                    info.wifi_ap_staconnected.mac[4],
+                    info.wifi_ap_staconnected.mac[5]);
+      Serial.printf("[WiFi-Event] AID (Association ID): %d\n", info.wifi_ap_staconnected.aid);
+      Serial.printf("[WiFi-Event] Gesamtanzahl Clients: %d\n", WiFi.softAPgetStationNum());
+      Serial.println("======================================\n");
+      break;
+      
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+      Serial.println("\n========== CLIENT GETRENNT ==========");
+      Serial.printf("[WiFi-Event] Client getrennt\n");
+      Serial.printf("[WiFi-Event] MAC-Adresse: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                    info.wifi_ap_stadisconnected.mac[0],
+                    info.wifi_ap_stadisconnected.mac[1],
+                    info.wifi_ap_stadisconnected.mac[2],
+                    info.wifi_ap_stadisconnected.mac[3],
+                    info.wifi_ap_stadisconnected.mac[4],
+                    info.wifi_ap_stadisconnected.mac[5]);
+      Serial.printf("[WiFi-Event] AID (Association ID): %d\n", info.wifi_ap_stadisconnected.aid);
+      Serial.printf("[WiFi-Event] Verbleibende Clients: %d\n", WiFi.softAPgetStationNum());
+      Serial.println("\nMÖGLICHE TRENNUNGSGRÜNDE:");
+      Serial.println("  1. Keine IP-Adresse vom DHCP-Server erhalten");
+      Serial.println("  2. Client erwartet Internet-Verbindung");
+      Serial.println("  3. Schwaches Signal (RSSI < -70 dBm)");
+      Serial.println("  4. Client-Timeout oder manuelle Trennung");
+      Serial.println("  5. Authentifizierungs-Problem");
+      Serial.println("\nLÖSUNGSVERSUCHE:");
+      Serial.println("  - DHCP auf Client deaktivieren, manuelle IP setzen:");
+      Serial.println("    IP: 192.168.4.2, Subnet: 255.255.255.0, Gateway: 192.168.4.1");
+      Serial.println("  - 'Auto-Join' für dieses Netzwerk deaktivieren");
+      Serial.println("  - Auf Mac: Captive Portal deaktivieren");
+      Serial.println("=====================================\n");
+      break;
+      
+    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+      // Probe Request = Client sucht nach verfügbaren Netzwerken
+      if (isDebugMode)
+      {
+        Serial.printf("[WiFi-Event] Probe Request von: %02X:%02X:%02X:%02X:%02X:%02X (RSSI: %d dBm)\n",
+                      info.wifi_ap_probereqrecved.mac[0],
+                      info.wifi_ap_probereqrecved.mac[1],
+                      info.wifi_ap_probereqrecved.mac[2],
+                      info.wifi_ap_probereqrecved.mac[3],
+                      info.wifi_ap_probereqrecved.mac[4],
+                      info.wifi_ap_probereqrecved.mac[5],
+                      info.wifi_ap_probereqrecved.rssi);
+      }
+      break;
+      
+    default:
+      if (isDebugMode)
+      {
+        Serial.printf("[WiFi-Event] Unbekanntes Event: %d\n", event);
+      }
+      break;
+  }
+}
+
+/**
+ * @brief Gibt detaillierte Informationen über verbundene Clients aus
+ */
+void printConnectedClients()
+{
+  wifi_sta_list_t stationList;
+  esp_wifi_ap_get_sta_list(&stationList);
+  
+  Serial.println("\n========== VERBUNDENE CLIENTS ==========");
+  Serial.printf("Anzahl: %d\n", stationList.num);
+  
+  if (stationList.num > 0)
+  {
+    Serial.println("\nClient-Details:");
+    for (int i = 0; i < stationList.num; i++)
+    {
+      Serial.printf("  Client %d:\n", i + 1);
+      Serial.printf("    MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                    stationList.sta[i].mac[0],
+                    stationList.sta[i].mac[1],
+                    stationList.sta[i].mac[2],
+                    stationList.sta[i].mac[3],
+                    stationList.sta[i].mac[4],
+                    stationList.sta[i].mac[5]);
+      Serial.printf("    RSSI: %d dBm\n", stationList.sta[i].rssi);
+    }
+  }
+  else
+  {
+    Serial.println("  Keine Clients verbunden");
+  }
+  
+  Serial.println("========================================\n");
 }
 
 /**
@@ -291,6 +431,12 @@ bool initializeWiFiConnection(bool waitForConnection = true)
     // ========== Access Point Modus ==========
     Serial.println("Initialisiere WiFi Access Point...");
     Serial.printf("AP SSID: %s\n", WIFI_AP_SSID);
+    Serial.printf("AP Passwort: %s\n", WIFI_AP_PASSWORD);
+    Serial.printf("AP Passwort-Länge: %d Zeichen\n", strlen(WIFI_AP_PASSWORD));
+
+    // WiFi-Event-Handler registrieren
+    WiFi.onEvent(onWiFiEvent);
+    Serial.println("WiFi-Event-Handler registriert");
 
     // WiFi-Modus auf Access Point setzen
     WiFi.mode(WIFI_AP);
@@ -302,8 +448,9 @@ bool initializeWiFiConnection(bool waitForConnection = true)
       return false;
     }
 
-    // Access Point starten
-    bool apStarted = WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);
+    // Access Point starten mit erweiterten Parametern
+    // Parameter: SSID, Password, Channel, Hidden, Max Connections
+    bool apStarted = WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD, 1, 0, 4);
     if (!apStarted)
     {
       Serial.println("FEHLER: Access Point konnte nicht gestartet werden!");
@@ -312,14 +459,45 @@ bool initializeWiFiConnection(bool waitForConnection = true)
       Serial.println("  - Passwort zu kurz (min. 8 Zeichen für WPA)");
       return false;
     }
+    
+    Serial.println("DHCP-Server automatisch gestartet (ESP32 Standard)");
+    Serial.println("  Standard DHCP-Range: 192.168.4.2 - 192.168.4.254");
 
     Serial.println("Access Point erfolgreich gestartet!");
     Serial.printf("  SSID: %s\n", WIFI_AP_SSID);
-    Serial.printf("  IP-Adresse: %s\n", WiFi.softAPIP().toString().c_str());
+    Serial.printf("  Passwort: %s\n", WIFI_AP_PASSWORD);
+    Serial.printf("  Kanal: %d\n", WiFi.channel());
+    Serial.printf("  IP-Adresse (Gateway): %s\n", WiFi.softAPIP().toString().c_str());
+    Serial.printf("  Subnet-Maske: %s\n", AP_SUBNET.toString().c_str());
     Serial.printf("  MAC-Adresse: %s\n", WiFi.softAPmacAddress().c_str());
+    Serial.printf("  Max. Clients: 4\n");
+    Serial.printf("  Verschlüsselung: WPA2-PSK\n");
+    
+    Serial.println("\n========== MAC-SPEZIFISCHE HINWEISE ==========");
+    Serial.println("Wenn Ihr Mac sich nicht verbinden kann:");
+    Serial.println("  1. Deaktivieren Sie 'Auto-Join Captive Portals':");
+    Serial.println("     Terminal: sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.captive.control.plist Active -bool false");
+    Serial.println("  2. Oder setzen Sie manuelle IP-Konfiguration:");
+    Serial.println("     IP: 192.168.4.2");
+    Serial.println("     Subnet: 255.255.255.0");
+    Serial.println("     Router: 192.168.4.1");
+    Serial.println("     DNS: 192.168.4.1 (oder leer lassen)");
+    Serial.println("  3. Ignorieren Sie 'Kein Internet verfügbar' Warnungen");
+    Serial.println("=============================================");
+    
+    Serial.println("\n========== VERBINDUNGSANLEITUNG ==========");
+    Serial.println("So verbinden Sie sich mit dem Access Point:");
+    Serial.println("  1. Öffnen Sie die WiFi-Einstellungen auf Ihrem Gerät");
+    Serial.printf("  2. Suchen Sie das Netzwerk '%s'\n", WIFI_AP_SSID);
+    Serial.printf("  3. Geben Sie das Passwort ein: %s\n", WIFI_AP_PASSWORD);
+    Serial.println("  4. Warten Sie auf die Verbindungsbestätigung");
+    Serial.println("==========================================\n");
 
     // Kurz warten bis AP vollständig aktiv ist
     delay(1000);
+    
+    Serial.println("Access Point ist nun bereit für Verbindungen!");
+    Serial.println("Warte auf Client-Verbindungen...\n");
   }
   else
   {
@@ -684,6 +862,53 @@ void setup()
  */
 void loop()
 {
+  // ========== WiFi-Client-Monitoring (Access Point Modus) ==========
+  if (WIFI_AP_MODE)
+  {
+    int currentClientCount = WiFi.softAPgetStationNum();
+    
+    // Erkenne Client-Änderungen (zusätzlich zum Event-Handler)
+    if (currentClientCount != lastConnectedClients)
+    {
+      Serial.printf("[Monitor] Client-Anzahl ge\u00e4ndert: %d -> %d\n", 
+                    lastConnectedClients, currentClientCount);
+      lastConnectedClients = currentClientCount;
+      
+      // Zeige detaillierte Client-Informationen
+      if (currentClientCount > 0)
+      {
+        printConnectedClients();
+      }
+    }
+    
+    // Periodischer WiFi-Status (alle 10 Sekunden) - nur im Debug-Modus
+    if (isDebugMode)
+    {
+      uint32_t currentTime = millis();
+      if (currentTime - lastWiFiStatusPrintMs >= WIFI_STATUS_PRINT_INTERVAL_MS)
+      {
+        lastWiFiStatusPrintMs = currentTime;
+        
+        Serial.println("\n========== PERIODISCHER STATUS ==========");
+        Serial.printf("Uptime: %lu ms\n", currentTime);
+        Serial.printf("Verbundene Clients: %d\n", currentClientCount);
+        Serial.printf("UDP-Clients registriert: %d\n", udpClientCount);
+        Serial.printf("Aktuelle Frequenz: %.4f Hz\n", currentFrequency);
+        Serial.printf("Freier Heap: %d Bytes\n", ESP.getFreeHeap());
+        Serial.println("========================================\n");
+        
+        // Wenn keine Clients verbunden sind, erinnere daran
+        if (currentClientCount == 0)
+        {
+          Serial.println("HINWEIS: Keine Clients verbunden!");
+          Serial.printf("  - SSID: %s\n", WIFI_AP_SSID);
+          Serial.printf("  - Passwort: %s\n", WIFI_AP_PASSWORD);
+          Serial.printf("  - IP: %s\n\n", WiFi.softAPIP().toString().c_str());
+        }
+      }
+    }
+  }
+  
   // ========== Sensordaten lesen ==========
   sensors_event_t accelerationEvent, gyroscopeEvent, temperatureEvent;
   lsm6ds33.getEvent(&accelerationEvent, &gyroscopeEvent, &temperatureEvent);
