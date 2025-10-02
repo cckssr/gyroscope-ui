@@ -31,8 +31,8 @@
  * - TCP: nc <IP> 80
  *
  * @author M. Metschl, C. Kessler
- * @version 0.9
- * @date 2025-08-31
+ * @version 1.0.1
+ * @date 2025-10-02
  */
 
 #include <Arduino.h>
@@ -47,10 +47,10 @@
 // ================================
 
 /** @brief Gerätekennzeichnung für Identifikation */
-const char *DEVICE_ID = "E95454";
+const char *DEVICE_ID = "E76347";
 
 /** @brief Software-Versionsnummer */
-const char *SOFTWARE_VERSION = "0.9";
+const char *SOFTWARE_VERSION = "1.0.1";
 
 // ================================
 // HARDWARE PIN DEFINITIONS
@@ -142,6 +142,22 @@ QueueHandle_t interruptQueue;
 
 /** @brief Aktuelle berechnete Frequenz (Hz) */
 float currentFrequency = 0.0f;
+
+// ================================
+// FREQUENCY CHANGE RATE DETECTION
+// ================================
+
+/** @brief Zeit in Millisekunden, nach der bei konstanter Frequenz auf 0 gesetzt wird */
+const uint32_t FREQUENCY_STABLE_TIMEOUT_MS = 2000;
+
+/** @brief Schwellwert für Frequenzänderung (Hz), unter dem als konstant gilt */
+const float FREQUENCY_CHANGE_THRESHOLD = 0.05f;
+
+/** @brief Zeitpunkt der letzten signifikanten Frequenzänderung */
+uint32_t lastFrequencyChangeMs = 0;
+
+/** @brief Letzte gemessene Frequenz für Änderungserkennung */
+float lastFrequency = 0.0f;
 
 /** @brief Ausgabepuffer für Sensordaten */
 char outputBuffer[256];
@@ -679,7 +695,42 @@ void loop()
     // Neue Interrupt-Daten verfügbar
     if (interruptTimeDelta > 0)
     {
-      currentFrequency = 1000000.0f / (float)interruptTimeDelta;
+      float newFrequency = 1000000.0f / (float)interruptTimeDelta;
+      
+      // Prüfe ob signifikante Frequenzänderung vorliegt
+      if (abs(newFrequency - lastFrequency) > FREQUENCY_CHANGE_THRESHOLD)
+      {
+        // Signifikante Änderung erkannt - Timer zurücksetzen
+        lastFrequencyChangeMs = millis();
+        lastFrequency = newFrequency;
+        
+        if (isDebugMode)
+        {
+          Serial.printf("DEBUG: Frequenzänderung erkannt: %.4f Hz -> %.4f Hz\n", 
+                        lastFrequency, newFrequency);
+        }
+      }
+      
+      currentFrequency = newFrequency;
+    }
+  }
+  
+  // ========== Frequenz-Konstanz-Überprüfung ==========
+  // Wenn Frequenz über definierte Zeit konstant ist, setze auf 0
+  if (currentFrequency > 0.0f)
+  {
+    uint32_t timeSinceLastChange = millis() - lastFrequencyChangeMs;
+    
+    if (timeSinceLastChange > FREQUENCY_STABLE_TIMEOUT_MS)
+    {
+      if (isDebugMode)
+      {
+        Serial.printf("DEBUG: Frequenz seit %lu ms konstant bei %.4f Hz - setze auf 0\n",
+                      timeSinceLastChange, currentFrequency);
+      }
+      
+      currentFrequency = 0.0f;
+      lastFrequency = 0.0f;
     }
   }
 

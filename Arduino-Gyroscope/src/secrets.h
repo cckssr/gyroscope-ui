@@ -13,6 +13,6 @@
 #define SECRETS_H
 
 /** @brief WiFi-Netzwerk Passwort (mindestens 8 Zeichen) */
-#define SECRET_PASS "123456789"
+#define SECRET_PASS "BosonBoson"
 
 #endif // SECRETS_H
