@@ -61,7 +61,17 @@
       "connection_failed": "Verbindung zum Gerät fehlgeschlagen. Anwendung wird beendet.",
       "auto_save_enabled": "Automatisches Speichern ist aktiviert. Messdaten werden automatisch gespeichert, wenn die Messung endet.",
       "auto_save_disabled": "Automatisches Speichern ist deaktiviert. Sie müssen die Messdaten manuell speichern.",
-      "save_error": "Fehler beim Speichern der Daten: {}"
+      "save_error": "Fehler beim Speichern der Daten: {}",
+      "data_reset": "Daten wurden zurückgesetzt. Bereit für eine neue Messung.",
+      "auto_save_tooltip": "Bei Aktivierung werden die Messungen automatisch im Format:\nYYYY_MM_DD-<Messung>-<Suffix>.csv\nim Ordner Dokumente/Kreisel/ gespeichert.",
+      "sample_name_empty": "Messbezeichnung darf nicht leer sein.",
+      "group_letter_empty": "Gruppenbuchstabe darf nicht leer sein.",
+      "no_data_to_save": "Keine Messdaten zum Speichern vorhanden.",
+      "select_sample_and_group": "Bitte wählen Sie eine Messbezeichnung und eine Gruppenzuordnung aus.",
+      "close_unsaved_data_title": "Ungespeicherte Messdaten",
+      "close_unsaved_data_question": "Sie haben ungespeicherte Messdaten. Möchten Sie diese jetzt speichern?",
+      "close_after_cancel_title": "Schließen ohne Speichern?",
+      "close_after_cancel_question": "Möchten Sie die Anwendung wirklich ohne Speichern schließen? Alle ungespeicherten Daten gehen verloren."
     }
   }
 }

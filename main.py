@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-HRNGGUI - Hauptprogramm für die Geiger-Müller Counter GUI-Anwendung.
+Gyroscope GUI - Hauptprogramm für die Gyroskop GUI-Anwendung.
 """
 
 import sys

@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 from PySide6.QtGui import QPalette
-from pyparsing import C  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
 from src.plot import PlotWidget
 from src.debug_utils import Debug
@@ -55,6 +54,7 @@ class MainWindow(QMainWindow):
         # Measurement status
         self.is_measuring = False
         self.data_saved = True
+        self.data_clear_flag = True  # Flag to prevent data overwrite
         self.save_manager = SaveManager(
             base_dir=CONFIG["data_controller"]["default_save_dir"]
         )
@@ -214,11 +214,18 @@ class MainWindow(QMainWindow):
         self.ui.buttonStart.clicked.connect(self._start_measurement)
         self.ui.buttonStop.clicked.connect(self._stop_measurement)
         self.ui.buttonSave.clicked.connect(self._save_measurement)
+        self.ui.buttonReset.clicked.connect(self._reset_measurement)
 
         # Initial state of buttons
-        self.ui.buttonStart.setEnabled(True)
+        self.ui.buttonStart.setEnabled(
+            True
+        )  # Will be updated by _update_start_button_state
         self.ui.buttonStop.setEnabled(False)
         self.ui.buttonSave.setEnabled(False)
+        self.ui.buttonReset.setEnabled(False)
+
+        # Update start button based on clear flag
+        self._update_start_button_state()
 
         # Check auto-save setting
         self.ui.autoSave.setChecked(self.save_manager.auto_save)
@@ -251,20 +258,27 @@ class MainWindow(QMainWindow):
         self.ui.buttonStart.setEnabled(False)
         self.ui.buttonStop.setEnabled(True)
         self.ui.buttonSave.setEnabled(False)
+        self.ui.buttonReset.setEnabled(False)
         Debug.debug("UI switched to measuring mode")
 
     def _set_ui_idle_state(self) -> None:
         """Return the UI to idle mode after a measurement."""
-        self.ui.buttonStart.setEnabled(True)
+        self._update_start_button_state()
         self.ui.buttonStop.setEnabled(False)
         save_enabled = self.save_manager.has_unsaved()
         self.ui.buttonSave.setEnabled(save_enabled)
+        self.ui.buttonReset.setEnabled(save_enabled)
         Debug.debug(
-            f"UI switched to idle mode (Save button: {'on' if save_enabled else 'off'})"
+            f"UI switched to idle mode (Save: {'on' if save_enabled else 'off'}, Reset: {'on' if save_enabled else 'off'})"
         )
 
     def _start_measurement(self):
         """Start measurement and adjust UI."""
+        # Check if clear flag is set (prevents accidental data overwrite)
+        if not self.data_clear_flag:
+            Debug.info("Start abgelehnt: Clear flag nicht gesetzt")
+            return
+
         if self.save_manager.has_unsaved():
             if not MessageHelper.question(
                 self,
@@ -276,6 +290,7 @@ class MainWindow(QMainWindow):
         # Nur Export-Puffer leeren, Live-Plot Verlauf behalten
         self.data_controller.clear_storage_only()
         self.data_controller.start_recording()
+        self.data_clear_flag = False  # Reset flag after starting
 
         if self.device_manager.start_measurement():
             self.is_measuring = True
@@ -319,9 +334,9 @@ class MainWindow(QMainWindow):
             data = self.data_controller.get_csv_data()
             group_letter = self.ui.groupLetter.currentText()
             suffix = self.ui.suffix.text().strip()
-            rad_sample = "MEAS"  # simplified placeholder (no separate sample selection)
+            measurement_name = "Messung"
             saved_path = self.save_manager.auto_save_measurement(
-                rad_sample,
+                measurement_name,
                 group_letter,
                 data,
                 self.measurement_start or datetime.now(),
@@ -330,7 +345,10 @@ class MainWindow(QMainWindow):
             )
             if saved_path and saved_path.exists():
                 self.data_saved = True
+                self.data_clear_flag = True  # Set clear flag after successful save
                 self.ui.buttonSave.setEnabled(False)
+                self.ui.buttonReset.setEnabled(False)
+                self._update_start_button_state()
                 self.statusbar.temp_message(
                     CONFIG["messages"]["data_saved"].format(saved_path),
                     CONFIG["colors"]["green"],
@@ -356,12 +374,12 @@ class MainWindow(QMainWindow):
                 return
 
             data = self.data_controller.get_csv_data()
-            rad_sample = "MEAS"
+            measurement_name = "Messung"
             group_letter = self.ui.groupLetter.currentText()
 
             saved_path = self.save_manager.manual_save_measurement(
                 self,
-                rad_sample,
+                measurement_name,
                 group_letter,
                 data,
                 self.measurement_start or datetime.now(),
@@ -370,9 +388,12 @@ class MainWindow(QMainWindow):
 
             if saved_path and saved_path.exists():
                 self.data_saved = True
+                self.data_clear_flag = True  # Set clear flag after successful save
                 self.ui.buttonSave.setEnabled(False)
+                self.ui.buttonReset.setEnabled(False)
+                self._update_start_button_state()
                 self.statusbar.temp_message(
-                    f"Messung erfolgreich gespeichert: {saved_path}",
+                    CONFIG["messages"]["data_saved"].format(saved_path),
                     CONFIG["colors"]["green"],
                 )
                 Debug.info(f"Messung manuell gespeichert: {saved_path}")
@@ -532,6 +553,50 @@ class MainWindow(QMainWindow):
                 1000,
             )
 
+    def _reset_measurement(self) -> None:
+        """Reset measurement data and plots. Sets clear flag to allow new measurement."""
+        try:
+            # Clear all data in data controller
+            self.data_controller.clear_data()
+
+            # Clear plots
+            if hasattr(self, "plot_widget"):
+                self.plot_widget.clear_plot_data()
+                Debug.debug("Plot widget cleared")
+
+            # Reset save manager
+            self.save_manager.last_saved = True
+
+            # Set clear flag to allow new measurement
+            self.data_clear_flag = True
+
+            # Update UI state
+            self.ui.buttonSave.setEnabled(False)
+            self.ui.buttonReset.setEnabled(False)
+            self._update_start_button_state()
+
+            # Show success message
+            self.statusbar.temp_message(
+                CONFIG["messages"]["data_reset"],
+                CONFIG["colors"]["green"],
+            )
+            Debug.info("Messdaten zurückgesetzt und Plot geleert")
+
+        except Exception as e:
+            Debug.error(f"Fehler beim Zurücksetzen der Messdaten: {e}")
+            MessageHelper.error(
+                self,
+                f"Fehler beim Zurücksetzen: {e}",
+                "Fehler",
+            )
+
+    def _update_start_button_state(self) -> None:
+        """Update the start button state based on clear flag."""
+        self.ui.buttonStart.setEnabled(self.data_clear_flag)
+        Debug.debug(
+            f"Start button {'enabled' if self.data_clear_flag else 'disabled'} (clear_flag={self.data_clear_flag})"
+        )
+
     def closeEvent(self, event):
         """Handle the window close event and shut down all components cleanly.
 
@@ -542,26 +607,33 @@ class MainWindow(QMainWindow):
 
         # Check for unsaved data before closing
         if hasattr(self, "save_manager") and self.save_manager.has_unsaved():
-            from src.helper_classes import MessageHelper
-
+            # Ask user if they want to save
             response = MessageHelper.question(
                 self,
-                CONFIG["messages"]["unsaved_data_close"],
-                "Ungespeicherte Daten",
+                CONFIG["messages"]["close_unsaved_data_question"],
+                CONFIG["messages"]["close_unsaved_data_title"],
             )
-            if response:
-                # User wants to save - trigger save dialog
+            if response:  # User clicked "Yes" - wants to save
+                # Trigger save dialog
                 self._save_measurement()
-                # Check if save was successful (user might have cancelled)
+                # Check if save was successful or if there's still unsaved data
                 if self.save_manager.has_unsaved():
-                    # User cancelled save dialog - ask if they still want to quit
-                    if not MessageHelper.question(
-                        self,
-                        CONFIG["messages"]["unsaved_data_close"],
-                        "Warnung",
-                    ):
-                        event.ignore()
-                        return
+                    # Save was not successful (cancelled, validation failed, or error)
+                    # Don't close - let user fix the issue or explicitly choose to close without saving
+                    Debug.info("Speicherung nicht erfolgreich - Schließen abgebrochen")
+                    event.ignore()
+                    return
+            else:
+                # User clicked "No" - wants to close without saving
+                # Ask for confirmation since data will be lost
+                confirm_close = MessageHelper.question(
+                    self,
+                    CONFIG["messages"]["close_after_cancel_question"],
+                    CONFIG["messages"]["close_after_cancel_title"],
+                )
+                if not confirm_close:  # User doesn't want to close after all
+                    event.ignore()
+                    return
 
         # Stop data acquisition in the DeviceManager
         if hasattr(self, "device_manager"):

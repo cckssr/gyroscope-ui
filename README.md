@@ -1,13 +1,13 @@
-# HRNGGUI - Geiger-Müller Counter GUI
+# Gyroscope GUI
 
-Eine grafische Benutzeroberfläche zur Steuerung und Datenerfassung eines Geiger-Müller-Zählrohrs für Zufallszahlengenerierung.
+Eine grafische Benutzeroberfläche zur Steuerung und Datenerfassung eines Gyroskops für Rotationsfrequenzmessungen.
 
 ## Projektstruktur
 
 Das Projekt verwendet eine modulare Struktur, um die verschiedenen Komponenten sauber zu trennen:
 
 ```
-HRNGGUI/
+gyroscope-ui/
 ├── main.py             # Hauptprogramm (Einstiegspunkt)
 ├── start_app.py        # Einfaches Startskript
 ├── run_tests.py        # Test-Runner für automatisierte Tests
@@ -55,7 +55,6 @@ HRNGGUI/
 
 ## Verwendung
 
-
 ## Entwicklung
 
 Die Anwendung wurde mit einer sauberen Architektur entwickelt:
@@ -71,6 +70,5 @@ Die `config.py` enthält zentrale Konfigurationsoptionen, die an einer Stelle ge
 Das Projekt enthält umfangreiche Tests, um die Korrektheit der Implementierung sicherzustellen:
 
 ### Automatisierte Tests
-
 
 ### Manueller Testplan

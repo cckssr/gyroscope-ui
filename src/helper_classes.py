@@ -285,7 +285,7 @@ class SaveManager:
 
     def filename_auto(
         self,
-        rad_sample: str,
+        measurement_name: str,
         group_letter: str,
         suffix: str = "",
         extension: str = ".csv",
@@ -294,8 +294,8 @@ class SaveManager:
 
         Parameters
         ----------
-        rad_sample:
-            Sample identifier to include in the file name.
+        measurement_name:
+            Measurement identifier to include in the file name.
         group_letter:
             Group letter to include in the file name.
         suffix:
@@ -304,18 +304,24 @@ class SaveManager:
             File extension including leading dot.
         """
 
-        if not rad_sample:
-            Debug.error("Radioactive sample name cannot be empty.")
+        if not measurement_name:
+            from src.helper_classes import import_config
+
+            CONFIG = import_config()
+            Debug.error(CONFIG["messages"]["sample_name_empty"])
             return ""
         if not group_letter:
-            Debug.error("Group letter cannot be empty.")
+            from src.helper_classes import import_config
+
+            CONFIG = import_config()
+            Debug.error(CONFIG["messages"]["group_letter_empty"])
             return ""
 
         timestamp = datetime.now().strftime("%Y_%m_%d")
         if suffix and not suffix.startswith("-"):
             suffix = "-" + suffix
         self.index += 1
-        return f"{timestamp}-{self.index:02d}-{rad_sample}{suffix}{extension}"
+        return f"{timestamp}-{self.index:02d}-{measurement_name}{suffix}{extension}"
 
     def mark_unsaved(self) -> None:
         """Mark the current measurement as not yet saved."""
@@ -346,7 +352,7 @@ class SaveManager:
             "dc:title": sample,
             "start_time": start.isoformat(),
             "end_time": end.isoformat(),
-            "radioactive_sample": sample,
+            "measurement_name": sample,
         }
         if extra:
             metadata.update(extra)
@@ -378,7 +384,7 @@ class SaveManager:
 
     def auto_save_measurement(
         self,
-        rad_sample: str,
+        measurement_name: str,
         group_letter: str,
         data: list[list[str]],
         start: datetime,
@@ -391,14 +397,14 @@ class SaveManager:
             Debug.error("No data provided for auto save")
             return None
 
-        file_name = self.filename_auto(rad_sample, group_letter, suffix)
-        meta = self.create_metadata(start, end, group_letter, rad_sample)
+        file_name = self.filename_auto(measurement_name, group_letter, suffix)
+        meta = self.create_metadata(start, end, group_letter, measurement_name)
         return self.save_measurement(file_name, data, meta)
 
     def manual_save_measurement(
         self,
         parent: QWidget,
-        rad_sample: str,
+        measurement_name: str,
         group_letter: str,
         data: list[list[str]],
         start: datetime,
@@ -407,17 +413,23 @@ class SaveManager:
         """Open a save dialog and store the measurement."""
 
         if not data:
+            from src.helper_classes import import_config
+
+            CONFIG = import_config()
             MessageHelper.warning(
                 parent,
-                "Keine Messdaten zum Speichern vorhanden.",
+                CONFIG["messages"]["no_data_to_save"],
                 "Warnung",
             )
             return None
 
-        if not rad_sample or not group_letter:
+        if not measurement_name or not group_letter:
+            from src.helper_classes import import_config
+
+            CONFIG = import_config()
             MessageHelper.warning(
                 parent,
-                "Bitte wählen Sie eine radioaktive Probe und eine Gruppenzuordnung aus.",
+                CONFIG["messages"]["select_sample_and_group"],
                 "Warnung",
             )
             return None
@@ -435,7 +447,7 @@ class SaveManager:
         if not file_path.lower().endswith(".csv"):
             file_path += ".csv"
 
-        meta = self.create_metadata(start, end, group_letter, rad_sample)
+        meta = self.create_metadata(start, end, group_letter, measurement_name)
         return self.save_measurement(file_path, data, meta)
 
     def _create_group_name(self, letter: str) -> str:
