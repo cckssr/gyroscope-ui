@@ -54,6 +54,7 @@ jobs:
     needs: build
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
@@ -70,11 +71,27 @@ jobs:
           name: python-package-distributions
           path: dist/
 
-      - name: Install package
+      - name: List downloaded files
+        shell: bash
+        run: |
+          echo "Contents of dist/:"
+          ls -la dist/
+
+      - name: Install package (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           pip install dist/*.whl
 
+      - name: Install package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $wheel = Get-ChildItem -Path dist -Filter *.whl | Select-Object -First 1
+          pip install $wheel.FullName
+
       - name: Verify installation
+        shell: bash
         run: |
           python -c "import gyroscope_ui; print('Package imported successfully')"
 
@@ -98,6 +115,7 @@ jobs:
 
       - name: Get version from pyproject.toml
         id: get_version
+        shell: bash
         run: |
           VERSION=$(grep -m 1 'version = ' pyproject.toml | cut -d'"' -f2)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -105,6 +123,7 @@ jobs:
 
       - name: Check if tag exists
         id: check_tag
+        shell: bash
         run: |
           if git rev-parse "v${{ steps.get_version.outputs.version }}" >/dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
@@ -114,6 +133,7 @@ jobs:
 
       - name: Create and push tag
         if: steps.check_tag.outputs.exists == 'false'
+        shell: bash
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -122,16 +142,19 @@ jobs:
 
       - name: Generate changelog
         id: changelog
+        shell: bash
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -z "$PREV_TAG" ]; then
             CHANGELOG="Initial release"
           else
-            CHANGELOG=$(git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges)
+            CHANGELOG=$(git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges || echo "See commit history")
           fi
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

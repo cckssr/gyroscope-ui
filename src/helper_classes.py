@@ -473,15 +473,38 @@ def import_config(language: str = "de") -> dict:
     Returns:
         dict: The configuration dictionary.
     """
-    try:
-        with open("config.json", "r", encoding="utf-8") as f:
-            config = json.load(f)
-            return config[language]
-    except FileNotFoundError:
+    import os
+    from pathlib import Path
+
+    # Try multiple locations for config.json
+    config_locations = [
+        # Current working directory (for running from source)
+        Path("config.json"),
+        # Package directory (when installed)
+        Path(__file__).parent / "config.json",
+        # One level up (root directory when running from source)
+        Path(__file__).parent.parent / "config.json",
+    ]
+
+    config_path = None
+    for location in config_locations:
+        if location.exists():
+            config_path = location
+            break
+
+    if config_path is None:
         Debug.error(
-            "config.json not found. Please ensure it exists in the project root."
+            "config.json not found. Please ensure it exists in the project root or package directory."
         )
         return {}
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+            return config[language]
     except json.JSONDecodeError as e:
         Debug.error(f"Error decoding JSON from config.json: {e}")
+        return {}
+    except KeyError:
+        Debug.error(f"Language '{language}' not found in config.json")
         return {}

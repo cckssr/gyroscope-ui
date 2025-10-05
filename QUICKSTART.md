@@ -138,6 +138,11 @@ Workflow-Dateien:
 
 → Prüfen Sie den Actions-Tab auf GitHub
 
+### Windows: "Invalid wheel filename (wrong number of parts): '\*'"
+
+→ Dieser Fehler wurde behoben! Verwenden Sie die neue Version vom main Branch.
+→ Details siehe [BUGFIXES.md](BUGFIXES.md)
+
 ## 💡 Tipps
 
 1. **Semantic Versioning**: Verwenden Sie `MAJOR.MINOR.PATCH`
