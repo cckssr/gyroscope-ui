@@ -1,0 +1,7 @@
+{
+    "files": [
+        "main.py",
+        "pyqt/connection.ui",
+        "pyqt/mainwindow.ui"
+    ]
+}

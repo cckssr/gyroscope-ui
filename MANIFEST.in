@@ -1,0 +1,32 @@
+# Include wichtige Dateien im Distribution Package
+include README.md
+include LICENSE
+include requirements.txt
+include config.json
+
+# Include pyqt UI files
+recursive-include pyqt *.ui
+
+# Exclude unnötige Dateien
+exclude *.pyc
+exclude .DS_Store
+exclude *.ipynb
+exclude *.user
+exclude book.toml
+exclude test_connection.py
+exclude UDP_CONNECTION_IMPROVEMENTS.md
+
+# Exclude Verzeichnisse
+recursive-exclude Arduino-Gyroscope *
+recursive-exclude logs *
+recursive-exclude tests *
+recursive-exclude docs *
+recursive-exclude scripts *
+recursive-exclude static *
+recursive-exclude backup_src *
+prune Arduino-Gyroscope
+prune logs
+prune tests
+prune docs
+prune scripts
+prune static

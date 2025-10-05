@@ -1,0 +1,101 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gyroscope-ui"
+version = "1.0.0"
+description = "Gyroscope User Interface - A GUI for gyroscope control and data acquisition"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Cedric Kessler", email = "cedric.kessler@tu-berlin.de"}
+]
+keywords = ["gyroscope", "gui", "data-acquisition", "qt", "pyside6"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: User Interfaces",
+]
+
+dependencies = [
+    "PySide6>=6.5.0",
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+    "pyqtgraph>=0.13.0",
+    "scipy>=1.10.0",
+    "pyserial>=3.5",
+    "pillow>=9.5.0",
+]
+
+[project.scripts]
+gyroscope-ui = "gyroscope_ui.main:main"
+
+[project.optional-dependencies]
+docs = [
+    "sphinx>=7.1.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
+    "sphinx-autodoc-typehints>=1.24.0",
+    "sphinx-copybutton>=0.5.2",
+    "sphinxcontrib-napoleon>=0.7",
+]
+
+dev = [
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/cckssr/gyroscope-ui"
+Repository = "https://github.com/cckssr/gyroscope-ui"
+Issues = "https://github.com/cckssr/gyroscope-ui/issues"
+
+[tool.setuptools]
+packages = ["gyroscope_ui", "gyroscope_ui.pyqt"]
+
+[tool.setuptools.package-dir]
+gyroscope_ui = "src"
+"gyroscope_ui.pyqt" = "pyqt"
+
+[tool.setuptools.package-data]
+gyroscope_ui = ["*.json", "*.ui"]
+"gyroscope_ui.pyqt" = ["*.ui"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | docs/_build
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

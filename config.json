@@ -1,0 +1,77 @@
+{
+  "de": {
+    "description": "Zentrale Konfigurationsdatei für die GYRO-UI-Anwendung. Stellt Konstanten und Standardwerte für die gesamte Anwendung bereit.",
+
+    "application": {
+      "name": "Gyroskope GUI",
+      "version": "1.0.0",
+      "author": "C. Kessler, M. Metschl"
+    },
+
+    "debug": {
+      "level_default": "info"
+    },
+
+    "plot": {
+      "frequency": {
+        "max_points": 20000,
+        "x_label": "Vergangene Zeit / s",
+        "y_label": "Rotationsfrequenz / Hz"
+      },
+      "acceleration": {
+        "max_points": 20000,
+        "x_label": "Vergangene Zeit / s",
+        "y_label": "Z-Rotationsgeschwindigkeit / 2π / s"
+      }
+    },
+    "timers": {
+      "control_update_interval": 1000,
+      "acquisition_timer_interval": 100,
+      "gui_update_interval": 100,
+      "statistics_update_interval": 2000
+    },
+    "data_controller": {
+      "max_history_size": 20000,
+      "default_save_dir": "Kreisel"
+    },
+    "colors": {
+      "green": "green",
+      "red": "red",
+      "orange": "orange",
+      "blue": "blue"
+    },
+    "connection": {
+      "default_ip": "192.168.4.1:12345",
+      "timeout": 2.0,
+      "default_ssid": "Kreisel-*"
+    },
+    "messages": {
+      "app_init": "Anwendung wird initialisiert...",
+      "connected": "Verbunden mit {}. Bereit für Messungen.",
+      "disconnected": "Verbindung zum Gerät getrennt.",
+      "connecting": "Verbinde mit Gerät ... Versuch {}",
+      "measurement_running": "Messung läuft...",
+      "measurement_stopped": "Messung gestoppt.",
+      "measurement_ended": "Messung beendet. Bereit zum Speichern oder für eine neue Messung.",
+      "settings_applied": "Einstellungen erfolgreich angewendet.",
+      "data_saved": "Daten gespeichert in {}",
+      "no_data": "Es sind keine Messdaten zum Speichern verfügbar.",
+      "unsaved_data": "Sie haben ungespeicherte Messdaten. Möchten Sie diese verwerfen und eine neue Messung starten?",
+      "unsaved_data_close": "Sie haben ungespeicherte Messdaten. Möchten Sie diese verwerfen und die Anwendung schließen?",
+      "connection_failed": "Verbindung zum Gerät fehlgeschlagen. Anwendung wird beendet.",
+      "auto_save_enabled": "Automatisches Speichern ist aktiviert. Messdaten werden automatisch gespeichert, wenn die Messung endet.",
+      "auto_save_disabled": "Automatisches Speichern ist deaktiviert. Sie müssen die Messdaten manuell speichern.",
+      "save_error": "Fehler beim Speichern der Daten: {}",
+      "data_reset": "Daten wurden zurückgesetzt. Bereit für eine neue Messung.",
+      "auto_save_tooltip": "Bei Aktivierung werden die Messungen automatisch im Format:\nYYYY_MM_DD-<Messung>-<Suffix>.csv\nim Ordner Dokumente/Kreisel/ gespeichert.",
+      "sample_name_empty": "Messbezeichnung darf nicht leer sein.",
+      "group_letter_empty": "Gruppenbuchstabe darf nicht leer sein.",
+      "no_data_to_save": "Keine Messdaten zum Speichern vorhanden.",
+      "select_sample_and_group": "Bitte wählen Sie eine Messbezeichnung und eine Gruppenzuordnung aus.",
+      "close_unsaved_data_title": "Ungespeicherte Messdaten",
+      "close_unsaved_data_question": "Sie haben ungespeicherte Messdaten. Möchten Sie diese jetzt speichern?",
+      "close_after_cancel_title": "Schließen ohne Speichern?",
+      "close_after_cancel_question": "Möchten Sie die Anwendung wirklich ohne Speichern schließen? Alle ungespeicherten Daten gehen verloren."
+    }
+  }
+}
