@@ -22,13 +22,18 @@ from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 
 from src.plot import PlotWidget
 from src.debug_utils import Debug
+from src.helper_classes import SaveManager, import_config
 
 # Konfigurationswerte direkt definieren, um Import-Probleme zu umgehen
 MAX_HISTORY_SIZE = 100
+CONFIG = import_config()
 
 
 class DataController:
-    """Store measurement data and provide statistics for the UI."""
+    """Store measurement data and provide statistics for the UI.
+
+    Now includes integrated SaveManager functionality for better cohesion.
+    """
 
     def __init__(
         self,
@@ -64,6 +69,13 @@ class DataController:
 
         # Recording flag
         self.recording: bool = False
+
+        # Integrated SaveManager
+        self.save_manager = SaveManager(
+            base_dir=CONFIG["data_controller"]["default_save_dir"]
+        )
+        self.measurement_start: Optional[datetime] = None
+        self.measurement_end: Optional[datetime] = None
 
         # Performance metrics placeholders
         self._total_points_received: int = 0
@@ -391,4 +403,82 @@ class DataController:
             Debug.debug("No gyro_z data in gyro_series")
 
         Debug.debug(f"Returning values: {values}")
-        return values  # (Duplicate recording control block removed above)
+        return values
+
+    # ============= Integrated SaveManager Methods =============
+
+    def save_measurement_auto(self, group_letter: str, suffix: str = ""):
+        """Auto-save measurement with current data.
+
+        Args:
+            group_letter: Group identifier
+            suffix: Optional suffix for filename
+
+        Returns:
+            Path to saved file or None if failed
+        """
+        if not self.save_manager.auto_save or self.save_manager.last_saved:
+            return None
+
+        data = self.get_csv_data()
+        measurement_name = "Messung"
+
+        saved_path = self.save_manager.auto_save_measurement(
+            measurement_name,
+            group_letter,
+            data,
+            self.measurement_start or datetime.now(),
+            self.measurement_end or datetime.now(),
+            suffix,
+        )
+
+        return saved_path
+
+    def save_measurement_manual(self, parent, group_letter: str):
+        """Manually save measurement via file dialog.
+
+        Args:
+            parent: Parent widget for dialog
+            group_letter: Group identifier
+
+        Returns:
+            Path to saved file or None if cancelled/failed
+        """
+        data = self.get_csv_data()
+        measurement_name = "Messung"
+
+        saved_path = self.save_manager.manual_save_measurement(
+            parent,
+            measurement_name,
+            group_letter,
+            data,
+            self.measurement_start or datetime.now(),
+            self.measurement_end or datetime.now(),
+        )
+
+        return saved_path
+
+    def has_unsaved_data(self) -> bool:
+        """Check if there is unsaved measurement data."""
+        return self.save_manager.has_unsaved()
+
+    def mark_data_unsaved(self) -> None:
+        """Mark current data as unsaved."""
+        self.save_manager.mark_unsaved()
+
+    def mark_data_saved(self) -> None:
+        """Mark current data as saved."""
+        self.save_manager.last_saved = True
+
+    def set_auto_save(self, enabled: bool) -> None:
+        """Enable or disable auto-save."""
+        self.save_manager.auto_save = enabled
+
+    def is_auto_save_enabled(self) -> bool:
+        """Check if auto-save is enabled."""
+        return self.save_manager.auto_save
+
+    def set_measurement_times(self, start: datetime, end: datetime) -> None:
+        """Set measurement start and end times."""
+        self.measurement_start = start
+        self.measurement_end = end
