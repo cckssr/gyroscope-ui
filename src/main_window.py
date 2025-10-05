@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QMainWindow,
     QVBoxLayout,
@@ -6,7 +7,8 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QWidget,
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
-from PySide6.QtGui import QPalette  # pylint: disable=no-name-in-module
+from PySide6.QtGui import QPalette
+from pyparsing import C  # pylint: disable=no-name-in-module
 from src.device_manager import DeviceManager
 from src.plot import PlotWidget
 from src.debug_utils import Debug
@@ -18,7 +20,6 @@ from src.helper_classes import (
 )
 from src.data_controller import DataController
 from pyqt.ui_mainwindow import Ui_MainWindow
-from datetime import datetime
 
 
 # Import settings and messages
@@ -26,7 +27,7 @@ CONFIG = import_config()
 
 
 class MainWindow(QMainWindow):
-    """Main window of the HRNGGUI application.
+    """Main window of the Gyroscope application.
 
     It handles the user interface, the device connection and the
     processing of the recorded data.  The implementation is split
@@ -331,14 +332,14 @@ class MainWindow(QMainWindow):
                 self.data_saved = True
                 self.ui.buttonSave.setEnabled(False)
                 self.statusbar.temp_message(
-                    f"Messung erfolgreich gespeichert: {saved_path}",
+                    CONFIG["messages"]["data_saved"].format(saved_path),
                     CONFIG["colors"]["green"],
                 )
                 Debug.info(f"Messung automatisch gespeichert: {saved_path}")
             else:
                 MessageHelper.error(
                     self,
-                    "Fehler beim Speichern der Messung. Siehe Log für Details.",
+                    CONFIG["messages"]["save_error"].format(saved_path),
                     "Fehler",
                 )
 
@@ -349,7 +350,7 @@ class MainWindow(QMainWindow):
             if not self.save_manager.has_unsaved():
                 MessageHelper.info(
                     self,
-                    "Keine ungespeicherten Daten vorhanden.",
+                    CONFIG["messages"]["no_data"],
                     "Information",
                 )
                 return
@@ -378,7 +379,7 @@ class MainWindow(QMainWindow):
             else:
                 MessageHelper.error(
                     self,
-                    "Fehler beim Speichern der Messung. Siehe Log für Details.",
+                    CONFIG["messages"]["save_error"].format(saved_path),
                     "Fehler",
                 )
 
@@ -386,7 +387,7 @@ class MainWindow(QMainWindow):
             Debug.error(f"Fehler beim manuellen Speichern: {e}")
             MessageHelper.error(
                 self,
-                f"Unerwarteter Fehler beim Speichern: {str(e)}",
+                CONFIG["messages"]["save_error"].format(e),
                 "Fehler",
             )
 
@@ -545,7 +546,7 @@ class MainWindow(QMainWindow):
 
             response = MessageHelper.question(
                 self,
-                "Es gibt ungespeicherte Messdaten. Möchten Sie diese vor dem Schließen speichern?",
+                CONFIG["messages"]["unsaved_data_close"],
                 "Ungespeicherte Daten",
             )
             if response:
@@ -556,7 +557,7 @@ class MainWindow(QMainWindow):
                     # User cancelled save dialog - ask if they still want to quit
                     if not MessageHelper.question(
                         self,
-                        "Speichern wurde abgebrochen. Möchten Sie trotzdem beenden und die Daten verlieren?",
+                        CONFIG["messages"]["unsaved_data_close"],
                         "Warnung",
                     ):
                         event.ignore()
@@ -591,9 +592,7 @@ class MainWindow(QMainWindow):
         """Handle connection loss signal from device manager."""
         Debug.info("Connection lost detected in main window")
         # Update UI to show connection lost state
-        self.statusbar.temp_message(
-            "Connection lost - attempting reconnection...", "red"
-        )
+        self.statusbar.temp_message(CONFIG["messages"]["disconnected"], "red")
         # Optionally disable measurement controls while reconnecting
         if hasattr(self, "ui"):
             # You could disable buttons here if needed
@@ -603,5 +602,5 @@ class MainWindow(QMainWindow):
         """Handle reconnection attempt signal from device manager."""
         Debug.info(f"Reconnection attempt {attempt_number}")
         self.statusbar.temp_message(
-            f"Reconnecting... (attempt {attempt_number})", "orange"
+            CONFIG["messages"]["connecting"].format(attempt_number), "orange"
         )

@@ -158,11 +158,15 @@ class ConnectionWindow(QDialog):
             Debug.info(
                 "UDP-Verbindung über DeviceManager erfolgreich, Datenerfassung gestartet"
             )
-            self.status_message("UDP-Verbindung erfolgreich hergestellt", "green")
+            self.status_message(
+                "UDP-Verbindung erfolgreich hergestellt und getestet", "green"
+            )
         else:
             self.connection_successful = False
             Debug.info("UDP-Verbindung über DeviceManager fehlgeschlagen")
-            self.status_message("UDP-Verbindung fehlgeschlagen", "red")
+            self.status_message(
+                "UDP-Verbindung fehlgeschlagen - keine Daten empfangen", "red"
+            )
         return success
 
     def closeEvent(self, event):  # noqa: N802 (Qt Namenskonvention)
@@ -212,9 +216,11 @@ class ConnectionWindow(QDialog):
     @Slot()
     def _on_connection_successful(self):
         """Handle successful connection signal from device manager."""
-        Debug.info("Verbindung erfolgreich, starte Auto-Accept Timer (2 Sekunden)")
+        Debug.info(
+            "Verbindung erfolgreich und getestet, starte Auto-Accept Timer (2 Sekunden)"
+        )
         self.status_message(
-            "Verbindung erfolgreich! Auto-Accept in 2 Sekunden...", "green"
+            "Verbindung erfolgreich getestet! Auto-Accept in 2 Sekunden...", "green"
         )
         self.auto_accept_timer.start(2000)  # 2 seconds
 

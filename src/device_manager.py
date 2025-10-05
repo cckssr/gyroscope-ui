@@ -535,8 +535,6 @@ class DeviceManager(QObject):
             except OSError as e:
                 # If port is busy, wait a bit and try again
                 Debug.debug(f"Port {port} busy ({e}), waiting and retrying...")
-                import time
-
                 time.sleep(0.2)
                 try:
                     self.connection.bind(("", port))
@@ -564,7 +562,41 @@ class DeviceManager(QObject):
             connect_msg = f"CONNECT:{client_ip}:{client_port}".encode("utf-8")
             self.connection.sendto(connect_msg, self.server_address)
 
-            # Connection established - server will start sending data
+            # Test connection by waiting for actual data
+            Debug.debug("Waiting for data to verify connection...")
+            data_received = False
+            test_start_time = time.time()
+            test_timeout = min(timeout, 3.0)  # Maximum 3 seconds for data test
+
+            while time.time() - test_start_time < test_timeout:
+                try:
+                    # Try to receive data with short timeout
+                    self.connection.settimeout(0.5)
+                    data, addr = self.connection.recvfrom(4096)
+                    if data:
+                        Debug.debug(f"Data received from {addr}: {len(data)} bytes")
+                        data_received = True
+                        break
+                except socket.timeout:
+                    continue
+                except Exception as e:
+                    Debug.debug(f"Error during data test: {e}")
+                    break
+
+            # Reset socket timeout for normal operation
+            self.connection.settimeout(timeout)
+
+            if not data_received:
+                Debug.error("No data received - connection test failed")
+                self.connection.close()
+                self.connection = None
+                if self.status_callback:
+                    self.status_callback(
+                        "UDP connection test failed - no data received", "red"
+                    )
+                return False
+
+            # Connection established and verified with data
             self.connected = True
             # Store connection params for reconnection
             self.last_connection_params = (ip, timeout)

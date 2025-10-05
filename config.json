@@ -48,6 +48,8 @@
     "messages": {
       "app_init": "Anwendung wird initialisiert...",
       "connected": "Verbunden mit {}. Bereit für Messungen.",
+      "disconnected": "Verbindung zum Gerät getrennt.",
+      "connecting": "Verbinde mit Gerät ... Versuch {}",
       "measurement_running": "Messung läuft...",
       "measurement_stopped": "Messung gestoppt.",
       "measurement_ended": "Messung beendet. Bereit zum Speichern oder für eine neue Messung.",
@@ -55,9 +57,11 @@
       "data_saved": "Daten gespeichert in {}",
       "no_data": "Es sind keine Messdaten zum Speichern verfügbar.",
       "unsaved_data": "Sie haben ungespeicherte Messdaten. Möchten Sie diese verwerfen und eine neue Messung starten?",
+      "unsaved_data_close": "Sie haben ungespeicherte Messdaten. Möchten Sie diese verwerfen und die Anwendung schließen?",
       "connection_failed": "Verbindung zum Gerät fehlgeschlagen. Anwendung wird beendet.",
       "auto_save_enabled": "Automatisches Speichern ist aktiviert. Messdaten werden automatisch gespeichert, wenn die Messung endet.",
-      "auto_save_disabled": "Automatisches Speichern ist deaktiviert. Sie müssen die Messdaten manuell speichern."
+      "auto_save_disabled": "Automatisches Speichern ist deaktiviert. Sie müssen die Messdaten manuell speichern.",
+      "save_error": "Fehler beim Speichern der Daten: {}"
     }
   }
 }
