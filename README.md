@@ -38,20 +38,47 @@ gyroscope-ui/
 
 ## Installation
 
-1. Abhängigkeiten installieren:
+### Als Paket (empfohlen)
+
+Installieren Sie direkt von GitHub:
+
+```bash
+# Neueste Version
+pip install git+https://github.com/cckssr/gyroscope-ui.git
+
+# Spezifische Version
+pip install git+https://github.com/cckssr/gyroscope-ui.git@v1.0.0
+```
+
+Nach der Installation starten Sie mit:
+
+```bash
+gyroscope-ui
+```
+
+### Aus dem Quellcode
+
+1. Repository klonen und Abhängigkeiten installieren:
 
    ```bash
-   pip install -r requirements.txt
+   git clone https://github.com/cckssr/gyroscope-ui.git
+   cd gyroscope-ui
+   pip install -e .
    ```
 
 2. Anwendung starten:
    ```bash
-   ./start_app.py
+   python main.py
+   # oder
+   gyroscope-ui
    ```
-   oder
-   ```bash
-   python start_app.py
-   ```
+
+Siehe [INSTALL.md](INSTALL.md) für detaillierte Installationsanweisungen.
+oder
+
+```bash
+python start_app.py
+```
 
 ## Verwendung
 

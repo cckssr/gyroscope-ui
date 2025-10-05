@@ -3,6 +3,9 @@
 
 """
 Gyroscope GUI - Hauptprogramm für die Gyroskop GUI-Anwendung.
+
+This file serves as the root entry point when running from source.
+When installed as a package, the entry point is gyroscope_ui.main:main
 """
 
 import sys
@@ -10,10 +13,18 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QApplication,
     QMessageBox,
 )
-from src.debug_utils import Debug
-from src.connection import ConnectionWindow
-from src.main_window import MainWindow
-from src.helper_classes import import_config
+
+# Try to import as package, fallback to local imports
+try:
+    from gyroscope_ui.debug_utils import Debug
+    from gyroscope_ui.connection import ConnectionWindow
+    from gyroscope_ui.main_window import MainWindow
+    from gyroscope_ui.helper_classes import import_config
+except ImportError:
+    from src.debug_utils import Debug
+    from src.connection import ConnectionWindow
+    from src.main_window import MainWindow
+    from src.helper_classes import import_config
 
 # Konfigurationsdatei laden
 CONFIG = import_config()
