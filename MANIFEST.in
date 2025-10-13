@@ -4,7 +4,7 @@ include LICENSE
 include requirements.txt
 
 # config.json wird automatisch aus src/ inkludiert (via package-data in pyproject.toml)
-# Die Root config.json ist nur für lokale Entwicklung
+# Hinweis: Es existiert nur noch die Variante in src/, um Duplikate zu vermeiden.
 
 # Include pyqt UI files
 recursive-include pyqt *.ui

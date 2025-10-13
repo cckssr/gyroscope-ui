@@ -117,7 +117,7 @@ class PlotWidget(pg.GraphicsLayoutWidget):
             curve = p.plot(
                 [],
                 [],
-                pen="w",  # White connecting line
+                pen=0.6,  # Dark gray connecting line
                 symbol="o",
                 symbolSize=4,
                 symbolBrush="r",

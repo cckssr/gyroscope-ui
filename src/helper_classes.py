@@ -465,6 +465,35 @@ class SaveManager:
         return f"{semester}{year}_{day}_{letter.upper()}"
 
 
+def create_dropbox_foldername(
+    group_letter: str, tk_designation: str, instrument: Optional[str] = None
+) -> str:
+    """Create a folder name for the custom GP-OpenBIS-Dropbox structure.
+    The syntax is: <current_day><group_letter><tk_designation>-<instrument>
+
+    Example: "MoA01-Gyroskop"
+
+    Args:
+        group_letter (str): The group letter (A-Z).
+        tk_designation (str): The designation of the experiment (e.g., "TK8").
+        instrument (str): The instrument name (e.g., "Gyroskop").
+    Returns:
+        str: The created folder name.
+    """
+
+    day = datetime.now().strftime("%a")[:2]
+    if not group_letter or not re.match(r"^[A-Z]$", group_letter):
+        Debug.error(f"Invalid group letter: {group_letter}")
+        return ""
+    if not tk_designation or not re.match(r"^TK\d{1,2}$", tk_designation):
+        Debug.error(f"Invalid TK designation: {tk_designation}")
+        return ""
+    folder_name = f"{day}{group_letter.upper()}{tk_designation}"
+    if instrument:
+        folder_name += f"-{instrument}"
+    return folder_name
+
+
 def import_config(language: str = "de") -> dict:
     """
     Imports the language-specific configuration from config.json.

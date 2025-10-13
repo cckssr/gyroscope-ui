@@ -414,36 +414,75 @@ class Ui_MainWindow(object):
         self.suffix.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Beim automatisch Speichern kann ein benutzerdefiniertes Suffix mit maximal 20 Zeichen erstellt werden (vor Messungsstart)</p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(tooltip)
-        self.buttonSave.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Messung speichern (Dateidialog, Kurzbefehl: STRG + S)</p></body></html>", None))
+        self.buttonSave.setToolTip(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"hr { height: 1px; border-width: 0; }\n"
+"li.unchecked::marker { content: \"\\2610\"; }\n"
+"li.checked::marker { content: \"\\2612\"; }\n"
+"</style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Messung speichern (Dateidialog, Kurzbefehl: <span style=\" font-weight:700; color:#0433ff;\">STRG + S</span>)</p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
         self.buttonSave.setText(QCoreApplication.translate("MainWindow", u"Speichern", None))
 #if QT_CONFIG(shortcut)
         self.buttonSave.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+S", None))
 #endif // QT_CONFIG(shortcut)
 #if QT_CONFIG(tooltip)
-        self.autoSave.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Bei Aktivierung werden die Messungen automatisch im Format:</p><p>YYYY_MM_DD-<span style=\" font-style:italic;\">Messung</span>-<span style=\" font-style:italic;\">Suffix</span>.csv</p><p>im Ordner Dokumente/Kreisel/ gespeichert.</p></body></html>", None))
+        self.autoSave.setToolTip(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"hr { height: 1px; border-width: 0; }\n"
+"li.unchecked::marker { content: \"\\2610\"; }\n"
+"li.checked::marker { content: \"\\2612\"; }\n"
+"</style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Bei Aktivierung werden die Messungen automatisch im Format:</p>\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">YYYY_MM_DD-<span style=\" font-style:italic;\">Messung</span>-<span style=\" font-style:italic;\">Suffix</span>.csv</p>\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-rig"
+                        "ht:0px; -qt-block-indent:0; text-indent:0px;\">im Ordner Dokumente/Kreisel/ gespeichert.</p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
         self.autoSave.setText(QCoreApplication.translate("MainWindow", u"Automatische Speicherung. ", None))
 #if QT_CONFIG(tooltip)
-        self.buttonStart.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Start der Messung (Kurzbefehl: <span style=\" font-weight:700;\">Leertaste</span>)</p><p><span style=\" color:#ff2600;\">Bevor eine neue Messung gestartet wird, m\u00fcssen die Daten gespeichert oder zur\u00fcckgesetzt werden.</span></p></body></html>", None))
+        self.buttonStart.setToolTip(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"hr { height: 1px; border-width: 0; }\n"
+"li.unchecked::marker { content: \"\\2610\"; }\n"
+"li.checked::marker { content: \"\\2612\"; }\n"
+"</style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Start der Messung (Kurzbefehl: <span style=\" font-weight:700; color:#0433ff;\">Leertaste</span>)</p>\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" color:#ff2600;\">Bevor eine neue Messung gestartet wird, m\u00fcssen die Daten gespeichert oder zur\u00fcckgesetzt werden.</span></p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
         self.buttonStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
 #if QT_CONFIG(shortcut)
         self.buttonStart.setShortcut(QCoreApplication.translate("MainWindow", u"Space", None))
 #endif // QT_CONFIG(shortcut)
 #if QT_CONFIG(tooltip)
-        self.buttonStop.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Aktuelle Messung stoppen (Kurzbefehl: <span style=\" font-weight:700;\">S</span>)</p></body></html>", None))
+        self.buttonStop.setToolTip(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"hr { height: 1px; border-width: 0; }\n"
+"li.unchecked::marker { content: \"\\2610\"; }\n"
+"li.checked::marker { content: \"\\2612\"; }\n"
+"</style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Aktuelle Messung stoppen (Kurzbefehl: <span style=\" font-weight:700; color:#0433ff;\">S</span><span style=\" font-weight:700; color:#0433ff;\">TRG + S</span>)</p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
         self.buttonStop.setText(QCoreApplication.translate("MainWindow", u"Stop", None))
 #if QT_CONFIG(shortcut)
-        self.buttonStop.setShortcut(QCoreApplication.translate("MainWindow", u"S", None))
+        self.buttonStop.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+S", None))
 #endif // QT_CONFIG(shortcut)
 #if QT_CONFIG(tooltip)
-        self.buttonReset.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Setzt die aktuelle Messreihe zur\u00fcck und verwirft die Daten (Kurzbefehl: <span style=\" font-weight:700;\">R</span>)</p></body></html>", None))
+        self.buttonReset.setToolTip(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"hr { height: 1px; border-width: 0; }\n"
+"li.unchecked::marker { content: \"\\2610\"; }\n"
+"li.checked::marker { content: \"\\2612\"; }\n"
+"</style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Setzt die aktuelle Messreihe zur\u00fcck und verwirft die Daten (Kurzbefehl: <span style=\" font-weight:700; color:#0433ff;\">STRG + R</span>)</p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
         self.buttonReset.setText(QCoreApplication.translate("MainWindow", u"Reset", None))
 #if QT_CONFIG(shortcut)
-        self.buttonReset.setShortcut(QCoreApplication.translate("MainWindow", u"R", None))
+        self.buttonReset.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+R", None))
 #endif // QT_CONFIG(shortcut)
         self.gridGroupBox.setTitle("")
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"Messdaten", None))
@@ -454,6 +493,16 @@ class Ui_MainWindow(object):
         self.autoScroll.setToolTip(QCoreApplication.translate("MainWindow", u"Wenn aktiviert, werden die N neusten Messwerte angezeigt und automatisch die Abszisse mitgef\u00fchrt / skaliert", None))
 #endif // QT_CONFIG(tooltip)
         self.autoScroll.setText(QCoreApplication.translate("MainWindow", u"Auto-Scroll", None))
+#if QT_CONFIG(tooltip)
+        self.autoRange.setToolTip(QCoreApplication.translate("MainWindow", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"hr { height: 1px; border-width: 0; }\n"
+"li.unchecked::marker { content: \"\\2610\"; }\n"
+"li.checked::marker { content: \"\\2612\"; }\n"
+"</style></head><body style=\" font-family:'.AppleSystemUIFont'; font-size:13pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Setzt alle Achsen wieder auf automatische Skalierung</p></body></html>", None))
+#endif // QT_CONFIG(tooltip)
         self.autoRange.setText(QCoreApplication.translate("MainWindow", u"Auto-Range", None))
     # retranslateUi
 

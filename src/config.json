@@ -4,7 +4,7 @@
 
     "application": {
       "name": "Gyroskope GUI",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": "C. Kessler, M. Metschl"
     },
 
@@ -34,7 +34,8 @@
     },
     "data_controller": {
       "max_history_size": 20000,
-      "default_save_dir": "Kreisel"
+      "default_save_dir": "Kreisel",
+      "tk": "TK8"
     },
     "colors": {
       "green": "green",

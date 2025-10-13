@@ -22,7 +22,7 @@ from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 
 from src.plot import PlotWidget
 from src.debug_utils import Debug
-from src.helper_classes import SaveManager, import_config
+from src.helper_classes import SaveManager, import_config, create_dropbox_foldername
 
 # Konfigurationswerte direkt definieren, um Import-Probleme zu umgehen
 MAX_HISTORY_SIZE = 100
