@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>931</width>
-    <height>702</height>
+    <width>1041</width>
+    <height>830</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>GM-Counter</string>
+   <string>Kreisel-GUI</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,5">
@@ -47,53 +47,13 @@
         </property>
         <layout class="QFormLayout" name="formLayout_3">
          <item row="0" column="0">
-          <widget class="QLabel" name="label_2">
-           <property name="text">
-            <string>Datenpunkte</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLCDNumber" name="cDataPoints">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>100</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="font">
-            <font>
-             <pointsize>15</pointsize>
-            </font>
-           </property>
-           <property name="frameShape">
-            <enum>QFrame::Shape::Box</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Shadow::Raised</enum>
-           </property>
-           <property name="digitCount">
-            <number>6</number>
-           </property>
-           <property name="segmentStyle">
-            <enum>QLCDNumber::SegmentStyle::Flat</enum>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
           <widget class="QLabel" name="label">
            <property name="text">
             <string>Rotationsfrequenz (Hz)</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
+         <item row="0" column="1">
           <widget class="QLCDNumber" name="cFrequency">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -112,6 +72,9 @@
              <pointsize>15</pointsize>
             </font>
            </property>
+           <property name="toolTip">
+            <string>Aktuelle Rotationsfrequenz der Kreiselscheibe in Hertz</string>
+           </property>
            <property name="digitCount">
             <number>6</number>
            </property>
@@ -120,14 +83,14 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="0">
+         <item row="1" column="0">
           <widget class="QLabel" name="label_4">
            <property name="text">
-            <string>Z-Rot. Geschw. (° / s)</string>
+            <string>Z-Rot. Geschw. (rad / s)</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
+         <item row="1" column="1">
           <widget class="QLCDNumber" name="cZGyro">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -146,11 +109,70 @@
              <pointsize>15</pointsize>
             </font>
            </property>
+           <property name="toolTip">
+            <string>Aktuelle Rotationsgeschwindigkeit der z-Achse in Radiant pro Sekunde</string>
+           </property>
            <property name="digitCount">
             <number>6</number>
            </property>
            <property name="segmentStyle">
             <enum>QLCDNumber::SegmentStyle::Flat</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Datenpunkte</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLCDNumber" name="cDataPoints">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>100</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+            </font>
+           </property>
+           <property name="toolTip">
+            <string>Anzahl der aufgezeichneten Messwerte</string>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::Shape::Box</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Shadow::Raised</enum>
+           </property>
+           <property name="digitCount">
+            <number>6</number>
+           </property>
+           <property name="segmentStyle">
+            <enum>QLCDNumber::SegmentStyle::Flat</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0" colspan="2">
+          <widget class="Line" name="line_3">
+           <property name="minimumSize">
+            <size>
+             <width>10</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
           </widget>
          </item>
@@ -344,7 +366,7 @@
               </sizepolicy>
              </property>
              <property name="toolTip">
-              <string>Ein benutzerdefiniertes Suffix mit maximal 20 Zeichen</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Beim automatisch Speichern kann ein benutzerdefiniertes Suffix mit maximal 20 Zeichen erstellt werden (vor Messungsstart)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="text">
               <string notr="true"/>
@@ -380,10 +402,13 @@
             </size>
            </property>
            <property name="toolTip">
-            <string>Messung speichern (Dateidialog)</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Messung speichern (Dateidialog, Kurzbefehl: STRG + S)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string>Speichern</string>
+           </property>
+           <property name="shortcut">
+            <string>Ctrl+S</string>
            </property>
           </widget>
          </item>
@@ -410,7 +435,7 @@
               </size>
              </property>
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bei Aktivierung werden die Messungen automatisch im Format:&lt;/p&gt;&lt;p&gt;YYYY_MM_DD-&lt;span style=&quot; font-style:italic;&quot;&gt;Radioaktive Probe&lt;/span&gt;-&lt;span style=&quot; font-style:italic;&quot;&gt;Suffix&lt;/span&gt;.csv&lt;/p&gt;&lt;p&gt;im Ordner Dokumente/Geiger-Mueller/ gespeichert.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bei Aktivierung werden die Messungen automatisch im Format:&lt;/p&gt;&lt;p&gt;YYYY_MM_DD-&lt;span style=&quot; font-style:italic;&quot;&gt;Messung&lt;/span&gt;-&lt;span style=&quot; font-style:italic;&quot;&gt;Suffix&lt;/span&gt;.csv&lt;/p&gt;&lt;p&gt;im Ordner Dokumente/Kreisel/ gespeichert.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="layoutDirection">
               <enum>Qt::LayoutDirection::RightToLeft</enum>
@@ -463,10 +488,13 @@
            </size>
           </property>
           <property name="toolTip">
-           <string>Start der Messung</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Start der Messung (Kurzbefehl: &lt;span style=&quot; font-weight:700;&quot;&gt;Leertaste&lt;/span&gt;)&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; color:#ff2600;&quot;&gt;Bevor eine neue Messung gestartet wird, müssen die Daten gespeichert oder zurückgesetzt werden.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
            <string>Start</string>
+          </property>
+          <property name="shortcut">
+           <string>Space</string>
           </property>
          </widget>
         </item>
@@ -488,10 +516,13 @@
            </size>
           </property>
           <property name="toolTip">
-           <string>Aktuelle Messung stoppen</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Aktuelle Messung stoppen (Kurzbefehl: &lt;span style=&quot; font-weight:700;&quot;&gt;S&lt;/span&gt;)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
            <string>Stop</string>
+          </property>
+          <property name="shortcut">
+           <string>S</string>
           </property>
          </widget>
         </item>
@@ -507,8 +538,14 @@
           <property name="enabled">
            <bool>false</bool>
           </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Setzt die aktuelle Messreihe zurück und verwirft die Daten (Kurzbefehl: &lt;span style=&quot; font-weight:700;&quot;&gt;R&lt;/span&gt;)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
           <property name="text">
            <string>Reset</string>
+          </property>
+          <property name="shortcut">
+           <string>R</string>
           </property>
           <property name="default">
            <bool>false</bool>
@@ -587,17 +624,106 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Live-Daten</string>
+              <string>Messdaten</string>
              </property>
              <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignCenter</set>
+              <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="checkBox">
+            <widget class="QSpinBox" name="sPlotpoints">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>70</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="toolTip">
+              <string>Anzahl der maximalen angezeigten Datenpunkte</string>
+             </property>
+             <property name="minimum">
+              <number>100</number>
+             </property>
+             <property name="maximum">
+              <number>40000</number>
+             </property>
+             <property name="singleStep">
+              <number>50</number>
+             </property>
+             <property name="value">
+              <number>20000</number>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="autoScroll">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>150</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>22</height>
+              </size>
+             </property>
+             <property name="toolTip">
+              <string>Wenn aktiviert, werden die N neusten Messwerte angezeigt und automatisch die Abszisse mitgeführt / skaliert</string>
+             </property>
              <property name="text">
               <string>Auto-Scroll</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="autoRange">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>150</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>35</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Auto-Range</string>
+             </property>
+             <property name="flat">
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -615,7 +741,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>931</width>
+     <width>1041</width>
      <height>24</height>
     </rect>
    </property>
@@ -623,5 +749,54 @@
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>autoScroll</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>sPlotpoints</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>722</x>
+     <y>65</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>662</x>
+     <y>71</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>autoSave</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>label_5</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>143</x>
+     <y>728</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>93</x>
+     <y>660</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>autoSave</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>suffix</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>164</x>
+     <y>725</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>190</x>
+     <y>657</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

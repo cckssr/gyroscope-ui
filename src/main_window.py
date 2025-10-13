@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
+
+# pylint: disable=broad-except
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QMainWindow,
     QVBoxLayout,
@@ -7,7 +9,7 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QWidget,
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
-from PySide6.QtGui import QPalette
+from PySide6 import QtGui
 from src.device_manager import DeviceManager
 from src.plot import PlotWidget
 from src.debug_utils import Debug
@@ -174,9 +176,9 @@ class MainWindow(QMainWindow):
             palette = widget.palette()
 
             # Get system colors
-            bg_color = palette.color(QPalette.ColorRole.Window)
-            text_color = palette.color(QPalette.ColorRole.WindowText)
-            base_color = palette.color(QPalette.ColorRole.Base)
+            bg_color = palette.color(QtGui.QPalette.ColorRole.Window)
+            text_color = palette.color(QtGui.QPalette.ColorRole.WindowText)
+            base_color = palette.color(QtGui.QPalette.ColorRole.Base)
 
             # Convert to RGB tuples and hex string for pyqtgraph
             bg_rgb = (bg_color.red(), bg_color.green(), bg_color.blue())
@@ -223,6 +225,28 @@ class MainWindow(QMainWindow):
         # Check auto-save setting
         self.ui.autoSave.setChecked(self.data_controller.is_auto_save_enabled())
         self.ui.autoSave.toggled.connect(self._change_auto_save)
+
+        # Connect plot control buttons
+        # Autorange: fit all plots on both axes
+        if hasattr(self.ui, "autoRange"):
+            self.ui.autoRange.clicked.connect(self._handle_auto_range)
+        # AutoScroll toggle: enable/disable scrolling to latest
+        if hasattr(self.ui, "autoScroll"):
+            self.ui.autoScroll.toggled.connect(self._handle_auto_scroll)
+        # SpinBox for max plot points: initialize from config and react on changes
+        if hasattr(self.ui, "sPlotpoints"):
+            try:
+                default_points = int(CONFIG["data_controller"]["max_history_size"])
+            except (KeyError, TypeError, ValueError):
+                default_points = 20000
+            # Set initial value only if different, to avoid redundant signals
+            if self.ui.sPlotpoints.value() != default_points:
+                self.ui.sPlotpoints.setValue(default_points)
+            # Apply initial value to plot widget
+            if hasattr(self, "plot_widget"):
+                self.plot_widget.set_max_points(self.ui.sPlotpoints.value())
+            # Update when changed by user
+            self.ui.sPlotpoints.valueChanged.connect(self._handle_max_points_changed)
 
     def _setup_timers(self):
         """Initialise timers (plot updates only)."""
@@ -289,7 +313,11 @@ class MainWindow(QMainWindow):
             # Enable plot data updates and clear old data for new measurement
             if hasattr(self, "plot_widget"):
                 self.plot_widget.set_measurement_mode(True)
-                self.plot_widget.set_auto_scroll(True)
+                # Respect current UI state for auto scroll
+                if hasattr(self.ui, "autoScroll"):
+                    self.plot_widget.set_auto_scroll(self.ui.autoScroll.isChecked())
+                else:
+                    self.plot_widget.set_auto_scroll(True)
                 Debug.debug(
                     "Plot widget enabled for measurement data updates and cleared"
                 )
@@ -313,7 +341,11 @@ class MainWindow(QMainWindow):
         # Disable plot data updates and auto-scroll
         if hasattr(self, "plot_widget"):
             self.plot_widget.set_measurement_mode(False)
-            self.plot_widget.set_auto_scroll(False)
+            # Keep auto scroll state consistent with UI (no forced off)
+            if hasattr(self.ui, "autoScroll"):
+                self.plot_widget.set_auto_scroll(self.ui.autoScroll.isChecked())
+            else:
+                self.plot_widget.set_auto_scroll(False)
             Debug.debug("Plot widget disabled for measurement data updates")
 
         self._set_ui_idle_state()
@@ -572,6 +604,36 @@ class MainWindow(QMainWindow):
         Debug.debug(
             f"Start button {'enabled' if self.data_clear_flag else 'disabled'} (clear_flag={self.data_clear_flag})"
         )
+
+    #
+    # 4. UI EVENT HANDLERS (plot controls)
+    #
+
+    def _handle_auto_range(self):
+        """Handle Autorange button: fit all plots on both axes."""
+        if hasattr(self, "plot_widget"):
+            # Use the comprehensive autorange
+            if hasattr(self.plot_widget, "auto_range_all"):
+                self.plot_widget.auto_range_all()
+            else:
+                # Fallback: at least set curves auto visible on Y
+                self.plot_widget.autoRange()
+            # Enable persistent autorange so further data/zoom syncs automatically
+            if hasattr(self.plot_widget, "set_persistent_autorange"):
+                self.plot_widget.set_persistent_autorange(True)
+
+    def _handle_auto_scroll(self, checked: bool):
+        """Handle AutoScroll checkbox toggle."""
+        if hasattr(self, "plot_widget"):
+            self.plot_widget.set_auto_scroll(checked)
+        # If autoscroll is enabled, ensure max points setting is applied immediately
+        if checked and hasattr(self.ui, "sPlotpoints") and hasattr(self, "plot_widget"):
+            self.plot_widget.set_max_points(self.ui.sPlotpoints.value())
+
+    def _handle_max_points_changed(self, value: int):
+        """Handle change of the plot points SpinBox."""
+        if hasattr(self, "plot_widget"):
+            self.plot_widget.set_max_points(int(value))
 
     def closeEvent(self, event):
         """Handle the window close event and shut down all components cleanly.
