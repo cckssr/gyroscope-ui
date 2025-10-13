@@ -133,14 +133,14 @@ class MainWindow(QMainWindow):
             {
                 "name": "frequency",
                 "y_index": 1,  # frequency is at index 1 in multi_data_point signal
-                "title": "Frequency (Hz)",
-                "x_label": CONFIG["plot"]["frequency"]["x_label"],
+                "title": CONFIG["plot"]["frequency"]["title"],
+                # "x_label": CONFIG["plot"]["frequency"]["x_label"], --- x_label in gyro plot ---
                 "y_label": CONFIG["plot"]["frequency"]["y_label"],
             },
             {
                 "name": "gyro_z",
                 "y_index": 3,  # gyro_z is at index 3 in multi_data_point signal
-                "title": "Gyroscope Z-Axis",
+                "title": CONFIG["plot"]["acceleration"]["title"],
                 "x_label": CONFIG["plot"]["acceleration"]["x_label"],
                 "y_label": CONFIG["plot"]["acceleration"]["y_label"],
             },

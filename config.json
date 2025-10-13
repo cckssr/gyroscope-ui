@@ -15,13 +15,15 @@
     "plot": {
       "frequency": {
         "max_points": 20000,
-        "x_label": "Vergangene Zeit / s",
-        "y_label": "Rotationsfrequenz / Hz"
+        "title": "Rotationsfrequenz Scheibe",
+        "x_label": "Vergangene Zeit (s)",
+        "y_label": "Rotationsfrequenz (Hz)"
       },
       "acceleration": {
         "max_points": 20000,
-        "x_label": "Vergangene Zeit / s",
-        "y_label": "Z-Rotationsgeschwindigkeit / 2π / s"
+        "title": "Z-Achsen Rotation",
+        "x_label": "Vergangene Zeit (s)",
+        "y_label": "Rotationsfrequenz (rad / s)"
       }
     },
     "timers": {

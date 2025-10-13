@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Optional, Tuple, List
+from typing import Iterable, Optional, List
 from collections import deque
 import queue
-from matplotlib.pyplot import xlabel
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Slot  # pylint: disable=no-name-in-module
@@ -98,12 +97,15 @@ class PlotWidget(pg.GraphicsLayoutWidget):
     def _setup_plots(self, series):
         top_plot = None
         for i, cfg in enumerate(series):
+            Debug.info(f"Setting up plot for series: {cfg}")
             p = self.addPlot(
                 row=i,
                 col=0,
                 title=cfg.get("title", cfg.get("name", "Plot")),
-                xlabel=cfg.get("x_label", ""),
-                ylabel=cfg.get("y_label", ""),
+                labels={
+                    "bottom": cfg.get("x_label", ""),
+                    "left": cfg.get("y_label", ""),
+                },
             )
             p.showGrid(x=True, y=True, alpha=0.3)
 
