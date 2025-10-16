@@ -8,16 +8,30 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 from PySide6.QtGui import QPalette
-from src.device_manager import DeviceManager
-from src.plot import PlotWidget
-from src.debug_utils import Debug
-from src.helper_classes import (
-    import_config,
-    Statusbar,
-    MessageHelper,
-)
-from src.data_controller import DataController
-from src.pyqt.ui_mainwindow import Ui_MainWindow
+
+# Relative imports für installiertes Package, absolute für lokale Ausführung
+try:
+    from .device_manager import DeviceManager
+    from .plot import PlotWidget
+    from .debug_utils import Debug
+    from .helper_classes import (
+        import_config,
+        Statusbar,
+        MessageHelper,
+    )
+    from .data_controller import DataController
+    from .pyqt.ui_mainwindow import Ui_MainWindow
+except ImportError:
+    from device_manager import DeviceManager
+    from plot import PlotWidget
+    from debug_utils import Debug
+    from helper_classes import (
+        import_config,
+        Statusbar,
+        MessageHelper,
+    )
+    from data_controller import DataController
+    from pyqt.ui_mainwindow import Ui_MainWindow
 
 
 # Import settings and messages

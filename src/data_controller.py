@@ -20,9 +20,15 @@ from PySide6.QtGui import (  # pylint: disable=no-name-in-module
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 
-from src.plot import PlotWidget
-from src.debug_utils import Debug
-from src.helper_classes import SaveManager, import_config
+# Relative imports für installiertes Package, absolute für lokale Ausführung
+try:
+    from .plot import PlotWidget
+    from .debug_utils import Debug
+    from .helper_classes import SaveManager, import_config
+except ImportError:
+    from plot import PlotWidget
+    from debug_utils import Debug
+    from helper_classes import SaveManager, import_config
 
 # Konfigurationswerte direkt definieren, um Import-Probleme zu umgehen
 MAX_HISTORY_SIZE = 100
