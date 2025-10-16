@@ -14,7 +14,12 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QFileDialog,
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
-from src.debug_utils import Debug
+
+# Relative imports für installiertes Package, absolute für lokale Ausführung
+try:
+    from .debug_utils import Debug
+except ImportError:
+    from debug_utils import Debug
 
 
 class Statusbar:
@@ -116,9 +121,14 @@ class AlertWindow(QDialog):
     ) -> None:
         super().__init__(parent)
         try:
-            from src.pyqt.ui_alert import (
-                Ui_Dialog,
-            )  # local import to avoid Qt dependency when unused
+            try:
+                from .pyqt.ui_alert import (
+                    Ui_Dialog,
+                )  # local import to avoid Qt dependency when unused
+            except ImportError:
+                from pyqt.ui_alert import (
+                    Ui_Dialog,
+                )  # local import to avoid Qt dependency when unused
         except Exception:  # pragma: no cover - fallback
             Ui_Dialog = object  # type: ignore
         self.ui = Ui_Dialog()
@@ -305,14 +315,10 @@ class SaveManager:
         """
 
         if not measurement_name:
-            from src.helper_classes import import_config
-
             CONFIG = import_config()
             Debug.error(CONFIG["messages"]["sample_name_empty"])
             return ""
         if not group_letter:
-            from src.helper_classes import import_config
-
             CONFIG = import_config()
             Debug.error(CONFIG["messages"]["group_letter_empty"])
             return ""
@@ -413,8 +419,6 @@ class SaveManager:
         """Open a save dialog and store the measurement."""
 
         if not data:
-            from src.helper_classes import import_config
-
             CONFIG = import_config()
             MessageHelper.warning(
                 parent,
@@ -424,8 +428,6 @@ class SaveManager:
             return None
 
         if not measurement_name or not group_letter:
-            from src.helper_classes import import_config
-
             CONFIG = import_config()
             MessageHelper.warning(
                 parent,

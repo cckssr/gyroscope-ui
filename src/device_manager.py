@@ -13,7 +13,11 @@ from PySide6.QtCore import (
     QTimer,
 )
 
-from src.debug_utils import Debug
+# Relative imports für installiertes Package, absolute für lokale Ausführung
+try:
+    from .debug_utils import Debug
+except ImportError:
+    from debug_utils import Debug
 
 
 class DataAcquisitionThread(QThread):

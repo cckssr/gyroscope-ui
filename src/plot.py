@@ -10,7 +10,11 @@ import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Slot  # pylint: disable=no-name-in-module
 
-from src.debug_utils import Debug
+# Relative imports für installiertes Package, absolute für lokale Ausführung
+try:
+    from .debug_utils import Debug
+except ImportError:
+    from debug_utils import Debug
 
 
 class PlotWidget(pg.GraphicsLayoutWidget):
