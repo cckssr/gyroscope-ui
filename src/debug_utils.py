@@ -34,6 +34,41 @@ class Debug:
     logger = None
 
     @classmethod
+    def _get_default_log_directory(cls, app_name):
+        """
+        Get platform-specific default log directory.
+
+        Returns:
+            - Windows: %LOCALAPPDATA%\\<app_name>\\logs
+            - macOS: ~/Library/Logs/<app_name>
+            - Linux: ~/.local/share/<app_name>/logs
+
+        Args:
+            app_name: Application name for the subdirectory
+        """
+        if sys.platform == "win32":
+            # Windows: Use LOCALAPPDATA (e.g., C:\Users\<User>\AppData\Local)
+            base_dir = os.environ.get("LOCALAPPDATA")
+            if not base_dir:
+                base_dir = os.path.expanduser(os.path.join("~", "AppData", "Local"))
+            log_directory = os.path.join(base_dir, app_name, "logs")
+        elif sys.platform == "darwin":
+            # macOS: Use ~/Library/Logs
+            log_directory = os.path.expanduser(
+                os.path.join("~", "Library", "Logs", app_name)
+            )
+        else:
+            # Linux: Use XDG_DATA_HOME or ~/.local/share
+            xdg_data_home = os.environ.get("XDG_DATA_HOME")
+            if xdg_data_home:
+                base_dir = xdg_data_home
+            else:
+                base_dir = os.path.expanduser(os.path.join("~", ".local", "share"))
+            log_directory = os.path.join(base_dir, app_name, "logs")
+
+        return log_directory
+
+    @classmethod
     def init(cls, debug_level=DEBUG_OFF, log_dir=None, app_name="fringe_counter"):
         """
         Initialisiert den Logger mit dem angegebenen Debug-Level und Log-Verzeichnis.
@@ -68,13 +103,12 @@ class Debug:
 
         # Set up log file
         # Use provided directory if given,
-        # otherwise use a "logs" folder in the project directory
+        # otherwise use platform-specific user data directory
         if log_dir:
             log_directory = log_dir
         else:
-            # Determine the project directory (one level above the src directory)
-            project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            log_directory = os.path.join(project_dir, "logs")
+            # Use platform-specific user data directory
+            log_directory = cls._get_default_log_directory(app_name)
 
         if not os.path.exists(log_directory):
             try:
