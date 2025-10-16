@@ -4,8 +4,8 @@
 
     "application": {
       "name": "Gyroskope GUI",
-      "version": "1.0.3",
-      "author": "C. Kessler, M. Metschl"
+      "version": "1.0.4",
+      "author": "C. Kessler"
     },
 
     "debug": {

@@ -68,7 +68,7 @@ class DataController:
 
         # ---------------- Internal Storage ----------------
         # Export buffer (only when recording True)
-        self.data_points: List[Tuple[float, float, float, float]] = []
+        self.data_points: List[Tuple[float, float, float]] = []
         # Live plot series (rolling window, always filled)
         self.freq_series: List[Tuple[float, float, str]] = []
         self.gyro_series: List[Tuple[float, float, str]] = []
@@ -123,10 +123,10 @@ class DataController:
         """
         ts = datetime.now().strftime("%H:%M:%S.%f")[:-3]
         Debug.debug(
-            f"multi_data_point recv t={elapsed_s:.3f} f={frequency:.3f} accZ={accel_z:.3f} gyroZ={gyro_z:.3f} rec={'on' if self.recording else 'off'}"
+            f"multi_data_point recv t={elapsed_s:.3f} f={frequency:.3f} gyroZ={gyro_z:.3f} rec={'on' if self.recording else 'off'}"
         )
         if self.recording:
-            self.data_points.append((elapsed_s, frequency, accel_z, gyro_z))
+            self.data_points.append((elapsed_s, frequency, gyro_z))
             Debug.debug(
                 f"Data point added to storage. Total points: {len(self.data_points)}"
             )
@@ -326,19 +326,20 @@ class DataController:
 
         return stats
 
-    def get_data_as_list(self) -> List[Tuple[float, float, float, float]]:
+    def get_data_as_list(self) -> List[Tuple[float, float, float]]:
         """Return all stored multi-channel data points as a list."""
         return self.data_points.copy()
 
     def get_csv_data(self) -> List[List[str]]:
         """Prepare the stored data for CSV export."""
-        result: List[List[str]] = [["Time (s)", "Frequency (Hz)", "Accel Z", "Gyro Z"]]
-        for t_s, freq, acc_z, gyro_z in self.data_points:
+        result: List[List[str]] = [
+            ["Time (s)", "Disk rotation frequency (Hz)", "Gyro Z rate (rad/s)"]
+        ]
+        for t_s, freq, gyro_z in self.data_points:
             result.append(
                 [
                     f"{t_s:.6f}",
                     f"{freq:.6f}" if not math.isnan(freq) else "",
-                    f"{acc_z:.6f}" if not math.isnan(acc_z) else "",
                     f"{gyro_z:.6f}" if not math.isnan(gyro_z) else "",
                 ]
             )
@@ -368,7 +369,7 @@ class DataController:
             "data_points_for_export": self.data_points,
         }
 
-    def get_all_data_for_export(self) -> List[Tuple[float, float, float, float]]:
+    def get_all_data_for_export(self) -> List[Tuple[float, float, float]]:
         """Return all collected multi-channel data points."""
         return self.data_points.copy()
 
