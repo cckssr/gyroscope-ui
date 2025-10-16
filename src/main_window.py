@@ -17,7 +17,7 @@ from src.helper_classes import (
     MessageHelper,
 )
 from src.data_controller import DataController
-from pyqt.ui_mainwindow import Ui_MainWindow
+from src.pyqt.ui_mainwindow import Ui_MainWindow
 
 
 # Import settings and messages
