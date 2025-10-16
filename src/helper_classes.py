@@ -116,7 +116,7 @@ class AlertWindow(QDialog):
     ) -> None:
         super().__init__(parent)
         try:
-            from pyqt.ui_alert import (
+            from src.pyqt.ui_alert import (
                 Ui_Dialog,
             )  # local import to avoid Qt dependency when unused
         except Exception:  # pragma: no cover - fallback
