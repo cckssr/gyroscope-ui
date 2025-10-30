@@ -226,6 +226,15 @@ class MainWindow(QMainWindow):
         self.ui.autoSave.setChecked(self.data_controller.is_auto_save_enabled())
         self.ui.autoSave.toggled.connect(self._change_auto_save)
 
+        # Connect menu action for auto-save to toggle the checkbox
+        if hasattr(self.ui, "actionAutomatische_Speicherung"):
+            self.ui.actionAutomatische_Speicherung.triggered.connect(
+                self._change_auto_save
+            )
+            self._change_auto_save(
+                self.ui.actionAutomatische_Speicherung.isChecked()
+            )
+
         # Connect plot control buttons
         # Autorange: fit all plots on both axes
         if hasattr(self.ui, "autoRange"):
@@ -548,6 +557,8 @@ class MainWindow(QMainWindow):
             checked: ``True`` if auto save is enabled.
         """
         self.data_controller.set_auto_save(checked)
+        self.ui.autoSave.setHidden(not checked)
+        self.ui.autoSave.setChecked(checked)
         if checked:
             self.statusbar.temp_message(
                 CONFIG["messages"]["auto_save_enabled"],

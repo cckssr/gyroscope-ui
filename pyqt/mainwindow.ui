@@ -793,8 +793,26 @@ li.checked::marker { content: &quot;\2612&quot;; }
      <height>24</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuEinstellungen">
+    <property name="title">
+     <string>Einstellungen</string>
+    </property>
+    <addaction name="actionAutomatische_Speicherung"/>
+   </widget>
+   <addaction name="menuEinstellungen"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionAutomatische_Speicherung">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Automatische Speicherung</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections>
@@ -843,6 +861,22 @@ li.checked::marker { content: &quot;\2612&quot;; }
     <hint type="destinationlabel">
      <x>190</x>
      <y>657</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionAutomatische_Speicherung</sender>
+   <signal>checkableChanged(bool)</signal>
+   <receiver>autoSave</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>150</x>
+     <y>724</y>
     </hint>
    </hints>
   </connection>

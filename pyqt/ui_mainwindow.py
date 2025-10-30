@@ -11,22 +11,27 @@
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
     QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
+    QCursor, QFont, QFontDatabase, QGradient,
+    QIcon, QImage, QKeySequence, QLinearGradient,
+    QPainter, QPalette, QPixmap, QRadialGradient,
+    QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout,
     QFrame, QGridLayout, QGroupBox, QHBoxLayout,
     QLCDNumber, QLabel, QLayout, QLineEdit,
-    QMainWindow, QMenuBar, QPushButton, QSizePolicy,
-    QSpacerItem, QSpinBox, QStatusBar, QVBoxLayout,
-    QWidget)
+    QMainWindow, QMenu, QMenuBar, QPushButton,
+    QSizePolicy, QSpacerItem, QSpinBox, QStatusBar,
+    QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(1041, 830)
+        self.actionAutomatische_Speicherung = QAction(MainWindow)
+        self.actionAutomatische_Speicherung.setObjectName(u"actionAutomatische_Speicherung")
+        self.actionAutomatische_Speicherung.setCheckable(True)
+        self.actionAutomatische_Speicherung.setChecked(False)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.horizontalLayout_3 = QHBoxLayout(self.centralwidget)
@@ -355,10 +360,15 @@ class Ui_MainWindow(object):
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
         self.menubar.setGeometry(QRect(0, 0, 1041, 24))
+        self.menuEinstellungen = QMenu(self.menubar)
+        self.menuEinstellungen.setObjectName(u"menuEinstellungen")
         MainWindow.setMenuBar(self.menubar)
         self.statusBar = QStatusBar(MainWindow)
         self.statusBar.setObjectName(u"statusBar")
         MainWindow.setStatusBar(self.statusBar)
+
+        self.menubar.addAction(self.menuEinstellungen.menuAction())
+        self.menuEinstellungen.addAction(self.actionAutomatische_Speicherung)
 
         self.retranslateUi(MainWindow)
         self.autoScroll.toggled.connect(self.sPlotpoints.setVisible)
@@ -374,6 +384,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Kreisel-GUI", None))
+        self.actionAutomatische_Speicherung.setText(QCoreApplication.translate("MainWindow", u"Automatische Speicherung", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"Live Messwerte", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Rotationsfrequenz (Hz)", None))
 #if QT_CONFIG(tooltip)
@@ -504,5 +515,6 @@ class Ui_MainWindow(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Setzt alle Achsen wieder auf automatische Skalierung</p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
         self.autoRange.setText(QCoreApplication.translate("MainWindow", u"Auto-Range", None))
+        self.menuEinstellungen.setTitle(QCoreApplication.translate("MainWindow", u"Einstellungen", None))
     # retranslateUi
 
