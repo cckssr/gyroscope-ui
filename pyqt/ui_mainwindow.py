@@ -19,9 +19,9 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout,
     QFrame, QGridLayout, QGroupBox, QHBoxLayout,
     QLCDNumber, QLabel, QLayout, QLineEdit,
-    QMainWindow, QMenu, QMenuBar, QPushButton,
-    QSizePolicy, QSpacerItem, QSpinBox, QStatusBar,
-    QVBoxLayout, QWidget)
+    QMainWindow, QMenu, QMenuBar, QPlainTextEdit,
+    QPushButton, QSizePolicy, QSpacerItem, QSpinBox,
+    QStatusBar, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -171,10 +171,24 @@ class Ui_MainWindow(object):
 
         self.formLayout_2.setWidget(0, QFormLayout.ItemRole.FieldRole, self.groupLetter)
 
+        self.label_8 = QLabel(self.groupBox)
+        self.label_8.setObjectName(u"label_8")
+
+        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_8)
+
+        self.groupSubterm = QPlainTextEdit(self.groupBox)
+        self.groupSubterm.setObjectName(u"groupSubterm")
+        sizePolicy2.setHeightForWidth(self.groupSubterm.sizePolicy().hasHeightForWidth())
+        self.groupSubterm.setSizePolicy(sizePolicy2)
+        self.groupSubterm.setMaximumSize(QSize(200, 90))
+        self.groupSubterm.setMaximumBlockCount(90)
+
+        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.FieldRole, self.groupSubterm)
+
         self.label_5 = QLabel(self.groupBox)
         self.label_5.setObjectName(u"label_5")
 
-        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_5)
+        self.formLayout_2.setWidget(2, QFormLayout.ItemRole.LabelRole, self.label_5)
 
         self.suffix = QLineEdit(self.groupBox)
         self.suffix.setObjectName(u"suffix")
@@ -183,7 +197,7 @@ class Ui_MainWindow(object):
         self.suffix.setText(u"")
         self.suffix.setMaxLength(20)
 
-        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.FieldRole, self.suffix)
+        self.formLayout_2.setWidget(2, QFormLayout.ItemRole.FieldRole, self.suffix)
 
 
         self.verticalLayout.addLayout(self.formLayout_2)
@@ -374,6 +388,7 @@ class Ui_MainWindow(object):
         self.autoScroll.toggled.connect(self.sPlotpoints.setVisible)
         self.autoSave.toggled.connect(self.label_5.setVisible)
         self.autoSave.toggled.connect(self.suffix.setVisible)
+        self.actionAutomatische_Speicherung.checkableChanged.connect(self.autoSave.setVisible)
 
         self.groupLetter.setCurrentIndex(-1)
         self.buttonReset.setDefault(False)
@@ -420,6 +435,11 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.groupLetter.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Auswahl der GP Praktikumsgruppe <span style=\" color:#ff001a;\">(Pflichtfeld)</span></p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
+        self.label_8.setText(QCoreApplication.translate("MainWindow", u"Teilgruppe*", None))
+#if QT_CONFIG(tooltip)
+        self.groupSubterm.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Hier muss eine Bezeichnung f\u00fcr die Teilgruppe hinzugef\u00fcgt werden. Dies erlaubt die Unterscheidung zwischen den Experimentiergruppen innerhalb eines Tages + Buchstabe. </p><p>Bsp.: V. Nachname, V2. Nachname2</p><p><br/></p></body></html>", None))
+#endif // QT_CONFIG(tooltip)
+        self.groupSubterm.setPlainText("")
         self.label_5.setText(QCoreApplication.translate("MainWindow", u"Eigenes Suffix", None))
 #if QT_CONFIG(tooltip)
         self.suffix.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Beim automatisch Speichern kann ein benutzerdefiniertes Suffix mit maximal 20 Zeichen erstellt werden (vor Messungsstart)</p></body></html>", None))

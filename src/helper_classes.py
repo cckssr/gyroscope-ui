@@ -287,21 +287,21 @@ class SaveManager:
         self,
         measurement_name: str,
         group_letter: str,
+        subterm: str = "",
         suffix: str = "",
         extension: str = ".csv",
     ) -> str:
-        """Generate a standard file name.
+        """Generate a standard file name with subterm in folder path.
 
-        Parameters
-        ----------
-        measurement_name:
-            Measurement identifier to include in the file name.
-        group_letter:
-            Group letter to include in the file name.
-        suffix:
-            Optional suffix (``-run1`` etc.).
-        extension:
-            File extension including leading dot.
+        Args:
+            measurement_name (str): Measurement identifier to include in the file name.
+            group_letter (str): Group letter to include in the file name.
+            subterm (str): Subgroup term to include in folder name.
+            suffix (str): Optional suffix (``-run1`` etc.).
+            extension (str): File extension including leading dot.
+        
+        Returns:
+            str: Generated file name with folder path.
         """
 
         if not measurement_name:
@@ -321,7 +321,17 @@ class SaveManager:
         if suffix and not suffix.startswith("-"):
             suffix = "-" + suffix
         self.index += 1
-        return f"{timestamp}-{self.index:02d}-{measurement_name}{suffix}{extension}"
+        
+        # Create folder name with sanitized subterm
+        folder_parts = [group_letter.upper()]
+        if subterm:
+            sanitized_subterm = sanitize_subterm_for_folder(subterm, max_length=20)
+            if sanitized_subterm:
+                folder_parts.append(sanitized_subterm)
+        folder_name = "_".join(folder_parts)
+        
+        filename = f"{timestamp}-{self.index:02d}-{measurement_name}{suffix}{extension}"
+        return f"{folder_name}/{filename}"
 
     def mark_unsaved(self) -> None:
         """Mark the current measurement as not yet saved."""
@@ -339,6 +349,7 @@ class SaveManager:
         end: datetime,
         group: str,
         sample: str,
+        subterm: str = "",
         extra: Union[dict, None] = None,
     ) -> dict:
         """Create metadata dictionary following basic Dublin Core fields."""
@@ -353,6 +364,7 @@ class SaveManager:
             "start_time": start.isoformat(),
             "end_time": end.isoformat(),
             "measurement_name": sample,
+            "subgroup": subterm if subterm else "",
         }
         if extra:
             metadata.update(extra)
@@ -364,12 +376,17 @@ class SaveManager:
         """Save CSV data and accompanying metadata.
 
         ``file_name`` may be an absolute path or a simple file name. Relative
-        names are stored below ``base_dir``.
+        names are stored below ``base_dir``. If file_name contains a subfolder,
+        it will be created automatically.
         """
 
         csv_path = Path(file_name)
         if not csv_path.is_absolute():
             csv_path = self.base_dir / csv_path
+        
+        # Create parent directory if it doesn't exist
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        
         try:
             with open(csv_path, "w", newline="", encoding="utf-8") as csv_f:
                 writer = csv.writer(csv_f)
@@ -389,16 +406,17 @@ class SaveManager:
         data: list[list[str]],
         start: datetime,
         end: datetime,
+        subterm: str = "",
         suffix: str = "",
-    ) -> Path:
+    ) -> Optional[Path]:
         """Automatically save data using a generated file name."""
 
         if not data:
             Debug.error("No data provided for auto save")
             return None
 
-        file_name = self.filename_auto(measurement_name, group_letter, suffix)
-        meta = self.create_metadata(start, end, group_letter, measurement_name)
+        file_name = self.filename_auto(measurement_name, group_letter, subterm, suffix)
+        meta = self.create_metadata(start, end, group_letter, measurement_name, subterm)
         return self.save_measurement(file_name, data, meta)
 
     def manual_save_measurement(
@@ -409,35 +427,36 @@ class SaveManager:
         data: list[list[str]],
         start: datetime,
         end: datetime,
-    ) -> Path:
-        """Open a save dialog and store the measurement."""
+        subterm: str = "",
+    ) -> Optional[Path]:
+        """Open a save dialog and store the measurement.
+        
+        Args:
+            parent (QWidget): Parent widget for the dialog.
+            measurement_name (str): Measurement identifier.
+            group_letter (str): Group letter.
+            data (list[list[str]]): Measurement data to save.
+            start (datetime): Start time of the measurement.
+            end (datetime): End time of the measurement.
+            subterm (str): Subgroup term for folder naming.
 
-        if not data:
-            from src.helper_classes import import_config
-
-            CONFIG = import_config()
-            MessageHelper.warning(
-                parent,
-                CONFIG["messages"]["no_data_to_save"],
-                "Warnung",
-            )
-            return None
-
-        if not measurement_name or not group_letter:
-            from src.helper_classes import import_config
-
-            CONFIG = import_config()
-            MessageHelper.warning(
-                parent,
-                CONFIG["messages"]["select_sample_and_group"],
-                "Warnung",
-            )
-            return None
+        Returns:
+            Optional[Path]: Path to the saved file, or None if cancelled.
+        """
+        # Create suggested folder path in dropbox style
+        if subterm:
+            sanitized_subterm = sanitize_subterm_for_folder(subterm, max_length=20)
+        else:
+            sanitized_subterm = ""
+        folder_name = create_dropbox_foldername(group_letter, "TK08", sanitized_subterm)
+    
+        suggested_folder = self.base_dir / folder_name
+        suggested_folder.mkdir(parents=True, exist_ok=True)
 
         file_path, _ = QFileDialog.getSaveFileName(
             parent,
             "Messung speichern",
-            str(self.base_dir),
+            str(suggested_folder),
             "CSV-Dateien (*.csv);;Alle Dateien (*)",
             "CSV-Dateien (*.csv)",
         )
@@ -447,7 +466,7 @@ class SaveManager:
         if not file_path.lower().endswith(".csv"):
             file_path += ".csv"
 
-        meta = self.create_metadata(start, end, group_letter, measurement_name)
+        meta = self.create_metadata(start, end, group_letter, measurement_name, subterm)
         return self.save_measurement(file_path, data, meta)
 
     def _create_group_name(self, letter: str) -> str:
@@ -465,18 +484,61 @@ class SaveManager:
         return f"{semester}{year}_{day}_{letter.upper()}"
 
 
+def sanitize_subterm_for_folder(subterm: str, max_length: int = 20) -> str:
+    """Sanitize and shorten subterm for use in folder names.
+    
+    - Replaces special characters with underscores
+    - Limits length to max_length characters
+    - If too long, abbreviates each word to first 3 letters
+    - If still too long, returns "xxx"
+    
+    Args:
+        subterm: The subterm to sanitize
+        max_length: Maximum allowed length (default 20)
+        
+    Returns:
+        Sanitized and shortened subterm
+    """
+    if not subterm:
+        return ""
+    
+    # Replace special characters with underscores
+    # Keep only alphanumeric, spaces, hyphens, and underscores
+    sanitized = re.sub(r'[^a-zA-Z0-9\s\-_äöüÄÖÜß]', '_', subterm)
+    
+    # Replace multiple consecutive underscores/spaces with single underscore
+    sanitized = re.sub(r'[_\s]+', '_', sanitized)
+    
+    # Remove leading/trailing underscores
+    sanitized = sanitized.strip('_')
+    
+    # If already short enough, return it
+    if len(sanitized) <= max_length:
+        return sanitized
+    
+    # Try abbreviating each word to first 3 letters
+    words = sanitized.split('_')
+    abbreviated = '_'.join(word[:3] for word in words if word)
+    
+    if len(abbreviated) <= max_length:
+        return abbreviated
+
+    # Still too long, use abbreviated + "_xxx"
+    return abbreviated[:max_length - 4] + "_xxx"
+
+
 def create_dropbox_foldername(
-    group_letter: str, tk_designation: str, instrument: Optional[str] = None
+    group_letter: str, tk_designation: str, subgroup: Optional[str] = None
 ) -> str:
     """Create a folder name for the custom GP-OpenBIS-Dropbox structure.
-    The syntax is: <current_day><group_letter><tk_designation>-<instrument>
+    The syntax is: <current_day><group_letter><tk_designation>-<subgroup>
 
     Example: "MoA01-Gyroskop"
 
     Args:
         group_letter (str): The group letter (A-Z).
         tk_designation (str): The designation of the experiment (e.g., "TK8").
-        instrument (str): The instrument name (e.g., "Gyroskop").
+        subgroup (str): The subgroup name (e.g., "A. Mueller") for differentiation.
     Returns:
         str: The created folder name.
     """
@@ -489,8 +551,8 @@ def create_dropbox_foldername(
         Debug.error(f"Invalid TK designation: {tk_designation}")
         return ""
     folder_name = f"{day}{group_letter.upper()}{tk_designation}"
-    if instrument:
-        folder_name += f"-{instrument}"
+    if subgroup:
+        folder_name += f"-{subgroup}"
     return folder_name
 
 

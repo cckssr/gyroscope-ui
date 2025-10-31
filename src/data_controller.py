@@ -22,7 +22,7 @@ from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 
 from src.plot import PlotWidget
 from src.debug_utils import Debug
-from src.helper_classes import SaveManager, import_config, create_dropbox_foldername
+from src.helper_classes import SaveManager, import_config, create_dropbox_foldername, MessageHelper
 
 # Konfigurationswerte direkt definieren, um Import-Probleme zu umgehen
 MAX_HISTORY_SIZE = 100
@@ -407,11 +407,12 @@ class DataController:
 
     # ============= Integrated SaveManager Methods =============
 
-    def save_measurement_auto(self, group_letter: str, suffix: str = ""):
+    def save_measurement_auto(self, group_letter: str, subterm: str = "", suffix: str = ""):
         """Auto-save measurement with current data.
 
         Args:
             group_letter: Group identifier
+            subterm: Subgroup term
             suffix: Optional suffix for filename
 
         Returns:
@@ -429,23 +430,41 @@ class DataController:
             data,
             self.measurement_start or datetime.now(),
             self.measurement_end or datetime.now(),
+            subterm,
             suffix,
         )
 
         return saved_path
 
-    def save_measurement_manual(self, parent, group_letter: str):
+    def save_measurement_manual(self, parent, group_letter: str, subterm: str = ""):
         """Manually save measurement via file dialog.
 
         Args:
             parent: Parent widget for dialog
             group_letter: Group identifier
+            subterm: Subgroup term
 
         Returns:
             Path to saved file or None if cancelled/failed
         """
         data = self.get_csv_data()
         measurement_name = "Messung"
+
+        if not data:
+            MessageHelper.warning(
+                parent,
+                CONFIG["messages"]["no_data_to_save"],
+                "Warnung",
+            )
+            return None
+
+        if not measurement_name or not group_letter or not subterm:
+            MessageHelper.warning(
+                parent,
+                CONFIG["messages"]["select_sample_and_group"],
+                "Warnung",
+            )
+            return None
 
         saved_path = self.save_manager.manual_save_measurement(
             parent,
@@ -454,6 +473,7 @@ class DataController:
             data,
             self.measurement_start or datetime.now(),
             self.measurement_end or datetime.now(),
+            subterm,
         )
 
         return saved_path

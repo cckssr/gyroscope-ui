@@ -365,14 +365,19 @@ class MainWindow(QMainWindow):
 
         # Auto-save if enabled
         group_letter = self.ui.groupLetter.currentText()
-        suffix = self.ui.suffix.text().strip()
-        saved_path = self.data_controller.save_measurement_auto(group_letter, suffix)
+        subterm = self.ui.groupSubterm.toPlainText().strip() if hasattr(self.ui, "groupSubterm") else ""
+        suffix = self.ui.suffix.text().strip() if hasattr(self.ui, "suffix") else ""
+    
+        saved_path = self.data_controller.save_measurement_auto(group_letter, subterm, suffix)
 
         if saved_path and saved_path.exists():
             self.data_clear_flag = True  # Set clear flag after successful save
             self.ui.buttonSave.setEnabled(False)
             self.ui.buttonReset.setEnabled(False)
             self._update_start_button_state()
+            # Disable subterm and group field after successful save
+            self.ui.groupSubterm.setEnabled(False)
+            self.ui.groupLetter.setEnabled(False)
             self.statusbar.temp_message(
                 CONFIG["messages"]["data_saved"].format(saved_path),
                 CONFIG["colors"]["green"],
@@ -398,8 +403,19 @@ class MainWindow(QMainWindow):
                 return
 
             group_letter = self.ui.groupLetter.currentText()
+            subterm = self.ui.groupSubterm.toPlainText().strip()
+
+            # Validate subterm and group_letter (required fields)
+            if not subterm or not group_letter:
+                MessageHelper.error(
+                    self,
+                    CONFIG["messages"]["necessary_fields_missing"],
+                    "Fehler",
+                )
+                return
+            
             saved_path = self.data_controller.save_measurement_manual(
-                self, group_letter
+                self, group_letter, subterm
             )
 
             if saved_path and saved_path.exists():
@@ -407,6 +423,10 @@ class MainWindow(QMainWindow):
                 self.ui.buttonSave.setEnabled(False)
                 self.ui.buttonReset.setEnabled(False)
                 self._update_start_button_state()
+                # Disable subterm and group field after successful save
+                self.ui.groupSubterm.setEnabled(False)
+                self.ui.groupLetter.setEnabled(False)
+
                 self.statusbar.temp_message(
                     CONFIG["messages"]["data_saved"].format(saved_path),
                     CONFIG["colors"]["green"],
@@ -429,7 +449,24 @@ class MainWindow(QMainWindow):
                 CONFIG["messages"]["save_error"].format(e),
                 "Fehler",
             )
-
+    def _deactivate_save_inputs(self):
+        """Disable subterm and group letter inputs after saving."""
+        disabled_tooltip = CONFIG["messages"]["input_disabled_after_save_tooltip"]
+        try:
+            if hasattr(self.ui, "groupSubterm"):
+                self.ui.groupSubterm.setEnabled(False)
+                self.ui.groupSubterm.setToolTip(disabled_tooltip)
+            if hasattr(self.ui, "groupLetter"):
+                self.ui.groupLetter.setEnabled(False)
+                self.ui.groupLetter.setToolTip(disabled_tooltip)
+            Debug.debug("Save input fields deactivated")
+        except Exception as e:
+            Debug.error(f"Fehler beim Deaktivieren der Eingabefelder: {e}")
+            MessageHelper.error(
+                self,
+                CONFIG["messages"]["save_error"].format(e),
+                "Fehler",
+            )
     #
     # 2. DATA PROCESSING AND STATISTICS
     #
@@ -588,6 +625,10 @@ class MainWindow(QMainWindow):
 
             # Set clear flag to allow new measurement
             self.data_clear_flag = True
+
+            # Re-enable subterm field for next measurement
+            if hasattr(self.ui, "groupSubterm"):
+                self.ui.groupSubterm.setEnabled(True)
 
             # Update UI state
             self.ui.buttonSave.setEnabled(False)
