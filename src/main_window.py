@@ -305,36 +305,42 @@ class MainWindow(QMainWindow):
             ):
                 return
 
+        # Start measurement on the device first so the acquisition thread
+        # can reset its internal time base. This avoids a race where a
+        # pre-reset data point is recorded and produces a large first
+        # elapsed timestamp in the CSV.
+        if not self.device_manager.start_measurement():
+            Debug.info(
+                "Start abgelehnt: Gerät nicht verbunden oder Start fehlgeschlagen"
+            )
+            return
+
         # Nur Export-Puffer leeren, Live-Plot Verlauf behalten
         self.data_controller.clear_storage_only()
         self.data_controller.start_recording()
         self.data_clear_flag = False  # Reset flag after starting
 
-        if self.device_manager.start_measurement():
-            self.is_measuring = True
-            self._set_ui_measuring_state()
-            measurement_start = datetime.now()
-            self._elapsed_seconds = 0
-            self.data_controller.set_measurement_times(
-                measurement_start, measurement_start
-            )
+        # UI / internal state
+        self.is_measuring = True
+        self._set_ui_measuring_state()
+        measurement_start = datetime.now()
+        self._elapsed_seconds = 0
+        self.data_controller.set_measurement_times(measurement_start, measurement_start)
 
-            # Enable plot data updates and clear old data for new measurement
-            if hasattr(self, "plot_widget"):
-                self.plot_widget.set_measurement_mode(True)
-                # Respect current UI state for auto scroll
-                if hasattr(self.ui, "autoScroll"):
-                    self.plot_widget.set_auto_scroll(self.ui.autoScroll.isChecked())
-                else:
-                    self.plot_widget.set_auto_scroll(True)
-                Debug.debug(
-                    "Plot widget enabled for measurement data updates and cleared"
-                )
+        # Enable plot data updates and clear old data for new measurement
+        if hasattr(self, "plot_widget"):
+            self.plot_widget.set_measurement_mode(True)
+            # Respect current UI state for auto scroll
+            if hasattr(self.ui, "autoScroll"):
+                self.plot_widget.set_auto_scroll(self.ui.autoScroll.isChecked())
+            else:
+                self.plot_widget.set_auto_scroll(True)
+            Debug.debug("Plot widget enabled for measurement data updates and cleared")
 
-            self.statusbar.temp_message(
-                CONFIG["messages"]["measurement_running"],
-                CONFIG["colors"]["orange"],
-            )
+        self.statusbar.temp_message(
+            CONFIG["messages"]["measurement_running"],
+            CONFIG["colors"]["orange"],
+        )
 
     def _stop_measurement(self):
         """Stop measurement and resume config polling."""
