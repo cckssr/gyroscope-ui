@@ -4,8 +4,8 @@
 
     "application": {
       "name": "Gyroskope GUI",
-      "version": "1.0.4",
-      "author": "C. Kessler"
+      "version": "1.1.0",
+      "author": "C. Kessler, M. Metschl"
     },
 
     "debug": {
@@ -15,13 +15,15 @@
     "plot": {
       "frequency": {
         "max_points": 20000,
-        "x_label": "Vergangene Zeit / s",
-        "y_label": "Rotationsfrequenz / Hz"
+        "title": "Rotationsfrequenz Scheibe",
+        "x_label": "Vergangene Zeit (s)",
+        "y_label": "Rotationsfrequenz (Hz)"
       },
       "acceleration": {
         "max_points": 20000,
-        "x_label": "Vergangene Zeit / s",
-        "y_label": "Z-Rotationsgeschwindigkeit / 2π / s"
+        "title": "Z-Achsen Rotation",
+        "x_label": "Vergangene Zeit (s)",
+        "y_label": "Rotationsfrequenz (rad / s)"
       }
     },
     "timers": {
@@ -32,7 +34,8 @@
     },
     "data_controller": {
       "max_history_size": 20000,
-      "default_save_dir": "Kreisel"
+      "default_save_dir": "Kreisel",
+      "tk": "TK8"
     },
     "colors": {
       "green": "green",
@@ -66,6 +69,10 @@
       "auto_save_tooltip": "Bei Aktivierung werden die Messungen automatisch im Format:\nYYYY_MM_DD-<Messung>-<Suffix>.csv\nim Ordner Dokumente/Kreisel/ gespeichert.",
       "sample_name_empty": "Messbezeichnung darf nicht leer sein.",
       "group_letter_empty": "Gruppenbuchstabe darf nicht leer sein.",
+      "subterm_required": "Untergruppen-Bezeichnung ist ein Pflichtfeld und darf nicht leer sein. Bitte geben Sie eine Bezeichnung ein (z.B. Versuchsaufbau, Messung-1, etc.).",
+      "subterm_tooltip": "Untergruppen-Bezeichnung zur Identifikation der Messung (Pflichtfeld). Wird in den Metadaten und im Ordnernamen gespeichert. Sonderzeichen werden durch '_' ersetzt. Maximale Länge im Ordnernamen: 20 Zeichen.",
+      "necessary_fields_missing": "Bitte füllen Sie alle erforderlichen Felder aus, bevor Sie die Messdaten speichern.",
+      "input_disabled_after_save_tooltip": "Nach dem Speichern der Messdaten sind die Felder für Gruppenbuchstabe und Untergruppen-Bezeichnung deaktiviert, um Konsistenz zu gewährleisten. Um eine neue Messungsreihe zu beginnen, starten Sie das Programm neu.",
       "no_data_to_save": "Keine Messdaten zum Speichern vorhanden.",
       "select_sample_and_group": "Bitte wählen Sie eine Messbezeichnung und eine Gruppenzuordnung aus.",
       "close_unsaved_data_title": "Ungespeicherte Messdaten",

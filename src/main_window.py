@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
+
+# pylint: disable=broad-except
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QMainWindow,
     QVBoxLayout,
@@ -7,31 +9,17 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QWidget,
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
-from PySide6.QtGui import QPalette
-
-# Relative imports für installiertes Package, absolute für lokale Ausführung
-try:
-    from .device_manager import DeviceManager
-    from .plot import PlotWidget
-    from .debug_utils import Debug
-    from .helper_classes import (
-        import_config,
-        Statusbar,
-        MessageHelper,
-    )
-    from .data_controller import DataController
-    from .pyqt.ui_mainwindow import Ui_MainWindow
-except ImportError:
-    from device_manager import DeviceManager
-    from plot import PlotWidget
-    from debug_utils import Debug
-    from helper_classes import (
-        import_config,
-        Statusbar,
-        MessageHelper,
-    )
-    from data_controller import DataController
-    from pyqt.ui_mainwindow import Ui_MainWindow
+from PySide6 import QtGui
+from .device_manager import DeviceManager
+from .plot import PlotWidget
+from .debug_utils import Debug
+from .helper_classes import (
+    import_config,
+    Statusbar,
+    MessageHelper,
+)
+from .data_controller import DataController
+from .pyqt.ui_mainwindow import Ui_MainWindow
 
 
 # Import settings and messages
@@ -147,14 +135,14 @@ class MainWindow(QMainWindow):
             {
                 "name": "frequency",
                 "y_index": 1,  # frequency is at index 1 in multi_data_point signal
-                "title": "Frequency (Hz)",
-                "x_label": CONFIG["plot"]["frequency"]["x_label"],
+                "title": CONFIG["plot"]["frequency"]["title"],
+                # "x_label": CONFIG["plot"]["frequency"]["x_label"], --- x_label in gyro plot ---
                 "y_label": CONFIG["plot"]["frequency"]["y_label"],
             },
             {
                 "name": "gyro_z",
                 "y_index": 3,  # gyro_z is at index 3 in multi_data_point signal
-                "title": "Gyroscope Z-Axis",
+                "title": CONFIG["plot"]["acceleration"]["title"],
                 "x_label": CONFIG["plot"]["acceleration"]["x_label"],
                 "y_label": CONFIG["plot"]["acceleration"]["y_label"],
             },
@@ -188,9 +176,9 @@ class MainWindow(QMainWindow):
             palette = widget.palette()
 
             # Get system colors
-            bg_color = palette.color(QPalette.ColorRole.Window)
-            text_color = palette.color(QPalette.ColorRole.WindowText)
-            base_color = palette.color(QPalette.ColorRole.Base)
+            bg_color = palette.color(QtGui.QPalette.ColorRole.Window)
+            text_color = palette.color(QtGui.QPalette.ColorRole.WindowText)
+            base_color = palette.color(QtGui.QPalette.ColorRole.Base)
 
             # Convert to RGB tuples and hex string for pyqtgraph
             bg_rgb = (bg_color.red(), bg_color.green(), bg_color.blue())
@@ -237,6 +225,37 @@ class MainWindow(QMainWindow):
         # Check auto-save setting
         self.ui.autoSave.setChecked(self.data_controller.is_auto_save_enabled())
         self.ui.autoSave.toggled.connect(self._change_auto_save)
+
+        # Connect menu action for auto-save to toggle the checkbox
+        if hasattr(self.ui, "actionAutomatische_Speicherung"):
+            self.ui.actionAutomatische_Speicherung.triggered.connect(
+                self._change_auto_save
+            )
+            self._change_auto_save(self.ui.actionAutomatische_Speicherung.isChecked())
+
+        # Connect plot control buttons
+        # Autorange: fit all plots on both axes
+        if hasattr(self.ui, "autoRange"):
+            self.ui.autoRange.clicked.connect(
+                self._handle_auto_range
+            )  # TODO: fix automatic autoScroll on autorange
+        # AutoScroll toggle: enable/disable scrolling to latest
+        if hasattr(self.ui, "autoScroll"):
+            self.ui.autoScroll.toggled.connect(self._handle_auto_scroll)
+        # SpinBox for max plot points: initialize from config and react on changes
+        if hasattr(self.ui, "sPlotpoints"):
+            try:
+                default_points = int(CONFIG["data_controller"]["max_history_size"])
+            except (KeyError, TypeError, ValueError):
+                default_points = 20000
+            # Set initial value only if different, to avoid redundant signals
+            if self.ui.sPlotpoints.value() != default_points:
+                self.ui.sPlotpoints.setValue(default_points)
+            # Apply initial value to plot widget
+            if hasattr(self, "plot_widget"):
+                self.plot_widget.set_max_points(self.ui.sPlotpoints.value())
+            # Update when changed by user
+            self.ui.sPlotpoints.valueChanged.connect(self._handle_max_points_changed)
 
     def _setup_timers(self):
         """Initialise timers (plot updates only)."""
@@ -303,7 +322,11 @@ class MainWindow(QMainWindow):
             # Enable plot data updates and clear old data for new measurement
             if hasattr(self, "plot_widget"):
                 self.plot_widget.set_measurement_mode(True)
-                self.plot_widget.set_auto_scroll(True)
+                # Respect current UI state for auto scroll
+                if hasattr(self.ui, "autoScroll"):
+                    self.plot_widget.set_auto_scroll(self.ui.autoScroll.isChecked())
+                else:
+                    self.plot_widget.set_auto_scroll(True)
                 Debug.debug(
                     "Plot widget enabled for measurement data updates and cleared"
                 )
@@ -327,7 +350,11 @@ class MainWindow(QMainWindow):
         # Disable plot data updates and auto-scroll
         if hasattr(self, "plot_widget"):
             self.plot_widget.set_measurement_mode(False)
-            self.plot_widget.set_auto_scroll(False)
+            # Keep auto scroll state consistent with UI (no forced off)
+            if hasattr(self.ui, "autoScroll"):
+                self.plot_widget.set_auto_scroll(self.ui.autoScroll.isChecked())
+            else:
+                self.plot_widget.set_auto_scroll(False)
             Debug.debug("Plot widget disabled for measurement data updates")
 
         self._set_ui_idle_state()
@@ -338,14 +365,25 @@ class MainWindow(QMainWindow):
 
         # Auto-save if enabled
         group_letter = self.ui.groupLetter.currentText()
-        suffix = self.ui.suffix.text().strip()
-        saved_path = self.data_controller.save_measurement_auto(group_letter, suffix)
+        subterm = (
+            self.ui.groupSubterm.toPlainText().strip()
+            if hasattr(self.ui, "groupSubterm")
+            else ""
+        )
+        suffix = self.ui.suffix.text().strip() if hasattr(self.ui, "suffix") else ""
+
+        saved_path = self.data_controller.save_measurement_auto(
+            group_letter, subterm, suffix
+        )
 
         if saved_path and saved_path.exists():
             self.data_clear_flag = True  # Set clear flag after successful save
             self.ui.buttonSave.setEnabled(False)
             self.ui.buttonReset.setEnabled(False)
             self._update_start_button_state()
+            # Disable subterm and group field after successful save
+            self.ui.groupSubterm.setEnabled(False)
+            self.ui.groupLetter.setEnabled(False)
             self.statusbar.temp_message(
                 CONFIG["messages"]["data_saved"].format(saved_path),
                 CONFIG["colors"]["green"],
@@ -371,8 +409,19 @@ class MainWindow(QMainWindow):
                 return
 
             group_letter = self.ui.groupLetter.currentText()
+            subterm = self.ui.groupSubterm.toPlainText().strip()
+
+            # Validate subterm and group_letter (required fields)
+            if not subterm or not group_letter:
+                MessageHelper.error(
+                    self,
+                    CONFIG["messages"]["necessary_fields_missing"],
+                    "Fehler",
+                )
+                return
+
             saved_path = self.data_controller.save_measurement_manual(
-                self, group_letter
+                self, group_letter, subterm
             )
 
             if saved_path and saved_path.exists():
@@ -380,6 +429,10 @@ class MainWindow(QMainWindow):
                 self.ui.buttonSave.setEnabled(False)
                 self.ui.buttonReset.setEnabled(False)
                 self._update_start_button_state()
+                # Disable subterm and group field after successful save
+                self.ui.groupSubterm.setEnabled(False)
+                self.ui.groupLetter.setEnabled(False)
+
                 self.statusbar.temp_message(
                     CONFIG["messages"]["data_saved"].format(saved_path),
                     CONFIG["colors"]["green"],
@@ -397,6 +450,25 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             Debug.error(f"Fehler beim manuellen Speichern: {e}")
+            MessageHelper.error(
+                self,
+                CONFIG["messages"]["save_error"].format(e),
+                "Fehler",
+            )
+
+    def _deactivate_save_inputs(self):
+        """Disable subterm and group letter inputs after saving."""
+        disabled_tooltip = CONFIG["messages"]["input_disabled_after_save_tooltip"]
+        try:
+            if hasattr(self.ui, "groupSubterm"):
+                self.ui.groupSubterm.setEnabled(False)
+                self.ui.groupSubterm.setToolTip(disabled_tooltip)
+            if hasattr(self.ui, "groupLetter"):
+                self.ui.groupLetter.setEnabled(False)
+                self.ui.groupLetter.setToolTip(disabled_tooltip)
+            Debug.debug("Save input fields deactivated")
+        except Exception as e:
+            Debug.error(f"Fehler beim Deaktivieren der Eingabefelder: {e}")
             MessageHelper.error(
                 self,
                 CONFIG["messages"]["save_error"].format(e),
@@ -530,6 +602,8 @@ class MainWindow(QMainWindow):
             checked: ``True`` if auto save is enabled.
         """
         self.data_controller.set_auto_save(checked)
+        self.ui.autoSave.setHidden(not checked)
+        self.ui.autoSave.setChecked(checked)
         if checked:
             self.statusbar.temp_message(
                 CONFIG["messages"]["auto_save_enabled"],
@@ -560,6 +634,10 @@ class MainWindow(QMainWindow):
             # Set clear flag to allow new measurement
             self.data_clear_flag = True
 
+            # Re-enable subterm field for next measurement
+            if hasattr(self.ui, "groupSubterm"):
+                self.ui.groupSubterm.setEnabled(True)
+
             # Update UI state
             self.ui.buttonSave.setEnabled(False)
             self.ui.buttonReset.setEnabled(False)
@@ -586,6 +664,36 @@ class MainWindow(QMainWindow):
         Debug.debug(
             f"Start button {'enabled' if self.data_clear_flag else 'disabled'} (clear_flag={self.data_clear_flag})"
         )
+
+    #
+    # 4. UI EVENT HANDLERS (plot controls)
+    #
+
+    def _handle_auto_range(self):
+        """Handle Autorange button: fit all plots on both axes."""
+        if hasattr(self, "plot_widget"):
+            # Use the comprehensive autorange
+            if hasattr(self.plot_widget, "auto_range_all"):
+                self.plot_widget.auto_range_all()
+            else:
+                # Fallback: at least set curves auto visible on Y
+                self.plot_widget.autoRange()
+            # Enable persistent autorange so further data/zoom syncs automatically
+            if hasattr(self.plot_widget, "set_persistent_autorange"):
+                self.plot_widget.set_persistent_autorange(True)
+
+    def _handle_auto_scroll(self, checked: bool):
+        """Handle AutoScroll checkbox toggle."""
+        if hasattr(self, "plot_widget"):
+            self.plot_widget.set_auto_scroll(checked)
+        # If autoscroll is enabled, ensure max points setting is applied immediately
+        if checked and hasattr(self.ui, "sPlotpoints") and hasattr(self, "plot_widget"):
+            self.plot_widget.set_max_points(self.ui.sPlotpoints.value())
+
+    def _handle_max_points_changed(self, value: int):
+        """Handle change of the plot points SpinBox."""
+        if hasattr(self, "plot_widget"):
+            self.plot_widget.set_max_points(int(value))
 
     def closeEvent(self, event):
         """Handle the window close event and shut down all components cleanly.

@@ -22,7 +22,7 @@ try:
     from .device_manager import DeviceManager
     from .helper_classes import import_config
 except ImportError:
-    from pyqt.ui_connection import Ui_Dialog as Ui_Connection
+    from .pyqt.ui_connection import Ui_Dialog as Ui_Connection
     from debug_utils import Debug
     from device_manager import DeviceManager
     from helper_classes import import_config

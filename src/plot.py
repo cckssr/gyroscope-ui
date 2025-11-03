@@ -1,11 +1,12 @@
 """Plot widgets using :mod:`pyqtgraph`."""
 
+# pylint: disable=broad-except, unused-argument
+
 from __future__ import annotations
 
-from typing import Iterable, Optional, Tuple, List
+from typing import Iterable, Optional, List
 from collections import deque
 import queue
-from matplotlib.pyplot import xlabel
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Slot  # pylint: disable=no-name-in-module
@@ -50,6 +51,8 @@ class PlotWidget(pg.GraphicsLayoutWidget):
 
         # Auto-scrolling control
         self.auto_scroll_enabled = True
+        # Persistent autorange control (re-enabled via UI button when needed)
+        self.persistent_autorange_enabled = False
 
         # Measurement mode control (only update curves during measurement)
         self.measurement_mode = (
@@ -74,40 +77,37 @@ class PlotWidget(pg.GraphicsLayoutWidget):
             text_color: Text color as RGB tuple (r, g, b)
             base_color: Base color as hex string (e.g., '#ffffff')
         """
-        try:
-            if bg_color:
-                # Set background color for the entire widget
-                self.setBackground(bg_color)
+        if bg_color:
+            # Set background color for the entire widget
+            self.setBackground(bg_color)
 
-            if base_color and text_color:
-                # Update plot backgrounds and text colors
-                for plot in self.plots:
-                    plot.setBackground(base_color)
+        if base_color and text_color:
+            # Update plot backgrounds and text colors
+            for plot in self.plots:
+                plot.setBackground(base_color)
 
-                    # Update axis colors
-                    plot.getAxis("left").setPen(text_color)
-                    plot.getAxis("bottom").setPen(text_color)
-                    plot.getAxis("left").setTextPen(text_color)
-                    plot.getAxis("bottom").setTextPen(text_color)
+                # Update axis colors
+                plot.getAxis("left").setPen(text_color)
+                plot.getAxis("bottom").setPen(text_color)
+                plot.getAxis("left").setTextPen(text_color)
+                plot.getAxis("bottom").setTextPen(text_color)
 
-                    # Update title color if present
-                    if hasattr(plot, "titleLabel"):
-                        plot.titleLabel.setColor(text_color)
-
-        except Exception as e:
-            # Fallback to default colors if theme application fails
-            Debug.error(f"Failed to apply theme colors: {e}")
-            pass
+                # Update title color if present
+                if hasattr(plot, "titleLabel"):
+                    plot.titleLabel.setColor(text_color)
 
     def _setup_plots(self, series):
         top_plot = None
         for i, cfg in enumerate(series):
-            p = self.addPlot(
+            Debug.info(f"Setting up plot for series: {cfg}")
+            p = self.addPlot(  # type: ignore[attr-defined]
                 row=i,
                 col=0,
                 title=cfg.get("title", cfg.get("name", "Plot")),
-                xlabel=cfg.get("x_label", ""),
-                ylabel=cfg.get("y_label", ""),
+                labels={
+                    "bottom": cfg.get("x_label", ""),
+                    "left": cfg.get("y_label", ""),
+                },
             )
             p.showGrid(x=True, y=True, alpha=0.3)
 
@@ -121,7 +121,7 @@ class PlotWidget(pg.GraphicsLayoutWidget):
             curve = p.plot(
                 [],
                 [],
-                pen="w",  # White connecting line
+                pen=0.6,  # Dark gray connecting line
                 symbol="o",
                 symbolSize=4,
                 symbolBrush="r",
@@ -139,6 +139,32 @@ class PlotWidget(pg.GraphicsLayoutWidget):
         for s in self.series.values():
             s["curve"].setAutoVisible(y=True)
 
+    def auto_range_all(self):
+        """Auto-range all plots on both axes to fit current data.
+
+        This triggers pyqtgraph's auto ranging on each PlotItem, affecting
+        both x and y axes. Useful for a user-initiated "Autorange" action.
+        """
+        for plot in self.plots:
+            # Fit view to data on both axes
+            plot.autoRange()
+
+    def set_persistent_autorange(self, enabled: bool):
+        """Enable/disable persistent autorange on all plots (x and y).
+
+        Useful to re-enable autorange after a manual zoom/pan.
+        """
+        self.persistent_autorange_enabled = bool(enabled)
+        for plot in self.plots:
+            # Persistently enable/disable autorange per axis
+            try:
+                plot.enableAutoRange("x", enabled)
+                plot.enableAutoRange("y", enabled)
+            except Exception:
+                # Fallback: at least keep Y visible based on data
+                for s in self.series.values():
+                    s["curve"].setAutoVisible(y=enabled)
+
     # The data is emitted with the multi_data_signal
     @Slot(float, float, float, float)
     def on_new_point(self, elapsed_sec, freq, accel_z, gyro_z):
@@ -148,7 +174,7 @@ class PlotWidget(pg.GraphicsLayoutWidget):
             self.data_queue.put_nowait((elapsed_sec, freq, accel_z, gyro_z))
         except queue.Full:
             # Queue is full, skip this point (shouldn't happen with unlimited queue)
-            pass
+            return
 
     def update_plots(self):
         """Process queued data points and update plots. Called by external timer."""
@@ -177,7 +203,7 @@ class PlotWidget(pg.GraphicsLayoutWidget):
         self.x_data.append(elapsed_sec)
 
         # Update each series buffer
-        for name, s in self.series.items():
+        for s in self.series.values():
             y = float(vals[s["y_index"]])
             if not np.isfinite(y):
                 y = np.nan
@@ -189,7 +215,7 @@ class PlotWidget(pg.GraphicsLayoutWidget):
             return
 
         x_arr = np.array(self.x_data, dtype=float)
-        for name, s in self.series.items():
+        for s in self.series.values():
             if s["y"]:
                 y_arr = np.array(s["y"], dtype=float)
                 s["curve"].setData(x_arr, y_arr)
@@ -199,17 +225,13 @@ class PlotWidget(pg.GraphicsLayoutWidget):
                     plot = s["plot"]
                     plot.setXRange(x_arr[0], x_arr[-1], padding=0.02)
 
-    def add_measurement_marker(self, x_position: float, is_start: bool = True):
+    def add_measurement_marker(self, _x_position: float, _is_start: bool = True):
         """Add a vertical line marker to indicate measurement start/stop.
 
         DEPRECATED: Markers are no longer used in the current implementation.
-
-        Args:
-            x_position: X-coordinate (time) where to place the marker
-            is_start: True for start marker (green), False for stop marker (red)
         """
         # This method is kept for backward compatibility but does nothing
-        pass
+        return None
 
     def set_auto_scroll(self, enabled: bool):
         """Enable or disable auto-scrolling to latest data.
@@ -221,6 +243,42 @@ class PlotWidget(pg.GraphicsLayoutWidget):
         if enabled:
             # If re-enabling, scroll to latest data immediately
             self._refresh_curves()
+
+    def set_max_points(self, new_max: int):
+        """Set the maximum number of points kept and displayed.
+
+        Rebuilds the internal deques to apply the new capacity while
+        preserving the most recent data up to the new limit.
+
+        Args:
+            new_max: New maximum number of points to retain
+        """
+        try:
+            new_max = int(new_max)
+        except (TypeError, ValueError):
+            new_max = self.max_points
+        new_max = max(1, new_max)
+
+        if new_max == self.max_points:
+            return
+
+        # Rebuild x_data deque
+        x_buf = list(self.x_data)
+        if len(x_buf) > new_max:
+            x_buf = x_buf[-new_max:]
+        self.x_data = deque(x_buf, maxlen=new_max)
+
+        # Rebuild each series' y buffer
+        for s in self.series.values():
+            y_buf = list(s["y"])
+            if len(y_buf) > new_max:
+                y_buf = y_buf[-new_max:]
+            s["y"] = deque(y_buf, maxlen=new_max)
+
+        self.max_points = new_max
+
+        # Refresh curves to reflect potential trimming of buffers
+        self._refresh_curves()
 
     def set_measurement_mode(self, enabled: bool):
         """Enable or disable measurement mode for plot updates.
@@ -258,7 +316,7 @@ class PlotWidget(pg.GraphicsLayoutWidget):
         DEPRECATED: Markers are no longer used in the current implementation.
         """
         # This method is kept for backward compatibility but does nothing
-        pass
+        return None
 
     def get_queue_size(self) -> int:
         """Get the current size of the data queue.
