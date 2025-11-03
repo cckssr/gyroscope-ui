@@ -20,9 +20,14 @@ from PySide6.QtGui import (  # pylint: disable=no-name-in-module
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 
-from src.plot import PlotWidget
-from src.debug_utils import Debug
-from src.helper_classes import SaveManager, import_config, create_dropbox_foldername, MessageHelper
+from .plot import PlotWidget
+from .debug_utils import Debug
+from .helper_classes import (
+    SaveManager,
+    import_config,
+    create_dropbox_foldername,
+    MessageHelper,
+)
 
 # Konfigurationswerte direkt definieren, um Import-Probleme zu umgehen
 MAX_HISTORY_SIZE = 100
@@ -408,7 +413,9 @@ class DataController:
 
     # ============= Integrated SaveManager Methods =============
 
-    def save_measurement_auto(self, group_letter: str, subterm: str = "", suffix: str = ""):
+    def save_measurement_auto(
+        self, group_letter: str, subterm: str = "", suffix: str = ""
+    ):
         """Auto-save measurement with current data.
 
         Args:

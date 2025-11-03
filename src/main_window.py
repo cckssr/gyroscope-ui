@@ -10,16 +10,16 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
 )
 from PySide6.QtCore import QTimer  # pylint: disable=no-name-in-module
 from PySide6 import QtGui
-from src.device_manager import DeviceManager
-from src.plot import PlotWidget
-from src.debug_utils import Debug
-from src.helper_classes import (
+from .device_manager import DeviceManager
+from .plot import PlotWidget
+from .debug_utils import Debug
+from .helper_classes import (
     import_config,
     Statusbar,
     MessageHelper,
 )
-from src.data_controller import DataController
-from pyqt.ui_mainwindow import Ui_MainWindow
+from .data_controller import DataController
+from .pyqt.ui_mainwindow import Ui_MainWindow
 
 
 # Import settings and messages
@@ -231,14 +231,14 @@ class MainWindow(QMainWindow):
             self.ui.actionAutomatische_Speicherung.triggered.connect(
                 self._change_auto_save
             )
-            self._change_auto_save(
-                self.ui.actionAutomatische_Speicherung.isChecked()
-            )
+            self._change_auto_save(self.ui.actionAutomatische_Speicherung.isChecked())
 
         # Connect plot control buttons
         # Autorange: fit all plots on both axes
         if hasattr(self.ui, "autoRange"):
-            self.ui.autoRange.clicked.connect(self._handle_auto_range) #TODO: fix automatic autoScroll on autorange
+            self.ui.autoRange.clicked.connect(
+                self._handle_auto_range
+            )  # TODO: fix automatic autoScroll on autorange
         # AutoScroll toggle: enable/disable scrolling to latest
         if hasattr(self.ui, "autoScroll"):
             self.ui.autoScroll.toggled.connect(self._handle_auto_scroll)
@@ -365,10 +365,16 @@ class MainWindow(QMainWindow):
 
         # Auto-save if enabled
         group_letter = self.ui.groupLetter.currentText()
-        subterm = self.ui.groupSubterm.toPlainText().strip() if hasattr(self.ui, "groupSubterm") else ""
+        subterm = (
+            self.ui.groupSubterm.toPlainText().strip()
+            if hasattr(self.ui, "groupSubterm")
+            else ""
+        )
         suffix = self.ui.suffix.text().strip() if hasattr(self.ui, "suffix") else ""
-    
-        saved_path = self.data_controller.save_measurement_auto(group_letter, subterm, suffix)
+
+        saved_path = self.data_controller.save_measurement_auto(
+            group_letter, subterm, suffix
+        )
 
         if saved_path and saved_path.exists():
             self.data_clear_flag = True  # Set clear flag after successful save
@@ -413,7 +419,7 @@ class MainWindow(QMainWindow):
                     "Fehler",
                 )
                 return
-            
+
             saved_path = self.data_controller.save_measurement_manual(
                 self, group_letter, subterm
             )
@@ -449,6 +455,7 @@ class MainWindow(QMainWindow):
                 CONFIG["messages"]["save_error"].format(e),
                 "Fehler",
             )
+
     def _deactivate_save_inputs(self):
         """Disable subterm and group letter inputs after saving."""
         disabled_tooltip = CONFIG["messages"]["input_disabled_after_save_tooltip"]
@@ -467,6 +474,7 @@ class MainWindow(QMainWindow):
                 CONFIG["messages"]["save_error"].format(e),
                 "Fehler",
             )
+
     #
     # 2. DATA PROCESSING AND STATISTICS
     #
