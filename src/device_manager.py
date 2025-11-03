@@ -398,19 +398,30 @@ class DataAcquisitionThread(QThread):
         # Elapsed time computation from 'Current Time'
         current_time_raw = getf("Current Time")
         if current_time_raw is not None:
+            # If this is the first time we see a current_time value since a reset,
+            # initialise the time base and explicitly emit elapsed = 0.0 to avoid
+            # race conditions where an upstream point appears before the UI
+            # has recorded the measurement start.
             if self._time_base_raw is None:
                 self._time_base_raw = current_time_raw
-            raw_delta = max(0.0, current_time_raw - self._time_base_raw)
+                elapsed_sec = 0.0
+                raw_delta = 0.0
+            else:
+                raw_delta = max(0.0, current_time_raw - self._time_base_raw)
 
             # Convert from microseconds to seconds for consistent display
             # Input is in microseconds, output should be seconds
             elapsed_sec = raw_delta / 1_000.0
 
-            # Debug log for troubleshooting
-            if self._index < 5:  # Only log first few conversions
-                Debug.debug(
-                    f"Time conversion: raw={current_time_raw}μs, base={self._time_base_raw}μs, delta={raw_delta}μs, result={elapsed_sec:.6f}s"
-                )
+            # Debug log for troubleshooting (only log first few conversions)
+            if self._index < 5:
+                try:
+                    Debug.debug(
+                        f"Time conversion idx={self._index}: raw={current_time_raw}, base={self._time_base_raw}, delta={raw_delta}, divisor={divisor}, elapsed={elapsed_sec:.6f}s, last_elapsed={self._last_elapsed_sec:.6f}s"
+                    )
+                except Exception:
+                    # Defensive: don't let debug formatting break acquisition
+                    pass
         else:
             # Fallback: synthesize from internal counter (legacy)
             elapsed_sec = float(self._index)
@@ -447,6 +458,9 @@ class DataAcquisitionThread(QThread):
 
     def reset_index(self) -> None:
         """Reset the index and time base for a new measurement."""
+        Debug.debug(
+            "DataAcquisitionThread.reset_index() called - clearing time base and counters"
+        )
         self._index = 0
         self._time_base_raw = None
         self._last_elapsed_sec = 0.0
