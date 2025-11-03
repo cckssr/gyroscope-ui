@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
         # Connect plot control buttons
         # Autorange: fit all plots on both axes
         if hasattr(self.ui, "autoRange"):
-            self.ui.autoRange.clicked.connect(self._handle_auto_range)
+            self.ui.autoRange.clicked.connect(self._handle_auto_range) #TODO: fix automatic autoScroll on autorange
         # AutoScroll toggle: enable/disable scrolling to latest
         if hasattr(self.ui, "autoScroll"):
             self.ui.autoScroll.toggled.connect(self._handle_auto_scroll)

@@ -299,7 +299,7 @@ class SaveManager:
             subterm (str): Subgroup term to include in folder name.
             suffix (str): Optional suffix (``-run1`` etc.).
             extension (str): File extension including leading dot.
-        
+
         Returns:
             str: Generated file name with folder path.
         """
@@ -321,7 +321,7 @@ class SaveManager:
         if suffix and not suffix.startswith("-"):
             suffix = "-" + suffix
         self.index += 1
-        
+
         # Create folder name with sanitized subterm
         folder_parts = [group_letter.upper()]
         if subterm:
@@ -329,7 +329,7 @@ class SaveManager:
             if sanitized_subterm:
                 folder_parts.append(sanitized_subterm)
         folder_name = "_".join(folder_parts)
-        
+
         filename = f"{timestamp}-{self.index:02d}-{measurement_name}{suffix}{extension}"
         return f"{folder_name}/{filename}"
 
@@ -383,15 +383,15 @@ class SaveManager:
         csv_path = Path(file_name)
         if not csv_path.is_absolute():
             csv_path = self.base_dir / csv_path
-        
+
         # Create parent directory if it doesn't exist
         csv_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         try:
             with open(csv_path, "w", newline="", encoding="utf-8") as csv_f:
                 writer = csv.writer(csv_f)
                 writer.writerows(data)
-            with open(csv_path.with_suffix(".json"), "w", encoding="utf-8") as js_f:
+            with open(csv_path.with_suffix("_MD.json"), "w", encoding="utf-8") as js_f:
                 json.dump(metadata, js_f, indent=2)
             self.last_saved = True
             Debug.info(f"Saved measurement to {csv_path}")
@@ -430,7 +430,7 @@ class SaveManager:
         subterm: str = "",
     ) -> Optional[Path]:
         """Open a save dialog and store the measurement.
-        
+
         Args:
             parent (QWidget): Parent widget for the dialog.
             measurement_name (str): Measurement identifier.
@@ -449,7 +449,7 @@ class SaveManager:
         else:
             sanitized_subterm = ""
         folder_name = create_dropbox_foldername(group_letter, "TK08", sanitized_subterm)
-    
+
         suggested_folder = self.base_dir / folder_name
         suggested_folder.mkdir(parents=True, exist_ok=True)
 
@@ -486,45 +486,45 @@ class SaveManager:
 
 def sanitize_subterm_for_folder(subterm: str, max_length: int = 20) -> str:
     """Sanitize and shorten subterm for use in folder names.
-    
+
     - Replaces special characters with underscores
     - Limits length to max_length characters
     - If too long, abbreviates each word to first 3 letters
     - If still too long, returns "xxx"
-    
+
     Args:
         subterm: The subterm to sanitize
         max_length: Maximum allowed length (default 20)
-        
+
     Returns:
         Sanitized and shortened subterm
     """
     if not subterm:
         return ""
-    
+
     # Replace special characters with underscores
     # Keep only alphanumeric, spaces, hyphens, and underscores
-    sanitized = re.sub(r'[^a-zA-Z0-9\s\-_äöüÄÖÜß]', '_', subterm)
-    
+    sanitized = re.sub(r"[^a-zA-Z0-9\s\-_äöüÄÖÜß]", "_", subterm)
+
     # Replace multiple consecutive underscores/spaces with single underscore
-    sanitized = re.sub(r'[_\s]+', '_', sanitized)
-    
+    sanitized = re.sub(r"[_\s]+", "_", sanitized)
+
     # Remove leading/trailing underscores
-    sanitized = sanitized.strip('_')
-    
+    sanitized = sanitized.strip("_")
+
     # If already short enough, return it
     if len(sanitized) <= max_length:
         return sanitized
-    
+
     # Try abbreviating each word to first 3 letters
-    words = sanitized.split('_')
-    abbreviated = '_'.join(word[:3] for word in words if word)
-    
+    words = sanitized.split("_")
+    abbreviated = "_".join(word[:3] for word in words if word)
+
     if len(abbreviated) <= max_length:
         return abbreviated
 
     # Still too long, use abbreviated + "_xxx"
-    return abbreviated[:max_length - 4] + "_xxx"
+    return abbreviated[: max_length - 4] + "_xxx"
 
 
 def create_dropbox_foldername(
