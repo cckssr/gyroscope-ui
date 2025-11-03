@@ -14,10 +14,18 @@ from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QDialogButtonBox,
 )
 from PySide6.QtCore import Slot, QTimer  # pylint: disable=no-name-in-module
-from pyqt.ui_connection import Ui_Dialog as Ui_Connection
-from src.debug_utils import Debug
-from src.device_manager import DeviceManager
-from src.helper_classes import import_config
+
+# Relative imports für installiertes Package, absolute für lokale Ausführung
+try:
+    from .pyqt.ui_connection import Ui_Dialog as Ui_Connection
+    from .debug_utils import Debug
+    from .device_manager import DeviceManager
+    from .helper_classes import import_config
+except ImportError:
+    from pyqt.ui_connection import Ui_Dialog as Ui_Connection
+    from debug_utils import Debug
+    from device_manager import DeviceManager
+    from helper_classes import import_config
 
 CONFIG = import_config()["connection"]
 

@@ -6,8 +6,9 @@ include requirements.txt
 # config.json wird automatisch aus src/ inkludiert (via package-data in pyproject.toml)
 # Hinweis: Es existiert nur noch die Variante in src/, um Duplikate zu vermeiden.
 
-# Include pyqt UI files
-recursive-include pyqt *.ui
+# Include pyqt UI files (now in src/pyqt/)
+recursive-include src/pyqt *.ui
+recursive-include src/pyqt *.py
 
 # Exclude unnötige Dateien
 exclude *.pyc

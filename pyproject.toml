@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = "Apache-2.0"
 authors = [
-    {name = "Cedric Kessler", email = "c.kessler@tu-berlin.de"}
+    {name = "C. Kessler", email = "c.kessler@tu-berlin.de"}
 ]
 keywords = ["gyroscope", "gui", "data-acquisition", "qt", "pyside6"]
 classifiers = [
@@ -37,7 +37,7 @@ dependencies = [
     "pillow>=9.5.0",
 ]
 
-[project.scripts]
+[project.gui-scripts]
 gyroscope-ui = "gyroscope_ui.main:main"
 
 [project.optional-dependencies]
@@ -63,15 +63,13 @@ Repository = "https://github.com/cckssr/gyroscope-ui"
 Issues = "https://github.com/cckssr/gyroscope-ui/issues"
 
 [tool.setuptools]
-packages = ["gyroscope_ui", "gyroscope_ui.pyqt"]
+packages = ["gyroscope_ui"]
 
 [tool.setuptools.package-dir]
 gyroscope_ui = "src"
-"gyroscope_ui.pyqt" = "pyqt"
 
 [tool.setuptools.package-data]
-gyroscope_ui = ["*.json", "*.ui"]
-"gyroscope_ui.pyqt" = ["*.ui"]
+gyroscope_ui = ["*.json", "*.ui", "pyqt/*.py", "pyqt/*.ui"]
 
 [tool.black]
 line-length = 88
