@@ -27,7 +27,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1041, 830)
+        MainWindow.resize(1188, 775)
         self.actionAutomatische_Speicherung = QAction(MainWindow)
         self.actionAutomatische_Speicherung.setObjectName(u"actionAutomatische_Speicherung")
         self.actionAutomatische_Speicherung.setCheckable(True)
@@ -144,6 +144,14 @@ class Ui_MainWindow(object):
         self.formLayout_2.setWidget(0, QFormLayout.ItemRole.LabelRole, self.label_7)
 
         self.groupLetter = QComboBox(self.groupBox)
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
         self.groupLetter.addItem("")
         self.groupLetter.addItem("")
         self.groupLetter.addItem("")
@@ -373,7 +381,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1041, 24))
+        self.menubar.setGeometry(QRect(0, 0, 1188, 24))
         self.menuEinstellungen = QMenu(self.menubar)
         self.menuEinstellungen.setObjectName(u"menuEinstellungen")
         MainWindow.setMenuBar(self.menubar)
@@ -390,7 +398,7 @@ class Ui_MainWindow(object):
         self.autoSave.toggled.connect(self.suffix.setVisible)
         self.actionAutomatische_Speicherung.checkableChanged.connect(self.autoSave.setVisible)
 
-        self.groupLetter.setCurrentIndex(-1)
+        self.groupLetter.setCurrentIndex(0)
         self.buttonReset.setDefault(False)
 
 
@@ -431,10 +439,19 @@ class Ui_MainWindow(object):
         self.groupLetter.setItemText(13, QCoreApplication.translate("MainWindow", u"N", None))
         self.groupLetter.setItemText(14, QCoreApplication.translate("MainWindow", u"O", None))
         self.groupLetter.setItemText(15, QCoreApplication.translate("MainWindow", u"P", None))
+        self.groupLetter.setItemText(16, QCoreApplication.translate("MainWindow", u"Q", None))
+        self.groupLetter.setItemText(17, QCoreApplication.translate("MainWindow", u"R", None))
+        self.groupLetter.setItemText(18, QCoreApplication.translate("MainWindow", u"S", None))
+        self.groupLetter.setItemText(19, QCoreApplication.translate("MainWindow", u"T", None))
+        self.groupLetter.setItemText(20, QCoreApplication.translate("MainWindow", u"U", None))
+        self.groupLetter.setItemText(21, QCoreApplication.translate("MainWindow", u"V", None))
+        self.groupLetter.setItemText(22, QCoreApplication.translate("MainWindow", u"W", None))
+        self.groupLetter.setItemText(23, QCoreApplication.translate("MainWindow", u"Z", None))
 
 #if QT_CONFIG(tooltip)
         self.groupLetter.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Auswahl der GP Praktikumsgruppe <span style=\" color:#ff001a;\">(Pflichtfeld)</span></p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
+        self.groupLetter.setCurrentText(QCoreApplication.translate("MainWindow", u"A", None))
         self.label_8.setText(QCoreApplication.translate("MainWindow", u"Teilgruppe*", None))
 #if QT_CONFIG(tooltip)
         self.groupSubterm.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Hier muss eine Bezeichnung f\u00fcr die Teilgruppe hinzugef\u00fcgt werden. Dies erlaubt die Unterscheidung zwischen den Experimentiergruppen innerhalb eines Tages + Buchstabe. </p><p>Bsp.: V. Nachname, V2. Nachname2</p><p><br/></p></body></html>", None))

@@ -1,7 +1,7 @@
 {
     "files": [
-        "main.py",
-        "pyqt/connection.ui",
-        "pyqt/mainwindow.ui"
+        "src/main.py",
+        "src/pyqt/connection.ui",
+        "src/pyqt/mainwindow.ui"
     ]
 }
