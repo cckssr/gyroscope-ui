@@ -90,6 +90,7 @@ class ConnectionWindow(QDialog):
             str: The mock port name if available, otherwise None.
         """
         filename = "mock_arduino_server_*.marker"
+        print(os.path.join(gettempdir()))
         matches = glob.glob(os.path.join(gettempdir(), filename))
         if matches:
             start = matches[0].find("server_")

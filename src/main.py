@@ -4,9 +4,29 @@
 """
 Gyroscope GUI - Main entry point for the Gyroscope GUI application.
 This module serves as the entry point when installed as a package.
+
+This module is written to work both when executed as a package (e.g.
+``python -m src.main`` or via the installed package) and when executed
+directly as a script for development (``python src/main.py``). When run as
+script, Python sets ``__package__`` to None which makes relative imports fail.
+To make the module resilient, we set up the package context when necessary by
+inserting the repository root into ``sys.path`` and assigning ``__package__``.
 """
 
 import sys
+import os
+
+# If executed as a script (package context missing), ensure the repo root is on
+# sys.path and set __package__ so relative imports below work correctly.
+if __package__ is None:
+    # src/ is the package directory; parent is repository root
+    package_dir = os.path.dirname(__file__)
+    repo_root = os.path.dirname(package_dir)
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
+    # define package name to allow relative imports
+    __package__ = "src"
+
 from PySide6.QtWidgets import (  # pylint: disable=no-name-in-module
     QApplication,
     QMessageBox,
