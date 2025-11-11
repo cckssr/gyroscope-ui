@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'mainwindow.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.2
+## Created by: Qt User Interface Compiler version 6.10.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -11,22 +11,27 @@
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
     QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
+    QCursor, QFont, QFontDatabase, QGradient,
+    QIcon, QImage, QKeySequence, QLinearGradient,
+    QPainter, QPalette, QPixmap, QRadialGradient,
+    QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout,
     QFrame, QGridLayout, QGroupBox, QHBoxLayout,
     QLCDNumber, QLabel, QLayout, QLineEdit,
-    QMainWindow, QMenuBar, QPushButton, QSizePolicy,
-    QSpacerItem, QSpinBox, QStatusBar, QVBoxLayout,
-    QWidget)
+    QMainWindow, QMenu, QMenuBar, QPlainTextEdit,
+    QPushButton, QSizePolicy, QSpacerItem, QSpinBox,
+    QStatusBar, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1041, 830)
+        MainWindow.resize(1188, 775)
+        self.actionAutomatische_Speicherung = QAction(MainWindow)
+        self.actionAutomatische_Speicherung.setObjectName(u"actionAutomatische_Speicherung")
+        self.actionAutomatische_Speicherung.setCheckable(True)
+        self.actionAutomatische_Speicherung.setChecked(False)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.horizontalLayout_3 = QHBoxLayout(self.centralwidget)
@@ -155,6 +160,14 @@ class Ui_MainWindow(object):
         self.groupLetter.addItem("")
         self.groupLetter.addItem("")
         self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
+        self.groupLetter.addItem("")
         self.groupLetter.setObjectName(u"groupLetter")
         sizePolicy2 = QSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
         sizePolicy2.setHorizontalStretch(0)
@@ -166,10 +179,24 @@ class Ui_MainWindow(object):
 
         self.formLayout_2.setWidget(0, QFormLayout.ItemRole.FieldRole, self.groupLetter)
 
+        self.label_8 = QLabel(self.groupBox)
+        self.label_8.setObjectName(u"label_8")
+
+        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_8)
+
+        self.groupSubterm = QPlainTextEdit(self.groupBox)
+        self.groupSubterm.setObjectName(u"groupSubterm")
+        sizePolicy2.setHeightForWidth(self.groupSubterm.sizePolicy().hasHeightForWidth())
+        self.groupSubterm.setSizePolicy(sizePolicy2)
+        self.groupSubterm.setMaximumSize(QSize(200, 90))
+        self.groupSubterm.setMaximumBlockCount(90)
+
+        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.FieldRole, self.groupSubterm)
+
         self.label_5 = QLabel(self.groupBox)
         self.label_5.setObjectName(u"label_5")
 
-        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_5)
+        self.formLayout_2.setWidget(2, QFormLayout.ItemRole.LabelRole, self.label_5)
 
         self.suffix = QLineEdit(self.groupBox)
         self.suffix.setObjectName(u"suffix")
@@ -178,7 +205,7 @@ class Ui_MainWindow(object):
         self.suffix.setText(u"")
         self.suffix.setMaxLength(20)
 
-        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.FieldRole, self.suffix)
+        self.formLayout_2.setWidget(2, QFormLayout.ItemRole.FieldRole, self.suffix)
 
 
         self.verticalLayout.addLayout(self.formLayout_2)
@@ -354,18 +381,24 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1041, 24))
+        self.menubar.setGeometry(QRect(0, 0, 1188, 24))
+        self.menuEinstellungen = QMenu(self.menubar)
+        self.menuEinstellungen.setObjectName(u"menuEinstellungen")
         MainWindow.setMenuBar(self.menubar)
         self.statusBar = QStatusBar(MainWindow)
         self.statusBar.setObjectName(u"statusBar")
         MainWindow.setStatusBar(self.statusBar)
 
+        self.menubar.addAction(self.menuEinstellungen.menuAction())
+        self.menuEinstellungen.addAction(self.actionAutomatische_Speicherung)
+
         self.retranslateUi(MainWindow)
         self.autoScroll.toggled.connect(self.sPlotpoints.setVisible)
         self.autoSave.toggled.connect(self.label_5.setVisible)
         self.autoSave.toggled.connect(self.suffix.setVisible)
+        self.actionAutomatische_Speicherung.checkableChanged.connect(self.autoSave.setVisible)
 
-        self.groupLetter.setCurrentIndex(-1)
+        self.groupLetter.setCurrentIndex(0)
         self.buttonReset.setDefault(False)
 
 
@@ -374,6 +407,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Kreisel-GUI", None))
+        self.actionAutomatische_Speicherung.setText(QCoreApplication.translate("MainWindow", u"Automatische Speicherung", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"Live Messwerte", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"Rotationsfrequenz (Hz)", None))
 #if QT_CONFIG(tooltip)
@@ -405,10 +439,24 @@ class Ui_MainWindow(object):
         self.groupLetter.setItemText(13, QCoreApplication.translate("MainWindow", u"N", None))
         self.groupLetter.setItemText(14, QCoreApplication.translate("MainWindow", u"O", None))
         self.groupLetter.setItemText(15, QCoreApplication.translate("MainWindow", u"P", None))
+        self.groupLetter.setItemText(16, QCoreApplication.translate("MainWindow", u"Q", None))
+        self.groupLetter.setItemText(17, QCoreApplication.translate("MainWindow", u"R", None))
+        self.groupLetter.setItemText(18, QCoreApplication.translate("MainWindow", u"S", None))
+        self.groupLetter.setItemText(19, QCoreApplication.translate("MainWindow", u"T", None))
+        self.groupLetter.setItemText(20, QCoreApplication.translate("MainWindow", u"U", None))
+        self.groupLetter.setItemText(21, QCoreApplication.translate("MainWindow", u"V", None))
+        self.groupLetter.setItemText(22, QCoreApplication.translate("MainWindow", u"W", None))
+        self.groupLetter.setItemText(23, QCoreApplication.translate("MainWindow", u"Z", None))
 
 #if QT_CONFIG(tooltip)
         self.groupLetter.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Auswahl der GP Praktikumsgruppe <span style=\" color:#ff001a;\">(Pflichtfeld)</span></p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
+        self.groupLetter.setCurrentText(QCoreApplication.translate("MainWindow", u"A", None))
+        self.label_8.setText(QCoreApplication.translate("MainWindow", u"Teilgruppe*", None))
+#if QT_CONFIG(tooltip)
+        self.groupSubterm.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Hier muss eine Bezeichnung f\u00fcr die Teilgruppe hinzugef\u00fcgt werden. Dies erlaubt die Unterscheidung zwischen den Experimentiergruppen innerhalb eines Tages + Buchstabe. </p><p>Bsp.: V. Nachname, V2. Nachname2</p><p><br/></p></body></html>", None))
+#endif // QT_CONFIG(tooltip)
+        self.groupSubterm.setPlainText("")
         self.label_5.setText(QCoreApplication.translate("MainWindow", u"Eigenes Suffix", None))
 #if QT_CONFIG(tooltip)
         self.suffix.setToolTip(QCoreApplication.translate("MainWindow", u"<html><head/><body><p>Beim automatisch Speichern kann ein benutzerdefiniertes Suffix mit maximal 20 Zeichen erstellt werden (vor Messungsstart)</p></body></html>", None))
@@ -504,5 +552,6 @@ class Ui_MainWindow(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Setzt alle Achsen wieder auf automatische Skalierung</p></body></html>", None))
 #endif // QT_CONFIG(tooltip)
         self.autoRange.setText(QCoreApplication.translate("MainWindow", u"Auto-Range", None))
+        self.menuEinstellungen.setTitle(QCoreApplication.translate("MainWindow", u"Einstellungen", None))
     # retranslateUi
 
