@@ -397,8 +397,10 @@ class SaveManager:
             with open(csv_path, "w", newline="", encoding="utf-8") as csv_f:
                 writer = csv.writer(csv_f)
                 writer.writerows(data)
-            with open(csv_path.with_suffix("_MD.json"), "w", encoding="utf-8") as js_f:
-                json.dump(metadata, js_f, indent=2)
+            # Metadata saving disabled - uncomment if needed in future
+            # metadata_path = csv_path.parent / (csv_path.stem + "_MD.json")
+            # with open(metadata_path, "w", encoding="utf-8") as js_f:
+            #     json.dump(metadata, js_f, indent=2)
             self.last_saved = True
             Debug.info(f"Saved measurement to {csv_path}")
         except Exception as exc:  # pragma: no cover - file system errors

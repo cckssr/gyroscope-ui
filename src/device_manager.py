@@ -58,6 +58,7 @@ class DataAcquisitionThread(QThread):
         self._last_log = time.time()
         self._time_base_raw = None  # raw base of 'Current Time'
         self._last_elapsed_sec = 0.0
+        self._skip_first_point = False  # Flag to discard first point after reset
 
         # Connection monitoring
         self._last_data_time = time.time()
@@ -407,25 +408,51 @@ class DataAcquisitionThread(QThread):
                 elapsed_sec = 0.0
                 raw_delta = 0.0
             else:
-                raw_delta = max(0.0, current_time_raw - self._time_base_raw)
+                raw_delta = current_time_raw - self._time_base_raw
 
-            # Convert from microseconds to seconds for consistent display
-            # Input is in microseconds, output should be seconds
-            elapsed_sec = raw_delta / 1_000.0
-
-            # Debug log for troubleshooting (only log first few conversions)
-            if self._index < 5:
-                try:
+                # Detect time jumps backwards (e.g., mock server loop restart)
+                # If time goes backwards significantly, skip this point
+                if raw_delta < 0 or raw_delta < (
+                    self._last_elapsed_sec * 1_000_000.0 - 1000
+                ):
                     Debug.debug(
-                        f"Time conversion idx={self._index}: raw={current_time_raw}, base={self._time_base_raw}, delta={raw_delta}, divisor={divisor}, elapsed={elapsed_sec:.6f}s, last_elapsed={self._last_elapsed_sec:.6f}s"
+                        f"Time jump detected: raw={current_time_raw}µs, base={self._time_base_raw}µs, "
+                        f"delta={raw_delta}µs, last_elapsed={self._last_elapsed_sec:.6f}s - SKIPPING POINT"
                     )
-                except Exception:
-                    # Defensive: don't let debug formatting break acquisition
-                    pass
+                    self._index += 1
+                    return
+
+                # Ensure raw_delta is non-negative after check
+                raw_delta = max(0.0, raw_delta)
+
+                # Arduino sends time in microseconds - always convert to seconds
+                # Fixed conversion: microseconds / 1_000_000 = seconds
+                elapsed_sec = raw_delta / 1_000_000.0
+
+            # Debug log for the first few conversions to help diagnose unit/ordering issues
+            try:
+                dbg_count = getattr(self, "_time_debug_count", 0)
+                if dbg_count < 12:
+                    Debug.debug(
+                        f"Time conversion idx={self._index}: raw={current_time_raw}µs, base={self._time_base_raw}µs, delta={raw_delta}µs, elapsed={elapsed_sec:.6f}s, last_elapsed={self._last_elapsed_sec:.6f}s"
+                    )
+                    self._time_debug_count = dbg_count + 1
+            except Exception:
+                # Defensive: don't let debug formatting break acquisition
+                pass
         else:
             # Fallback: synthesize from internal counter (legacy)
             elapsed_sec = float(self._index)
         self._last_elapsed_sec = elapsed_sec
+
+        # Discard the very first point after a reset to avoid displaying old values
+        if self._skip_first_point:
+            Debug.debug(
+                f"Discarding first point after reset: elapsed={elapsed_sec:.6f}s, freq={frequency}, gyro_z={gyro_z}"
+            )
+            self._skip_first_point = False
+            self._index += 1
+            return
 
         # Primary value is frequency if available, otherwise accel_z, then gyro_z
         primary = (
@@ -464,6 +491,7 @@ class DataAcquisitionThread(QThread):
         self._index = 0
         self._time_base_raw = None
         self._last_elapsed_sec = 0.0
+        self._skip_first_point = True  # Discard the very first point after reset
 
     def stop(self) -> None:
         """Stop the acquisition thread."""
