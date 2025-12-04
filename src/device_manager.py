@@ -413,7 +413,7 @@ class DataAcquisitionThread(QThread):
                 # Detect time jumps backwards (e.g., mock server loop restart)
                 # If time goes backwards significantly, skip this point
                 if raw_delta < 0 or raw_delta < (
-                    self._last_elapsed_sec * 1_000_000.0 - 1000
+                    self._last_elapsed_sec * 1_000.0 - 1000
                 ):
                     Debug.debug(
                         f"Time jump detected: raw={current_time_raw}µs, base={self._time_base_raw}µs, "
@@ -425,9 +425,9 @@ class DataAcquisitionThread(QThread):
                 # Ensure raw_delta is non-negative after check
                 raw_delta = max(0.0, raw_delta)
 
-                # Arduino sends time in microseconds - always convert to seconds
-                # Fixed conversion: microseconds / 1_000_000 = seconds
-                elapsed_sec = raw_delta / 1_000_000.0
+                # Arduino sends time in milliseconds - always convert to seconds
+                # Fixed conversion: millisekunden / 1_000 = seconds
+                elapsed_sec = raw_delta / 1_000.0
 
             # Debug log for the first few conversions to help diagnose unit/ordering issues
             try:
