@@ -257,9 +257,9 @@ void printWiFiAPStatus()
 
 /**
  * @brief WiFi-Event-Handler für Access Point Events
- * 
+ *
  * Wird aufgerufen bei Client-Verbindungen und -Trennungen
- * 
+ *
  * @param event WiFi-Event-Type
  * @param info Event-Informationen
  */
@@ -267,77 +267,77 @@ void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 {
   switch (event)
   {
-    case ARDUINO_EVENT_WIFI_AP_START:
-      Serial.println("[WiFi-Event] Access Point gestartet");
-      Serial.printf("[WiFi-Event] Warte auf Client-Verbindungen...\n");
-      break;
-      
-    case ARDUINO_EVENT_WIFI_AP_STOP:
-      Serial.println("[WiFi-Event] Access Point gestoppt");
-      break;
-      
-    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
-      Serial.println("\n========== CLIENT VERBUNDEN ==========");
-      Serial.printf("[WiFi-Event] Neuer Client verbunden!\n");
-      Serial.printf("[WiFi-Event] MAC-Adresse: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                    info.wifi_ap_staconnected.mac[0],
-                    info.wifi_ap_staconnected.mac[1],
-                    info.wifi_ap_staconnected.mac[2],
-                    info.wifi_ap_staconnected.mac[3],
-                    info.wifi_ap_staconnected.mac[4],
-                    info.wifi_ap_staconnected.mac[5]);
-      Serial.printf("[WiFi-Event] AID (Association ID): %d\n", info.wifi_ap_staconnected.aid);
-      Serial.printf("[WiFi-Event] Gesamtanzahl Clients: %d\n", WiFi.softAPgetStationNum());
-      Serial.println("======================================\n");
-      break;
-      
-    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
-      Serial.println("\n========== CLIENT GETRENNT ==========");
-      Serial.printf("[WiFi-Event] Client getrennt\n");
-      Serial.printf("[WiFi-Event] MAC-Adresse: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                    info.wifi_ap_stadisconnected.mac[0],
-                    info.wifi_ap_stadisconnected.mac[1],
-                    info.wifi_ap_stadisconnected.mac[2],
-                    info.wifi_ap_stadisconnected.mac[3],
-                    info.wifi_ap_stadisconnected.mac[4],
-                    info.wifi_ap_stadisconnected.mac[5]);
-      Serial.printf("[WiFi-Event] AID (Association ID): %d\n", info.wifi_ap_stadisconnected.aid);
-      Serial.printf("[WiFi-Event] Verbleibende Clients: %d\n", WiFi.softAPgetStationNum());
-      Serial.println("\nMÖGLICHE TRENNUNGSGRÜNDE:");
-      Serial.println("  1. Keine IP-Adresse vom DHCP-Server erhalten");
-      Serial.println("  2. Client erwartet Internet-Verbindung");
-      Serial.println("  3. Schwaches Signal (RSSI < -70 dBm)");
-      Serial.println("  4. Client-Timeout oder manuelle Trennung");
-      Serial.println("  5. Authentifizierungs-Problem");
-      Serial.println("\nLÖSUNGSVERSUCHE:");
-      Serial.println("  - DHCP auf Client deaktivieren, manuelle IP setzen:");
-      Serial.println("    IP: 192.168.4.2, Subnet: 255.255.255.0, Gateway: 192.168.4.1");
-      Serial.println("  - 'Auto-Join' für dieses Netzwerk deaktivieren");
-      Serial.println("  - Auf Mac: Captive Portal deaktivieren");
-      Serial.println("=====================================\n");
-      break;
-      
-    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
-      // Probe Request = Client sucht nach verfügbaren Netzwerken
-      if (isDebugMode)
-      {
-        Serial.printf("[WiFi-Event] Probe Request von: %02X:%02X:%02X:%02X:%02X:%02X (RSSI: %d dBm)\n",
-                      info.wifi_ap_probereqrecved.mac[0],
-                      info.wifi_ap_probereqrecved.mac[1],
-                      info.wifi_ap_probereqrecved.mac[2],
-                      info.wifi_ap_probereqrecved.mac[3],
-                      info.wifi_ap_probereqrecved.mac[4],
-                      info.wifi_ap_probereqrecved.mac[5],
-                      info.wifi_ap_probereqrecved.rssi);
-      }
-      break;
-      
-    default:
-      if (isDebugMode)
-      {
-        Serial.printf("[WiFi-Event] Unbekanntes Event: %d\n", event);
-      }
-      break;
+  case ARDUINO_EVENT_WIFI_AP_START:
+    Serial.println("[WiFi-Event] Access Point gestartet");
+    Serial.printf("[WiFi-Event] Warte auf Client-Verbindungen...\n");
+    break;
+
+  case ARDUINO_EVENT_WIFI_AP_STOP:
+    Serial.println("[WiFi-Event] Access Point gestoppt");
+    break;
+
+  case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+    Serial.println("\n========== CLIENT VERBUNDEN ==========");
+    Serial.printf("[WiFi-Event] Neuer Client verbunden!\n");
+    Serial.printf("[WiFi-Event] MAC-Adresse: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                  info.wifi_ap_staconnected.mac[0],
+                  info.wifi_ap_staconnected.mac[1],
+                  info.wifi_ap_staconnected.mac[2],
+                  info.wifi_ap_staconnected.mac[3],
+                  info.wifi_ap_staconnected.mac[4],
+                  info.wifi_ap_staconnected.mac[5]);
+    Serial.printf("[WiFi-Event] AID (Association ID): %d\n", info.wifi_ap_staconnected.aid);
+    Serial.printf("[WiFi-Event] Gesamtanzahl Clients: %d\n", WiFi.softAPgetStationNum());
+    Serial.println("======================================\n");
+    break;
+
+  case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+    Serial.println("\n========== CLIENT GETRENNT ==========");
+    Serial.printf("[WiFi-Event] Client getrennt\n");
+    Serial.printf("[WiFi-Event] MAC-Adresse: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                  info.wifi_ap_stadisconnected.mac[0],
+                  info.wifi_ap_stadisconnected.mac[1],
+                  info.wifi_ap_stadisconnected.mac[2],
+                  info.wifi_ap_stadisconnected.mac[3],
+                  info.wifi_ap_stadisconnected.mac[4],
+                  info.wifi_ap_stadisconnected.mac[5]);
+    Serial.printf("[WiFi-Event] AID (Association ID): %d\n", info.wifi_ap_stadisconnected.aid);
+    Serial.printf("[WiFi-Event] Verbleibende Clients: %d\n", WiFi.softAPgetStationNum());
+    Serial.println("\nMÖGLICHE TRENNUNGSGRÜNDE:");
+    Serial.println("  1. Keine IP-Adresse vom DHCP-Server erhalten");
+    Serial.println("  2. Client erwartet Internet-Verbindung");
+    Serial.println("  3. Schwaches Signal (RSSI < -70 dBm)");
+    Serial.println("  4. Client-Timeout oder manuelle Trennung");
+    Serial.println("  5. Authentifizierungs-Problem");
+    Serial.println("\nLÖSUNGSVERSUCHE:");
+    Serial.println("  - DHCP auf Client deaktivieren, manuelle IP setzen:");
+    Serial.println("    IP: 192.168.4.2, Subnet: 255.255.255.0, Gateway: 192.168.4.1");
+    Serial.println("  - 'Auto-Join' für dieses Netzwerk deaktivieren");
+    Serial.println("  - Auf Mac: Captive Portal deaktivieren");
+    Serial.println("=====================================\n");
+    break;
+
+  case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+    // Probe Request = Client sucht nach verfügbaren Netzwerken
+    if (isDebugMode)
+    {
+      Serial.printf("[WiFi-Event] Probe Request von: %02X:%02X:%02X:%02X:%02X:%02X (RSSI: %d dBm)\n",
+                    info.wifi_ap_probereqrecved.mac[0],
+                    info.wifi_ap_probereqrecved.mac[1],
+                    info.wifi_ap_probereqrecved.mac[2],
+                    info.wifi_ap_probereqrecved.mac[3],
+                    info.wifi_ap_probereqrecved.mac[4],
+                    info.wifi_ap_probereqrecved.mac[5],
+                    info.wifi_ap_probereqrecved.rssi);
+    }
+    break;
+
+  default:
+    if (isDebugMode)
+    {
+      Serial.printf("[WiFi-Event] Unbekanntes Event: %d\n", event);
+    }
+    break;
   }
 }
 
@@ -348,10 +348,10 @@ void printConnectedClients()
 {
   wifi_sta_list_t stationList;
   esp_wifi_ap_get_sta_list(&stationList);
-  
+
   Serial.println("\n========== VERBUNDENE CLIENTS ==========");
   Serial.printf("Anzahl: %d\n", stationList.num);
-  
+
   if (stationList.num > 0)
   {
     Serial.println("\nClient-Details:");
@@ -372,7 +372,7 @@ void printConnectedClients()
   {
     Serial.println("  Keine Clients verbunden");
   }
-  
+
   Serial.println("========================================\n");
 }
 
@@ -459,7 +459,7 @@ bool initializeWiFiConnection(bool waitForConnection = true)
       Serial.println("  - Passwort zu kurz (min. 8 Zeichen für WPA)");
       return false;
     }
-    
+
     Serial.println("DHCP-Server automatisch gestartet (ESP32 Standard)");
     Serial.println("  Standard DHCP-Range: 192.168.4.2 - 192.168.4.254");
 
@@ -472,7 +472,7 @@ bool initializeWiFiConnection(bool waitForConnection = true)
     Serial.printf("  MAC-Adresse: %s\n", WiFi.softAPmacAddress().c_str());
     Serial.printf("  Max. Clients: 4\n");
     Serial.printf("  Verschlüsselung: WPA2-PSK\n");
-    
+
     Serial.println("\n========== MAC-SPEZIFISCHE HINWEISE ==========");
     Serial.println("Wenn Ihr Mac sich nicht verbinden kann:");
     Serial.println("  1. Deaktivieren Sie 'Auto-Join Captive Portals':");
@@ -484,7 +484,7 @@ bool initializeWiFiConnection(bool waitForConnection = true)
     Serial.println("     DNS: 192.168.4.1 (oder leer lassen)");
     Serial.println("  3. Ignorieren Sie 'Kein Internet verfügbar' Warnungen");
     Serial.println("=============================================");
-    
+
     Serial.println("\n========== VERBINDUNGSANLEITUNG ==========");
     Serial.println("So verbinden Sie sich mit dem Access Point:");
     Serial.println("  1. Öffnen Sie die WiFi-Einstellungen auf Ihrem Gerät");
@@ -495,7 +495,7 @@ bool initializeWiFiConnection(bool waitForConnection = true)
 
     // Kurz warten bis AP vollständig aktiv ist
     delay(1000);
-    
+
     Serial.println("Access Point ist nun bereit für Verbindungen!");
     Serial.println("Warte auf Client-Verbindungen...\n");
   }
@@ -866,21 +866,21 @@ void loop()
   if (WIFI_AP_MODE)
   {
     int currentClientCount = WiFi.softAPgetStationNum();
-    
+
     // Erkenne Client-Änderungen (zusätzlich zum Event-Handler)
     if (currentClientCount != lastConnectedClients)
     {
-      Serial.printf("[Monitor] Client-Anzahl ge\u00e4ndert: %d -> %d\n", 
+      Serial.printf("[Monitor] Client-Anzahl ge\u00e4ndert: %d -> %d\n",
                     lastConnectedClients, currentClientCount);
       lastConnectedClients = currentClientCount;
-      
+
       // Zeige detaillierte Client-Informationen
       if (currentClientCount > 0)
       {
         printConnectedClients();
       }
     }
-    
+
     // Periodischer WiFi-Status (alle 10 Sekunden) - nur im Debug-Modus
     if (isDebugMode)
     {
@@ -888,7 +888,7 @@ void loop()
       if (currentTime - lastWiFiStatusPrintMs >= WIFI_STATUS_PRINT_INTERVAL_MS)
       {
         lastWiFiStatusPrintMs = currentTime;
-        
+
         Serial.println("\n========== PERIODISCHER STATUS ==========");
         Serial.printf("Uptime: %lu ms\n", currentTime);
         Serial.printf("Verbundene Clients: %d\n", currentClientCount);
@@ -896,7 +896,7 @@ void loop()
         Serial.printf("Aktuelle Frequenz: %.4f Hz\n", currentFrequency);
         Serial.printf("Freier Heap: %d Bytes\n", ESP.getFreeHeap());
         Serial.println("========================================\n");
-        
+
         // Wenn keine Clients verbunden sind, erinnere daran
         if (currentClientCount == 0)
         {
@@ -908,7 +908,7 @@ void loop()
       }
     }
   }
-  
+
   // ========== Sensordaten lesen ==========
   sensors_event_t accelerationEvent, gyroscopeEvent, temperatureEvent;
   lsm6ds33.getEvent(&accelerationEvent, &gyroscopeEvent, &temperatureEvent);
@@ -921,31 +921,31 @@ void loop()
     if (interruptTimeDelta > 0)
     {
       float newFrequency = 1000000.0f / (float)interruptTimeDelta;
-      
+
       // Prüfe ob signifikante Frequenzänderung vorliegt
       if (abs(newFrequency - lastFrequency) > FREQUENCY_CHANGE_THRESHOLD)
       {
         // Signifikante Änderung erkannt - Timer zurücksetzen
         lastFrequencyChangeMs = millis();
         lastFrequency = newFrequency;
-        
+
         if (isDebugMode)
         {
-          Serial.printf("DEBUG: Frequenzänderung erkannt: %.4f Hz -> %.4f Hz\n", 
+          Serial.printf("DEBUG: Frequenzänderung erkannt: %.4f Hz -> %.4f Hz\n",
                         lastFrequency, newFrequency);
         }
       }
-      
+
       currentFrequency = newFrequency;
     }
   }
-  
+
   // ========== Frequenz-Konstanz-Überprüfung ==========
   // Wenn Frequenz über definierte Zeit konstant ist, setze auf 0
   if (currentFrequency > 0.0f)
   {
     uint32_t timeSinceLastChange = millis() - lastFrequencyChangeMs;
-    
+
     if (timeSinceLastChange > FREQUENCY_STABLE_TIMEOUT_MS)
     {
       if (isDebugMode)
@@ -953,7 +953,7 @@ void loop()
         Serial.printf("DEBUG: Frequenz seit %lu ms konstant bei %.4f Hz - setze auf 0\n",
                       timeSinceLastChange, currentFrequency);
       }
-      
+
       currentFrequency = 0.0f;
       lastFrequency = 0.0f;
     }
