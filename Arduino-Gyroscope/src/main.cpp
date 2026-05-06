@@ -40,6 +40,7 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 #include <esp_wifi.h>
 #include "secrets.h"
 
@@ -48,7 +49,7 @@
 // ================================
 
 /** @brief Gerätekennzeichnung für Identifikation */
-const char *DEVICE_ID = "E76347";
+const char *DEVICE_ID = "E35432";
 
 /** @brief Software-Versionsnummer */
 const char *SOFTWARE_VERSION = "1.0.1";
@@ -438,8 +439,8 @@ bool initializeWiFiConnection(bool waitForConnection = true)
     WiFi.onEvent(onWiFiEvent);
     Serial.println("WiFi-Event-Handler registriert");
 
-    // WiFi-Modus auf Access Point setzen
-    WiFi.mode(WIFI_AP);
+    // WiFi-Modus auf Access Point + Station setzen (für OTA über Router)
+    WiFi.mode(WIFI_AP_STA);
 
     // Access Point konfigurieren
     if (!WiFi.softAPConfig(AP_IP, AP_GATEWAY, AP_SUBNET))
@@ -495,6 +496,10 @@ bool initializeWiFiConnection(bool waitForConnection = true)
 
     // Kurz warten bis AP vollständig aktiv ist
     delay(1000);
+
+    // STA-Verbindung zum Router starten (nicht-blockierend, für OTA)
+    WiFi.begin(SECRET_STA_SSID, SECRET_STA_PASS);
+    Serial.printf("Router-Verbindung gestartet (SSID: %s) - warte nicht auf Verbindung\n", SECRET_STA_SSID);
 
     Serial.println("Access Point ist nun bereit für Verbindungen!");
     Serial.println("Warte auf Client-Verbindungen...\n");
@@ -563,6 +568,12 @@ bool initializeWiFiConnection(bool waitForConnection = true)
   {
     printWiFiStatus();
   }
+
+  // OTA initialisieren
+  ArduinoOTA.setHostname(WIFI_AP_SSID);
+  ArduinoOTA.setPassword(WIFI_AP_PASSWORD);
+  ArduinoOTA.begin();
+  Serial.printf("OTA bereit (Hostname: %s)\n", WIFI_AP_SSID);
 
   return true;
 }
@@ -862,6 +873,8 @@ void setup()
  */
 void loop()
 {
+  ArduinoOTA.handle();
+
   // ========== WiFi-Client-Monitoring (Access Point Modus) ==========
   if (WIFI_AP_MODE)
   {

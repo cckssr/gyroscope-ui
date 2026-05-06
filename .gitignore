@@ -207,3 +207,5 @@ htmlcov/
 *.egg-info/
 dist/
 build/
+
+Arduino-Gyroscope/src/secrets.h

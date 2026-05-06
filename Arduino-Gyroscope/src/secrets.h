@@ -15,4 +15,10 @@
 /** @brief WiFi-Netzwerk Passwort (mindestens 8 Zeichen) */
 #define SECRET_PASS "BosonBoson"
 
+/** @brief Router SSID für OTA-Updates */
+#define SECRET_STA_SSID "YourRouterSSID"
+
+/** @brief Router Passwort für OTA-Updates */
+#define SECRET_STA_PASS "YourRouterPassword"
+
 #endif // SECRETS_H
