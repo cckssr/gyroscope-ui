@@ -209,3 +209,17 @@ dist/
 build/
 
 Arduino-Gyroscope/src/secrets.h
+
+# Virtual environment
+.venv/
+
+# Tooling caches
+.ruff_cache/
+.pytest_cache/
+
+# Qt Creator / PySide6 project state (generated *_ui.py files ARE committed)
+.qtcreator/
+*.pyproject.user
+
+# Scratch space
+tmp/

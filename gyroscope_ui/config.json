@@ -1,0 +1,135 @@
+{
+  "application": {
+    "name": "Gyroscope-UI",
+    "auto_connect": true,
+    "data_dir": ""
+  },
+  "debug": {
+    "level": "info"
+  },
+  "device": {
+    "host": "192.168.4.1",
+    "port": 12345,
+    "local_port": 12345,
+    "keepalive_s": 2.0,
+    "data_timeout_s": 3.0,
+    "lost_after_s": 15.0,
+    "info_timeout_s": 1.0,
+    "pulses_per_revolution": 1,
+    "ssid_pattern": "Kreisel-*",
+    "limits": {
+      "frequency_hz_max": 1000,
+      "accel_m_s2_max": 200,
+      "gyro_rad_s_max": 50
+    }
+  },
+  "acquisition": {
+    "batch_interval_s": 0.05,
+    "stats_interval_s": 1.0
+  },
+  "simulation": {
+    "time_scale": 1.0,
+    "rate_hz": 100,
+    "start_frequency_hz": 15.0,
+    "spin_down_tau_s": 120.0,
+    "firmware_quirk": false,
+    "seed": 1
+  },
+  "display": {
+    "rate_hz": 10,
+    "preview_s": 30,
+    "scroll_window_s": 60,
+    "auto_scroll": true,
+    "all_channels": false
+  },
+  "storage": {
+    "measurement_name": "Messung",
+    "tk": "TK8",
+    "group_letters": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+      "O",
+      "P",
+      "Q",
+      "R",
+      "S",
+      "T",
+      "U",
+      "V",
+      "W",
+      "X",
+      "Y",
+      "Z"
+    ],
+    "weekday_abbreviations": ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+    "subterm_max_length": 20,
+    "recording_limit_s": 3600
+  },
+  "session": {
+    "debounce_s": 1.0
+  },
+  "shortcuts": {
+    "start_stop": "Space",
+    "stop": "Esc",
+    "save": "Ctrl+S",
+    "reset": "Ctrl+R",
+    "connect": "Ctrl+K",
+    "auto_range": "Ctrl+Shift+A",
+    "help": "F1",
+    "tab_modifier": "Ctrl"
+  },
+  "messages": {
+    "app_init": "Anwendung wird initialisiert...",
+    "connected": "Verbunden mit {device}. Bereit für Messungen.",
+    "disconnected": "Verbindung zum Gerät getrennt.",
+    "connecting": "Verbinde mit {device} ... Versuch {attempt}",
+    "connection_failed": "Verbindung zu {device} fehlgeschlagen: {error}",
+    "measurement_running": "Messung läuft...",
+    "measurement_stopped": "Messung gestoppt.",
+    "measurement_ended": "Messung beendet. Bereit zum Speichern oder für eine neue Messung.",
+    "data_saved": "Daten gespeichert in {path}",
+    "data_reset": "Daten wurden zurückgesetzt. Bereit für eine neue Messung.",
+    "no_data_to_save": "Keine Messdaten zum Speichern vorhanden.",
+    "unsaved_data": "Sie haben ungespeicherte Messdaten. Möchten Sie diese verwerfen und eine neue Messung starten?",
+    "close_unsaved_data_title": "Ungespeicherte Messdaten",
+    "close_unsaved_data_question": "Sie haben ungespeicherte Messdaten. Möchten Sie diese jetzt speichern?",
+    "auto_save_enabled": "Automatisches Speichern ist aktiviert. Messdaten werden automatisch gespeichert, wenn die Messung endet.",
+    "auto_save_disabled": "Automatisches Speichern ist deaktiviert. Sie müssen die Messdaten manuell speichern.",
+    "auto_save_tooltip": "Bei Aktivierung wird die Messung beim Stoppen automatisch gespeichert, im Format:\nJJJJ_MM_TT-<NN>-<Messung>[-<Suffix>].csv\nin einem Unterordner <Gruppe>_<Untergruppe> des Datenordners (Standard: Dokumente/Kreisel/).",
+    "group_letter_empty": "Gruppenbuchstabe darf nicht leer sein.",
+    "subterm_required": "Untergruppen-Bezeichnung ist ein Pflichtfeld und darf nicht leer sein. Bitte geben Sie eine Bezeichnung ein (z.B. Versuchsaufbau, Messung-1, etc.).",
+    "subterm_tooltip": "Untergruppen-Bezeichnung zur Identifikation der Messung (Pflichtfeld). Wird in den Metadaten und im Ordnernamen gespeichert. Sonderzeichen werden durch '_' ersetzt. Maximale Länge im Ordnernamen: 20 Zeichen.",
+    "necessary_fields_missing": "Bitte füllen Sie alle erforderlichen Felder aus, bevor Sie die Messdaten speichern.",
+    "device_port_in_use": "Port {port} ist belegt – läuft das Programm schon?",
+    "device_not_open": "Das Gerät ist nicht verbunden.",
+    "device_io_failed": "Kommunikation mit dem Gerät fehlgeschlagen: {error}",
+    "device_timeout": "Zeitüberschreitung bei der Kommunikation mit dem Gerät.",
+    "device_no_data": "Keine Daten vom Gerät. Ist der Rechner mit dem WLAN des Kreisels verbunden?",
+    "device_lost": "Verbindung zum Gerät verloren.",
+    "device_reconnected": "Verbindung zum Gerät wiederhergestellt.",
+    "storage_write_failed": "Speichern in {path} fehlgeschlagen: {error}",
+    "file_exists": "Die Datei {path} existiert bereits.",
+    "session_damaged": "Die gespeicherten Einstellungen waren beschädigt und wurden zurückgesetzt.",
+    "recording_limit_reached": "Maximale Aufnahmedauer von {limit_s} s erreicht. Die Messung wurde gestoppt."
+  },
+  "ui": {
+    "main_window": {
+      "window_title": "Kreisel-GUI"
+    },
+    "tabs": {
+      "measurement": "Messung"
+    }
+  }
+}

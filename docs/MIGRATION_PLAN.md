@@ -108,11 +108,11 @@ Each phase ends green (`.venv/bin/pytest`, `.venv/bin/ruff check .`) and in its 
 
 ### Phase 1 – Scaffold [Sonnet]
 
-- [ ] `git mv src gyroscope_ui`, new `pyproject.toml` (requires-python ≥3.11, ruff, pytest-qt, drop unused deps), `.gitignore`
+- [x] Create the new package `gyroscope_ui/` next to `src/` (the old app stays untouched as reference until Phase 5), new `pyproject.toml` (requires-python ≥3.11, ruff, pytest-qt, drop unused deps), `.gitignore`
 - [ ] Copy generic modules from spectrum-ui (§5, "copy" rows) with package rename
 - [ ] New `config.json` layout: `application`, `debug`, `device`, `acquisition`, `simulation`, `display`, `storage`, `session`, `shortcuts`, `messages`, `ui` (German strings migrated from the old `de` section and the `.ui` literals)
-- [ ] CI/release workflows from oct-ui; remove `test-build.yml`, `setup.py`, `MANIFEST.in`, `requirements.txt`, `GYRO_UI.pyproject*`, `.qtcreator/`, `book.toml`, Sphinx/RTD files
-- [ ] Recreate `.venv` (Python 3.14 as in the sibling projects) with `pip install -e ".[dev]"`
+- [x] CI/release workflows from oct-ui; remove `test-build.yml`, `setup.py`, `MANIFEST.in`, `requirements.txt`, `GYRO_UI.pyproject*`, `.qtcreator/`, `book.toml`, Sphinx/RTD files
+- [x] Recreate `.venv` (Python 3.14 as in the sibling projects) with `pip install -e ".[dev]"`
 
 ### Phase 2 – Core [Sonnet]
 
