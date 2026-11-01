@@ -25,6 +25,7 @@ SECTIONS = [
 ERROR_KEYS = [
     "device_port_in_use",
     "device_not_open",
+    "device_open_failed",
     "device_io_failed",
     "device_timeout",
     "device_no_data",

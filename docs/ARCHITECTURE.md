@@ -29,13 +29,13 @@ gyroscope_ui/
 │   ├── metadata.py            metadata dict of the JSON sidecar
 │   └── simulation.py          spinning disc physics shared by the mock and the tests
 ├── infrastructure/
-│   ├── devices/base.py        GyroDevice protocol, DeviceError(key, **fmt)
-│   ├── devices/udp_device.py  UdpGyroDevice (socket, registration, keep-alive, HTTP info)
+│   ├── devices/base.py        GyroDevice protocol, DeviceError(key, **fmt), LinkMeter (LinkStats counters)
+│   ├── devices/udp_device.py  UdpGyroDevice (socket, registration, keep-alive, HTTP /info)
 │   ├── devices/discovery.py   create_device(config, simulate)
 │   ├── mocks/mock_gyroscope.py  MockGyroscope on core.simulation
-│   ├── storage.py             atomic CSV + sidecar writer, next free file number
-│   ├── session_store.py       session.json (atomic, damaged file → .bak)
-│   ├── qt_threads.py          ALL Qt threads: ConnectWorker, AcquisitionWorker
+│   ├── storage.py             write_measurement (atomic CSV + sidecar), auto_save_path, manual_save_dir
+│   ├── session_store.py       SessionStore: session.json (atomic, damaged or foreign file → .bak)
+│   ├── qt_threads.py          ALL Qt threads: ConnectWorker, AcquisitionWorker (+ command queue)
 │   ├── config.py, logging.py, paths.py
 ├── pyqt/                      Qt Designer .ui files, generated *_ui.py, pyuic.sh, sync_texts.py, preview.py
 ├── ui/
@@ -70,29 +70,36 @@ device objects or sockets, so queued connections across threads are safe.
 
 `infrastructure/devices/base.py` defines `GyroDevice`, a runtime-checkable `Protocol`:
 
-| Method                            | Meaning                                                                       |
-| --------------------------------- | ----------------------------------------------------------------------------- |
-| `info`, `is_open`                 | `DeviceInfo`; open state                                                      |
-| `open()`, `close()`               | bind, register, read `/info` (best effort); release the socket                |
-| `read(timeout_s) -> list[Sample]` | blocks up to `timeout_s`, returns the valid samples of the datagrams received |
-| `keepalive()`                     | re-send the registration (no-op for the mock)                                 |
-| `stats() -> LinkStats`            | counters since `open()`                                                       |
+| Method                            | Meaning                                                                                                         |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `info`, `is_open`                 | `DeviceInfo`; open state                                                                                        |
+| `open()`, `close()`               | bind, register, read `/info` (best effort); release the socket (`close` is idempotent)                          |
+| `read(timeout_s) -> list[Sample]` | waits up to `timeout_s` for the first datagram, then drains the queued ones; `[]` on timeout or after `close()` |
+| `keepalive()`                     | re-send the registration (no-op for the mock)                                                                   |
+| `stats() -> LinkStats`            | counters since `open()`                                                                                         |
 
-| Device     | Class                                       | Notes                                                                                 |
-| ---------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Real       | `UdpGyroDevice` (`devices/udp_device.py`)   | binds local port 12345 (`device_port_in_use` otherwise), parsing in `core.protocol`   |
-| Simulation | `MockGyroscope` (`mocks/mock_gyroscope.py`) | ID `SIM0001`; samples from `core/simulation.py`; `time_scale`, loss/restart injection |
+| Device     | Class                                       | Notes                                                                                                                                                                   |
+| ---------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Real       | `UdpGyroDevice` (`devices/udp_device.py`)   | binds local port 12345 exclusively (`device_port_in_use` otherwise), only datagrams from the device's IP count, parsing in `core.protocol`                              |
+| Simulation | `MockGyroscope` (`mocks/mock_gyroscope.py`) | ID `SIM0001`; samples from `core/simulation.py`; `time_scale`, `max_batch` catch-up, loss/restart injection; thread-safe `kick()`, `pause_stream()`, `fail_next_read()` |
+
+`create_device(config, simulate)` (`devices/discovery.py`) builds either from `device.*` /
+`simulation.*` in `config.json`. Both devices count with one `LinkMeter`: `LinkStats.rate_hz` is
+the number of valid samples in a sliding 2 s window per second, `data_age_s` the time since the
+last valid sample.
 
 Rules:
 
 - **Errors carry message keys, not texts.** `DeviceError(key, **fmt)` with subclasses
-  `DeviceTimeoutError`, `DevicePortInUseError`; `ui/messages.py` translates them from
-  `config.json → messages`.
+  `DeviceTimeoutError`, `DevicePortInUseError(port=…)`; further keys: `device_open_failed(error)`,
+  `device_io_failed(error)`. `StorageError(key, **fmt)` has `storage_write_failed(path, error)` and
+  `file_exists(path)`. `ui/messages.py` translates them from `config.json → messages`.
 - **The adapter is thin.** Socket I/O only; parsing, validation, time base and loss estimation are
   pure functions in `core/` and tested there.
 - **Loopback test.** `tests/infrastructure/fake_firmware.py` is a small UDP server on 127.0.0.1
-  that behaves like firmware v1 or v2 (registration, data lines, restart, loss); the adapter is
-  tested against it with a configurable device port.
+  that behaves like firmware v1 or v2 (registration, data lines, silent period, restart, raw
+  datagrams, optional HTTP `/info`); the adapter is tested against it with a free local port
+  (never 12345).
 
 ## 3. Threads and the worker contract
 
@@ -108,19 +115,29 @@ All workers use a 16 MiB stack.
 **Contract of `AcquisitionWorker`:**
 
 1. **One loop, one owner.** After `open()` only this thread touches the device. The loop calls
-   `device.read(0.1 s)`, sends a keep-alive every `device.keepalive_s` and evaluates liveness
-   (`stale`, `lost`, recovered) from the time of the last valid sample.
+   `device.read(read_timeout_s = 0.05 s)`, sends a keep-alive every `keepalive_s`
+   (`device.keepalive_s`, in every link state) and evaluates liveness from the time of the last
+   valid sample (or from the start while nothing has arrived): `connecting` until the first valid
+   sample, then `connected`; `stale` after `data_timeout_s`, `lost` after `lost_after_s`
+   (`device.*`); samples again give `connected`. Other threads use the device only through
+   `run_in_thread(fn) -> Future`, which runs `fn(device)` between two reads.
 2. **Batches, not per-sample signals.** Samples are collected and emitted as one `SampleBatch` every
    `acquisition.batch_interval_s` (0.05 s) via `samples_ready(SampleBatch)`. The GUI thread
    therefore receives ≈ 20 signals/s regardless of the sample rate.
 3. **No signal is connected twice.** Controllers connect to the worker once in `attach()` and
    disconnect in `detach()`; a reconnect creates a new worker (no "reconnect while running" path).
-4. **Liveness and stats** are emitted as `link_changed(state)` and `stats_ready(LinkStats)` (1 Hz).
-5. **Failure handling.** A read error that is not a timeout emits `failed(key)` and ends the loop;
-   the connection controller shows the device as lost and offers a reconnect.
-6. **Shutdown.** `abort()` sets an event checked every loop pass (≤ 0.1 s); the owner `wait()`s.
-   A thread that does not finish is kept in a list of lingering workers and the device is closed
-   only after it has finished; no running `QThread` is destroyed.
+4. **Liveness and stats** are emitted as `link_changed(str)` (a `LinkState` value, only on a
+   change; the first emission is `connecting`) and `stats_ready(LinkStats)` (1 Hz). A command that
+   raises emits `command_failed(key)` and puts the exception into its Future; the worker goes on.
+5. **Failure handling.** A `DeviceError` from `read()` or `keepalive()` emits `failed(key)` and
+   ends the loop; any other exception is logged and emits `failed("device_io_failed")`. The
+   connection controller shows the device as lost and offers a reconnect. Commands still queued
+   when the loop ends are cancelled.
+6. **Shutdown.** `abort()` sets an event checked every loop pass (≤ one read timeout, 0.05 s) and
+   cancels pending commands; the owner `wait()`s. `qt_threads.py` keeps no registry of workers:
+   the connection controller keeps a thread that does not finish in its list of lingering workers
+   and closes the device only after it has finished (`run_when_released`, `wait_released`, as in
+   spectrum-ui's `AcquisitionController`); no running `QThread` is destroyed.
 
 ## 4. Data flow of a measurement
 

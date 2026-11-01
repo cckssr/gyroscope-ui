@@ -1,6 +1,6 @@
 # Migration plan: gyroscope-ui onto the oct-ui / spectrum-ui architecture
 
-Branch: `refactor/layered-architecture` (from `dev`). Status: Phases 0-2 done; next Phase 3.
+Branch: `refactor/layered-architecture` (from `dev`). Status: Phases 0-3 done; next Phase 4.
 
 ## 1. Goal
 
@@ -121,10 +121,12 @@ Each phase ends green (`.venv/bin/pytest`, `.venv/bin/ruff check .`) and in its 
 
 ### Phase 3 – Infrastructure [Sonnet; Opus reviews `qt_threads.py`]
 
-- [ ] `devices/base.py`, `udp_device.py` (no random-port fallback, clear `DeviceError` key instead – D6), `discovery.py`
-- [ ] `mocks/mock_gyroscope.py` on `core.simulation`
-- [ ] `storage.py`: atomic CSV with today's 3 columns (byte-compatible header) + JSON metadata sidecar `<name>.json` (format `gyroscope-ui-measurement/1`); `qt_threads.py` (`AcquisitionWorker`: one connection per signal, samples in batches of ~50 ms, display decimated to 20-30 Hz, liveness timeout + reconnect inside the worker)
-- [ ] Tests against the mock and against a loopback fake firmware (UDP on 127.0.0.1) replacing `scripts/mock_arduino_server.py`
+- [x] `devices/base.py` (`GyroDevice`, `DeviceError(key, **fmt)`, `LinkMeter`) and `devices/udp_device.py` (exclusive bind, no random-port fallback, `device_port_in_use` instead – D6)
+- [x] `devices/discovery.py`: `create_device(config, simulate)` from `device.*` / `simulation.*`
+- [x] `mocks/mock_gyroscope.py` on `core.simulation` (`time_scale`, `max_batch`, `kick`, `pause_stream`, `fail_next_read`)
+- [x] `storage.py`: atomic CSV with today's 3 columns (byte-compatible, golden test) + JSON sidecar `<name>.json`, `auto_save_path`, `manual_save_dir`; `session_store.py` (JSON, damaged file → `.bak`)
+- [x] `qt_threads.py`: `ConnectWorker`, `AcquisitionWorker` (batches of 50 ms, liveness `connected/stale/lost` inside the worker, `run_in_thread`, abort)
+- [x] Tests against the mock and against a loopback fake firmware (`tests/infrastructure/fake_firmware.py`, UDP on 127.0.0.1); `scripts/mock_arduino_server.py` is removed in Phase 5 (the old app's demo mode still uses it)
 
 ### Phase 4 – UI [Sonnet builds forms and widgets; Opus builds controllers and main window]
 
