@@ -48,11 +48,14 @@
 // SYSTEM CONFIGURATION
 // ================================
 
-/** @brief Gerätekennzeichnung für Identifikation */
-const char *DEVICE_ID = "E35432";
+/** @brief Gerätekennzeichnung für Identifikation (gesetzt via build_flags: -DDEVICE_ID_STR=...) */
+#ifndef DEVICE_ID_STR
+#define DEVICE_ID_STR "UNKNOWN"
+#endif
+const char *DEVICE_ID = DEVICE_ID_STR;
 
 /** @brief Software-Versionsnummer */
-const char *SOFTWARE_VERSION = "1.0.1";
+const char *SOFTWARE_VERSION = "1.1.1";
 
 // ================================
 // HARDWARE PIN DEFINITIONS
@@ -333,6 +336,19 @@ void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     }
     break;
 
+  case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+    Serial.printf("[WiFi-Event] Router verbunden (SSID: %s)\n", SECRET_STA_SSID);
+    break;
+
+  case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+    Serial.printf("[WiFi-Event] Router IP erhalten: %s (OTA verfügbar)\n",
+                  WiFi.localIP().toString().c_str());
+    break;
+
+  case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+    Serial.printf("[WiFi-Event] Router-Verbindung getrennt - OTA nicht verfügbar\n");
+    break;
+
   default:
     if (isDebugMode)
     {
@@ -497,9 +513,29 @@ bool initializeWiFiConnection(bool waitForConnection = true)
     // Kurz warten bis AP vollständig aktiv ist
     delay(1000);
 
-    // STA-Verbindung zum Router starten (nicht-blockierend, für OTA)
+    // STA-Verbindung zum Router starten (für OTA), max. 10 Sekunden warten
+    Serial.printf("Verbinde mit Router (SSID: %s)", SECRET_STA_SSID);
     WiFi.begin(SECRET_STA_SSID, SECRET_STA_PASS);
-    Serial.printf("Router-Verbindung gestartet (SSID: %s) - warte nicht auf Verbindung\n", SECRET_STA_SSID);
+    {
+      int attempts = 0;
+      const int maxAttempts = 10;
+      while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts)
+      {
+        delay(1000);
+        Serial.print(".");
+        attempts++;
+      }
+    }
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      Serial.printf("\nRouter-Verbindung erfolgreich! IP: %s (OTA verfügbar)\n",
+                    WiFi.localIP().toString().c_str());
+    }
+    else
+    {
+      Serial.printf("\nRouter-Verbindung fehlgeschlagen (SSID: %s) - OTA nicht verfügbar\n",
+                    SECRET_STA_SSID);
+    }
 
     Serial.println("Access Point ist nun bereit für Verbindungen!");
     Serial.println("Warte auf Client-Verbindungen...\n");
