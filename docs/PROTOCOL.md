@@ -56,12 +56,12 @@ WiFi add a few ms). The payload is one ASCII line terminated by `\r\n`:
 <millis>,<frequency>,<ax>,<ay>,<az>,<gx>,<gy>,<gz>\r\n
 ```
 
-| #   | Field       | Type / format | Unit  | Meaning                                                       |
-| --- | ----------- | ------------- | ----- | ------------------------------------------------------------- |
-| 1   | `millis`    | `%lu` uint32  | ms    | `millis()` since power-up; wraps after 49.7 days              |
-| 2   | `frequency` | `%.4f`        | Hz    | disc rotation frequency, `1e6 / period_us` of the Hall pulses |
-| 3–5 | `ax ay az`  | `%.4f`        | m/s²  | accelerometer (Adafruit unified sensor units)                 |
-| 6–8 | `gx gy gz`  | `%.4f`        | rad/s | gyroscope (Adafruit unified sensor units)                     |
+| #   | Field       | Type / format | Unit  | Meaning                                                                                         |
+| --- | ----------- | ------------- | ----- | ----------------------------------------------------------------------------------------------- |
+| 1   | `millis`    | `%lu` uint32  | ms    | `millis()` since power-up; wraps after 49.7 days                                                |
+| 2   | `frequency` | `%.4f`        | Hz    | Hall pulse frequency, `1e6 / period_us`; the host divides by `device.pulses_per_revolution` (1) |
+| 3–5 | `ax ay az`  | `%.4f`        | m/s²  | accelerometer (Adafruit unified sensor units)                                                   |
+| 6–8 | `gx gy gz`  | `%.4f`        | rad/s | gyroscope (Adafruit unified sensor units)                                                       |
 
 There is no header line, no sequence number and no checksum. UDP may drop or (rarely) reorder
 datagrams; a datagram is never split, so a datagram is either a complete line or lost.

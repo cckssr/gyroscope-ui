@@ -14,14 +14,14 @@ structure in [ARCHITECTURE.md](ARCHITECTURE.md), the work plan in
 
 ## 1. Facts that drive the design
 
-| Item        | Value                                                                                                  |
-| ----------- | ------------------------------------------------------------------------------------------------------ |
-| Units       | 10 identical boards (`Kreisel-E94464`, `Kreisel-E35433 … E35441`), one per lab station                 |
-| Link        | WiFi access point of the board, UDP, ≈ 80–100 samples/s, unreliable (loss, rare reordering)            |
-| Channels    | device time (ms), rotation frequency (Hz), acceleration x/y/z (m/s²), angular rate x/y/z (rad/s)       |
-| Of interest | disc rotation frequency `f(t)` (spin-down) and the angular rate about z `ω_z(t)` (precession/nutation) |
-| Users       | students in groups (letter A–Z) with a sub-group label; one PC per station; German UI                  |
-| Data flow   | CSV files in `Documents/Kreisel/…`, picked up by the lab's openBIS Dropbox folder naming               |
+| Item        | Value                                                                                                                                    |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Units       | 10 identical boards (`Kreisel-E94464`, `Kreisel-E35433 … E35441`), one per lab station                                                   |
+| Link        | WiFi access point of the board, UDP, ≈ 80–100 samples/s, unreliable (loss, rare reordering)                                              |
+| Channels    | device time (ms), Hall pulse frequency (Hz; = rotation frequency with one magnet), acceleration x/y/z (m/s²), angular rate x/y/z (rad/s) |
+| Of interest | disc rotation frequency `f(t)` (spin-down) and the angular rate about z `ω_z(t)` (precession/nutation)                                   |
+| Users       | students in groups (letter A–Z) with a sub-group label; one PC per station; German UI                                                    |
+| Data flow   | CSV files in `Documents/Kreisel/…`, picked up by the lab's openBIS Dropbox folder naming                                                 |
 
 ## 2. What the current application does and what we do
 
@@ -129,11 +129,11 @@ persisted. Group letter: `A`–`Z` (`storage.group_letters`). Sub-group: free te
   `<name>` = `storage.measurement_name` ("Messung") and `NN` = next free two-digit number in that
   folder for that day (instead of a per-process counter that restarts at 01 and could collide).
 - **Manual save** (button "Speichern…", `Ctrl+S`): a file dialog starting in
-  `<base>/<Wd><GROUP><TK>-<subterm_sanitised>/` (Dropbox naming, e.g. `MoATK08-Aufbau_1`) with the
-  auto-save file name proposed. `<TK>` = `storage.tk` ("TK08"); `<Wd>` = weekday abbreviation from
-  `storage.weekday_abbreviations` (default `["Mo","Di","Mi","Do","Fr","Sa","So"]`, independent of
-  the OS locale; the old `%a` gave English or German depending on the machine — **to verify against
-  the Dropbox convention**).
+  `<base>/<Wd><GROUP><TK>-<subterm_sanitised>/` (Dropbox naming, e.g. `MoATK8-Aufbau_1`) with the
+  auto-save file name proposed. `<TK>` = `storage.tk` ("TK8"; 1.1.x hard-coded "TK08", which was
+  wrong); `<Wd>` = German weekday abbreviation from `storage.weekday_abbreviations` (default
+  `["Mo","Di","Mi","Do","Fr","Sa","So"]`, independent of the OS locale; the old `%a` gave English or
+  German depending on the machine). Confirmed by the lab (2026-11-02).
 - Sanitising of the sub-group (unchanged rules): characters outside `[A-Za-z0-9 _-äöüÄÖÜß]` → `_`,
   runs of `_`/space → one `_`, trimmed; longer than 20 characters → every word cut to 3 letters;
   still longer → first 16 characters + `_xxx`.
@@ -214,9 +214,12 @@ students know.
 See [MIGRATION_PLAN.md](MIGRATION_PLAN.md), section 6: 0 specification, 1 scaffold, 2 core,
 3 infrastructure, 4 UI, 5 docs and review, 6 firmware, 7 hardware validation.
 
-## 13. Assumptions to verify in the lab
+## 13. Lab facts and assumptions
 
-- Weekday abbreviations of the Dropbox folder names (`Mo`/`Di`/… vs. `Mo`/`Tu`/…).
-- `storage.tk` = `TK08` (code) vs. `TK8` (old config) — which one the Dropbox expects.
-- The disc has one magnet (one Hall pulse per revolution).
+Confirmed (2026-11-02): German weekday abbreviations, `TK8`, one magnet per disc.
+`device.pulses_per_revolution` (default 1) divides the reported pulse frequency, so a later
+change to several magnets is a configuration change (firmware ≥ v2 may report it in `/info`).
+
+Still to verify:
+
 - Lab PCs: Windows version, Python ≥ 3.11 or a packaged build, firewall rule for inbound UDP 12345.
