@@ -25,6 +25,7 @@ gyroscope_ui/
 │   ├── timebase.py            device millis → elapsed seconds; restart, reorder and loss rules
 │   ├── recording.py           Recording: chunked NumPy buffer of all channels, statistics, quality
 │   ├── naming.py              auto-save names, Dropbox folder names, sanitising, group name
+│   ├── csv_format.py          header and rows of the 3-column CSV (byte-compatible with 1.1.x)
 │   ├── metadata.py            metadata dict of the JSON sidecar
 │   └── simulation.py          spinning disc physics shared by the mock and the tests
 ├── infrastructure/
@@ -54,14 +55,16 @@ device objects or sockets, so queued connections across threads are safe.
 
 **The contract is `core/models.py`:**
 
-| Model              | Content                                                                                                     |
-| ------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `Sample`           | `device_ms`, `frequency_hz`, `accel_m_s2` (x, y, z), `gyro_rad_s` (x, y, z), `seq` (or None), `host_time_s` |
-| `SampleBatch`      | the same as NumPy arrays (one column per field); what the worker emits                                      |
-| `DeviceInfo`       | `device_id`, `firmware_version`, `protocol_version`, `address`, `simulated`                                 |
-| `LinkStats`        | rate, received, invalid, reordered, lost (estimated/exact), restarts, data age                              |
-| `RecordingQuality` | the counters and gap list of one recording (goes into the sidecar)                                          |
-| `MeasurementInfo`  | group, subgroup, suffix, start/end time, device info                                                        |
+| Model               | Content                                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `Sample`            | `device_ms`, `frequency_hz`, `accel_{x,y,z}_m_s2`, `gyro_{x,y,z}_rad_s`, `seq` (or None), `host_time_s` (monotonic) |
+| `SampleBatch`       | the same as read-only NumPy columns (`seq` -1 = none); what the worker emits; `CHANNELS` names the 7 float columns  |
+| `LinkState`         | `disconnected`, `connecting`, `connected`, `stale`, `lost`, `error`                                                 |
+| `DeviceInfo`        | `device_id`, `address`, `simulated`, `firmware_version`, `protocol_version`                                         |
+| `LinkStats`         | `rate_hz`, `received`, `invalid`, `data_age_s`, `protocol_version`                                                  |
+| `RecordingQuality`  | samples, reordered, estimated/exact lost, device restarts, `Gap` list; `notes()` gives message keys (sidecar)       |
+| `ChannelStatistics` | count, minimum, maximum, mean, population std of one channel (NaN ignored)                                          |
+| `MeasurementInfo`   | group, subgroup, suffix, start/end time, device info                                                                |
 
 ## 2. The device layer
 
@@ -126,12 +129,12 @@ device ─► AcquisitionWorker (worker thread): read → core.protocol → Samp
                                                                           │ samples_ready (≈ 20 Hz)
                                                                           ▼ (GUI thread)
                                               MeasurementController.on_batch
-                                                 │ core.timebase (elapsed, restarts, loss)
-                                                 │ Recording.append (only while recording,
-                                                 │   only samples with device time ≥ start)
+                                                 │ Recording.append (only while recording, only
+                                                 │   samples with host time ≥ start; core.timebase
+                                                 │   gives elapsed time, restarts, reorder, loss)
                                                  ▼
                                    live values, plots (timer, display.rate_hz)
-Stop ─► Recording.freeze ─► SaveController ─► core.naming + core.metadata ─► storage (atomic CSV + JSON)
+Stop ─► Recording.stop ─► SaveController ─► core.naming + core.metadata ─► storage (atomic CSV + JSON)
 ```
 
 The amount of work per batch is small (NumPy appends into preallocated chunks), so the recording

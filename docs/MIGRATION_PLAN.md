@@ -1,6 +1,6 @@
 # Migration plan: gyroscope-ui onto the oct-ui / spectrum-ui architecture
 
-Branch: `refactor/layered-architecture` (from `dev`). Status: Phase 0 done; next Phase 1.
+Branch: `refactor/layered-architecture` (from `dev`). Status: Phases 0-2 done; next Phase 3.
 
 ## 1. Goal
 
@@ -116,8 +116,8 @@ Each phase ends green (`.venv/bin/pytest`, `.venv/bin/ruff check .`) and in its 
 
 ### Phase 2 – Core [Sonnet]
 
-- [ ] `models.py`, `protocol.py`, `timebase.py`, `recording.py`, `naming.py`, `metadata.py`, `simulation.py`
-- [ ] Unit tests in `tests/core/` incl. regression tests for D3, D4, D7 and the naming rules (group folder, Dropbox name with explicit German weekday table instead of `%a` locale)
+- [x] `models.py`, `protocol.py`, `timebase.py`, `recording.py`, `naming.py`, `csv_format.py`, `metadata.py`, `simulation.py`
+- [x] Unit tests in `tests/core/` incl. regression tests for D3, D4, D7 and the naming rules (group folder, Dropbox name with explicit German weekday table instead of `%a` locale)
 
 ### Phase 3 – Infrastructure [Sonnet; Opus reviews `qt_threads.py`]
 
