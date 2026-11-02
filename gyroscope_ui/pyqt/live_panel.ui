@@ -6,6 +6,9 @@
    <string>Live-Messwerte</string>
   </property>
   <layout class="QFormLayout" name="formLayout">
+   <property name="rowWrapPolicy">
+    <enum>QFormLayout::RowWrapPolicy::WrapLongRows</enum>
+   </property>
    <property name="fieldGrowthPolicy">
     <enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum>
    </property>
