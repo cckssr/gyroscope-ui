@@ -57,12 +57,7 @@ qt_api = "pyside6"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-# src/, main.py and tests/plot.ipynb belong to the old application and stay untouched until Phase 5.
 extend-exclude = [
-    "src",
-    "main.py",
-    "scripts",
-    "tests/plot.ipynb",
     "gyroscope_ui/pyqt/*_ui.py",
     "Arduino-Gyroscope",
 ]

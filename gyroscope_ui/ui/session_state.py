@@ -20,6 +20,7 @@ from typing import Any
 
 from PySide6.QtCore import QObject, QTimer, Signal
 
+from gyroscope_ui.core import naming
 from gyroscope_ui.infrastructure.config import AppConfig
 from gyroscope_ui.infrastructure.logging import get_logger
 from gyroscope_ui.infrastructure.paths import AppPaths
@@ -214,8 +215,9 @@ class SessionState(QObject):
         state = self._store.load()
         fields = state.get("save_fields")
         if isinstance(fields, dict) and self._fields_still_valid(fields.get("date")):
+            group = str(fields.get("group", "") or "")
             self._fields = SaveFields(
-                group=str(fields.get("group", "") or ""),
+                group=group if naming.is_valid_group(group) else "",  # hand-edited file
                 subgroup=str(fields.get("subgroup", "") or ""),
                 suffix=str(fields.get("suffix", "") or ""),
             )

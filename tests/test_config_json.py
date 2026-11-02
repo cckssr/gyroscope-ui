@@ -35,6 +35,10 @@ ERROR_KEYS = [
     "file_exists",
     "session_damaged",
     "recording_limit_reached",
+    "group_invalid",
+    "name_empty",
+    "tk_invalid",
+    "weekdays_invalid",
 ]
 
 

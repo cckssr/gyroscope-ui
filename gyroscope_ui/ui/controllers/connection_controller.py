@@ -19,7 +19,7 @@ from typing import Any
 
 from PySide6.QtCore import QObject, Signal
 
-from gyroscope_ui.core.models import DeviceInfo, LinkState
+from gyroscope_ui.core.models import DeviceInfo, LinkState, LinkStats, SampleBatch
 from gyroscope_ui.infrastructure.config import AppConfig
 from gyroscope_ui.infrastructure.devices.base import GyroDevice
 from gyroscope_ui.infrastructure.devices.discovery import create_device
@@ -87,8 +87,11 @@ class ConnectionController(QObject):
 
     @property
     def has_data(self) -> bool:
-        """Data are flowing (connected) or paused only briefly (stale)."""
-        return self._state in (LinkState.CONNECTED, LinkState.STALE)
+        """Data are flowing (connected) or paused only briefly (stale after data had arrived;
+        the worker also reports stale when nothing ever arrived)."""
+        if self._state is LinkState.STALE:
+            return self._was_connected
+        return self._state is LinkState.CONNECTED
 
     @property
     def simulate(self) -> bool:
@@ -192,8 +195,8 @@ class ConnectionController(QObject):
             lost_after_s=float(c.get("device.lost_after_s", 15.0)),
             parent=self,
         )
-        worker.samples_ready.connect(self.samples_ready)
-        worker.stats_ready.connect(self.stats_ready)
+        worker.samples_ready.connect(self._on_samples)
+        worker.stats_ready.connect(self._on_stats)
         worker.link_changed.connect(self._on_link)
         worker.command_failed.connect(self._on_command_failed)
         worker.failed.connect(self._on_worker_failed)
@@ -213,6 +216,18 @@ class ConnectionController(QObject):
         self._set_info(None)
         self.message.emit("error", message_text(self._cfg, "connection_failed", error=text))
         self._set_state(LinkState.ERROR)
+
+    def _from_current_worker(self) -> bool:
+        """Events already queued when a worker is detached are still delivered: drop them."""
+        return self._worker is not None and self.sender() is self._worker
+
+    def _on_samples(self, batch: SampleBatch) -> None:
+        if self._from_current_worker():
+            self.samples_ready.emit(batch)
+
+    def _on_stats(self, stats: LinkStats) -> None:
+        if self._from_current_worker():
+            self.stats_ready.emit(stats)
 
     def _on_link(self, value: str) -> None:
         if self._worker is None or self.sender() is not self._worker:
@@ -289,6 +304,8 @@ class ConnectionController(QObject):
         # Destroying a running QThread crashes: keep a strong reference until it ends.
         self._lingering[thread] = device
         thread.finished.connect(lambda: self._release(thread))  # type: ignore[attr-defined]
+        if thread.isFinished():  # type: ignore[attr-defined]  # ended before the connect
+            self._release(thread)
 
     def _release(self, thread: QObject) -> None:
         if thread not in self._lingering:

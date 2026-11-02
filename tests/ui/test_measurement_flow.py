@@ -5,6 +5,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from ui_helpers import connect, record
 
+from gyroscope_ui.core.models import LinkStats
 from gyroscope_ui.infrastructure.devices.base import DevicePortInUseError
 from gyroscope_ui.infrastructure.mocks.mock_gyroscope import MockGyroscope
 
@@ -155,3 +156,30 @@ def test_stale_and_recovered(qtbot, make_window):
     texts = [text for _level, text in window.message_log]
     assert any("abgerissen" in t for t in texts)
     assert any("wiederhergestellt" in t for t in texts)
+
+
+def test_invalid_lines_count_only_while_recording(qtbot, connected):
+    m = connected.context.measurement
+    m._on_stats(LinkStats(invalid=5))  # before Start: not counted
+    record(qtbot, connected)
+    m._on_stats(LinkStats(invalid=7))
+    connected.context.connection.state_changed.emit("disconnected", "")
+    m._on_stats(LinkStats(invalid=3))  # a new connection counts from zero
+    m.stop()
+    m._on_stats(LinkStats(invalid=9))  # after Stop: not counted
+    assert m.invalid_lines == 5
+
+
+def test_manual_disconnect_while_recording_warns(qtbot, connected):
+    record(qtbot, connected)
+    connected.context.connection.disconnect_device()
+    assert any("getrennt" in text for _level, text in connected.message_log)
+
+
+def test_late_batches_of_a_detached_worker_are_dropped(qtbot, connected):
+    conn = connected.context.connection
+    received: list[object] = []
+    conn.samples_ready.connect(received.append)
+    conn.disconnect_device()
+    conn._on_samples(object())  # no current worker: dropped
+    assert received == []

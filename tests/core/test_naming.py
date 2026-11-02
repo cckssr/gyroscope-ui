@@ -15,6 +15,7 @@ from gyroscope_ui.core.naming import (
     group_name,
     next_number,
     sanitize_subterm,
+    sanitize_suffix,
     semester,
     weekday_abbreviation,
 )
@@ -168,3 +169,23 @@ def test_group_name():
     with pytest.raises(NamingError) as err:
         group_name(MONDAY, "a")
     assert err.value.key == "group_invalid"
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("run1", "run1"),
+        ("a/b", "a_b"),
+        ("../../x", "x"),
+        ("a:b*c?", "a_b_c"),
+        ("-x-", "x"),
+        ("", ""),
+    ],
+)
+def test_sanitize_suffix(raw, expected):
+    assert sanitize_suffix(raw) == expected
+
+
+def test_auto_file_name_cannot_leave_the_folder():
+    name = auto_file_name(MONDAY, 1, "Messung", "../a\\b")
+    assert name == "2026_11_02-01-Messung-a_b.csv"

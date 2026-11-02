@@ -69,7 +69,9 @@ class MeasurementTab(TabBase):
     def _show_recording(self) -> None:
         self._set_mode("recording")
         rec = self.context.measurement.recording
-        columns = {name: rec.column(name) for name in CHANNELS}
+        curves = self.plot.curves
+        # Each column is a copy of the whole recording: only build the visible ones.
+        columns = {name: rec.column(name) for name in CHANNELS if curves[name].isVisible()}
         self.plot.set_data(rec.column("elapsed_s"), columns)
 
     def _show_preview(self) -> None:

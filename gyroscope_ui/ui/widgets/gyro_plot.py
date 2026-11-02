@@ -3,7 +3,7 @@ and the acceleration as a third plot that exists only with "Alle Kanäle".
 
 The x axes are linked. All curves are created once and updated with ``setData``; nothing loops
 over points in Python (downsampling and clipping to the view are pyqtgraph's, ``peak`` mode keeps
-spikes visible). Non-finite values leave gaps. Colours come from the widget palette, so the plots
+spikes visible). Non-finite values leave gaps. Background and text follow the palette, so the plots
 follow light and dark mode.
 """
 

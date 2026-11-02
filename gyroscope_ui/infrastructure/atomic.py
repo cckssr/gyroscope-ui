@@ -10,8 +10,9 @@ from pathlib import Path
 
 
 def _fsync_file(path: Path) -> None:
-    """Flush the file contents at ``path`` to stable storage."""
-    fd = os.open(path, os.O_RDONLY)
+    """Flush the file contents at ``path`` to stable storage. Opened for writing: on Windows
+    ``os.fsync`` (``_commit``) fails with EBADF on a read-only descriptor."""
+    fd = os.open(path, os.O_RDWR)
     try:
         os.fsync(fd)
     finally:

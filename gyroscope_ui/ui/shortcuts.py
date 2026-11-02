@@ -234,8 +234,8 @@ def render_markdown(config: AppConfig, n_tabs: int = DOC_TABS) -> str:
     ui = config.section("ui").get("shortcuts_dialog", {})
     labels, groups = ui.get("row_labels", {}), ui.get("group_names", {})
     md = config.section("ui").get("shortcuts_doc", {})
-    lines = [f"# {md.get('title', 'Tastenkürzel')}", "", md.get("intro", ""), ""]
-    columns = md.get("columns", ["Funktion", "macOS", "Windows/Linux"])
+    lines = [f"# {md.get('title', 'Shortcuts')}", "", md.get("intro", ""), ""]
+    columns = md["columns"]
     rows = shortcut_rows(config, n_tabs)
     for group in dict.fromkeys(r.group for r in rows):
         lines += [f"## {groups.get(group, group)}", ""]

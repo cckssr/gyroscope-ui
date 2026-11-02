@@ -49,3 +49,19 @@ def test_fsyncs_the_temp_file_before_replacing(tmp_path, monkeypatch):
     assert [e[0] for e in events] == ["fsync", "replace", "fsync_dir"]
     assert events[0][1] == events[1][1]  # the very file that is renamed
     assert (tmp_path / "x.txt").read_text() == "hi"
+
+
+def test_fsync_opens_the_file_writable(tmp_path, monkeypatch):
+    """Windows: ``os.fsync`` on a read-only descriptor fails with EBADF."""
+    flags: list[int] = []
+    real_open = os.open
+
+    def recording_open(path, mode, *args):
+        flags.append(mode)
+        return real_open(path, mode, *args)
+
+    monkeypatch.setattr(atomic.os, "open", recording_open)
+    target = tmp_path / "x.txt"
+    target.write_text("a")
+    atomic._fsync_file(target)
+    assert flags and flags[0] & os.O_RDWR

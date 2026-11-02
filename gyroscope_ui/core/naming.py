@@ -44,6 +44,18 @@ def sanitize_subterm(subterm: str, max_length: int = 20) -> str:
     return abbreviated[: max_length - 4] + "_xxx"
 
 
+def sanitize_suffix(suffix: str) -> str:
+    """Make the free-text file name suffix safe: the character rules of
+    :func:`sanitize_subterm` (no path separators, no characters Windows forbids), no shortening."""
+    sanitized = re.sub(r"[^a-zA-Z0-9\s\-_äöüÄÖÜß]", "_", suffix)
+    return re.sub(r"[_\s]+", "_", sanitized).strip("_-")
+
+
+def is_valid_group(group: str) -> bool:
+    """``group`` is a single letter A-Z."""
+    return bool(_GROUP_RE.fullmatch(group))
+
+
 def group_folder_name(group: str, subterm: str, max_length: int = 20) -> str:
     """Auto-save folder ``<GROUP>[_<subterm>]``, e.g. ``A_Aufbau_1``."""
     if not group:
@@ -65,7 +77,8 @@ def auto_file_name(
     """Auto-save file name ``<YYYY_MM_DD>-<NN>-<name>[-<suffix>]<ext>``."""
     if not measurement_name:
         raise NamingError("name_empty")
-    if suffix and not suffix.startswith("-"):
+    suffix = sanitize_suffix(suffix)
+    if suffix:
         suffix = "-" + suffix
     return f"{day:%Y_%m_%d}-{number:02d}-{measurement_name}{suffix}{extension}"
 

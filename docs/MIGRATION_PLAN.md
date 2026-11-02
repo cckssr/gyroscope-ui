@@ -1,6 +1,6 @@
 # Migration plan: gyroscope-ui onto the oct-ui / spectrum-ui architecture
 
-Branch: `refactor/layered-architecture` (from `dev`). Status: Phases 0-4 done; next Phase 5.
+Branch: `refactor/layered-architecture` (from `dev`). Status: Phases 0-5 done; next Phase 6.
 
 ## 1. Goal
 
@@ -138,8 +138,9 @@ Each phase ends green (`.venv/bin/pytest`, `.venv/bin/ruff check .`) and in its 
 
 ### Phase 5 – Docs and review [Haiku for README/SHORTCUTS, Sonnet python-reviewer]
 
-- [ ] README (install, `--simulate`, lab usage), generated `docs/SHORTCUTS.md`, `docs/HARDWARE_CHECKLIST.md`
-- [ ] Code review pass, fix findings
+- [x] README (install, `--simulate`, lab usage), generated `docs/SHORTCUTS.md`, `docs/HARDWARE_CHECKLIST.md`
+- [x] Code review pass, fix findings (Windows fsync, late worker signals, invalid-line count, suffix sanitising, missing message texts, close/Cancel keeps recording, stale start)
+- [x] Remove the old application (`src/`, `scripts/`, `static/`, `tests/plot.ipynb`, mock data), root `main.py` as launcher, ruff excludes cleaned
 
 ### Phase 6 – Firmware [Sonnet; Opus reviews protocol changes]
 

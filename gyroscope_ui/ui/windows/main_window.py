@@ -358,13 +358,14 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         m = self.context.measurement
-        if not self._shut_down:
-            if m.is_recording:
-                m.stop()  # an auto-save may follow
-            if m.has_unsaved:
-                answer = self.ask_unsaved_on_close()
-                if answer == CANCEL or (answer == SAVE and self.save_measurement() is None):
-                    event.ignore()
-                    return
+        if not self._shut_down and (m.is_recording or m.has_unsaved):
+            answer = self.ask_unsaved_on_close()  # before Stop, so Cancel keeps recording
+            if answer == CANCEL:
+                event.ignore()
+                return
+            m.stop()  # only while recording; an auto-save may follow
+            if answer == SAVE and m.has_unsaved and self.save_measurement() is None:
+                event.ignore()
+                return
         self.shutdown()
         super().closeEvent(event)

@@ -23,7 +23,7 @@ class ShortcutsDialog(QDialog):
         texts = config.section("ui").get("shortcuts_dialog", {})
         apply_strings(self, texts)
         labels, groups = texts.get("row_labels", {}), texts.get("group_names", {})
-        columns = texts.get("table_columns", ["Funktion", "Tastenkürzel"])
+        columns = texts["table_columns"]
         table = self.ui.tableShortcuts
         table.setHorizontalHeaderLabels(columns)
         rows = shortcut_rows(config, n_tabs)

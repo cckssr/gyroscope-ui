@@ -64,8 +64,8 @@ class MeasurementController(QObject):
         self._limit_s = float(config.get("storage.recording_limit_s", 3600))
         self.start_time: datetime | None = None
         self.end_time: datetime | None = None
-        self._invalid_at_start = 0
-        self._invalid_now = 0
+        self._invalid_seen = 0  # the link's running count of rejected lines (per connection)
+        self._invalid_recorded = 0  # rejected while recording, summed across reconnects
         self._interrupted = False
         self.confirm: Callable[[str], bool] = lambda _text: True
         self._panel: Any = None
@@ -104,8 +104,9 @@ class MeasurementController(QObject):
 
     @property
     def invalid_lines(self) -> int:
-        """Lines rejected by the link during the last recording."""
-        return max(0, self._invalid_now - self._invalid_at_start)
+        """Lines rejected by the link during the last recording (to the resolution of the
+        link statistics, about 1 s)."""
+        return self._invalid_recorded
 
     def _set_state(self, state: str) -> None:
         if state != self._state:
@@ -125,10 +126,12 @@ class MeasurementController(QObject):
         self.recording.start(self._clock())
         self.start_time = datetime.now().astimezone()
         self.end_time = None
-        self._invalid_at_start = self._invalid_now
+        self._invalid_recorded = 0
         self._interrupted = False
         self._set_state(RECORDING)
         self.message.emit("info", message_text(self._cfg, "measurement_running"))
+        if self._connection.state != "connected":
+            self.message.emit("warning", message_text(self._cfg, "start_while_stale"))
         return True
 
     def stop(self) -> bool:
@@ -176,15 +179,19 @@ class MeasurementController(QObject):
                 )
 
     def _on_stats(self, stats: LinkStats) -> None:
-        self._invalid_now = stats.invalid
+        if self._state == RECORDING:
+            self._invalid_recorded += max(0, stats.invalid - self._invalid_seen)
+        self._invalid_seen = stats.invalid
 
     def _on_link(self, state: str, _text: str) -> None:
         if state in ("disconnected", "error"):
-            self._invalid_now = self._invalid_at_start = 0
+            self._invalid_seen = 0  # a new connection counts from zero
             self.preview.clear()
-        if self._state == RECORDING and state in ("lost", "error") and not self._interrupted:
+        interrupted = state in ("lost", "error", "disconnected")
+        if self._state == RECORDING and interrupted and not self._interrupted:
             self._interrupted = True
-            self.message.emit("warning", message_text(self._cfg, "recording_interrupted"))
+            key = "recording_disconnected" if state == "disconnected" else "recording_interrupted"
+            self.message.emit("warning", message_text(self._cfg, key))
         self._update_panel()
 
     def _refresh(self) -> None:

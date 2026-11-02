@@ -62,3 +62,12 @@ def test_restored_values_reach_the_window(qtbot, make_window):
     second = make_window()
     ui = second.save_panel.ui
     assert ui.comboGroup.currentText() == "F" and ui.editSubgroup.text() == "Gruppe F1"
+
+
+def test_invalid_restored_group_is_dropped(qtbot, config, paths):
+    day = date(2026, 11, 2)
+    s = _session(config, paths, day)
+    s.update_save_fields(group="ab", subgroup="Aufbau 2")
+    s.shutdown()
+    r = _session(config, paths, day)
+    assert r.save_fields.group == "" and r.save_fields.subgroup == "Aufbau 2"

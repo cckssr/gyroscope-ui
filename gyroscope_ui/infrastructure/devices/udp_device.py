@@ -30,6 +30,7 @@ _log = get_logger("udp")
 
 _PORT_IN_USE_ERRNOS = {errno.EADDRINUSE, errno.EACCES}
 _WINERROR_PORT_IN_USE = {10048, 10013}  # WSAEADDRINUSE, WSAEACCES (SO_EXCLUSIVEADDRUSE)
+_WSAEMSGSIZE = 10040
 _MAX_DATAGRAM_BYTES = 4096
 _MAX_DRAIN = 2000  # datagrams per read(): bounds the call even if the sender is faster than us
 
@@ -131,6 +132,11 @@ class UdpGyroDevice:
                     break
                 except (ConnectionResetError, ConnectionRefusedError):
                     continue  # ICMP "port unreachable" echo of a keep-alive (Windows, Linux)
+                except OSError as exc:
+                    if getattr(exc, "winerror", None) != _WSAEMSGSIZE:
+                        raise
+                    self._meter.add(0, 1)  # oversized datagram (Windows raises, POSIX truncates)
+                    continue
                 wait_s = 0.0  # after the first datagram only drain what is already queued
                 self._handle(payload, addr[0], samples)
         except OSError as exc:

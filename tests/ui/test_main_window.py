@@ -83,7 +83,7 @@ def test_close_asks_for_unsaved_data(qtbot, connected):
     connected.ask_unsaved_on_close = lambda: CANCEL
     connected.close()
     assert connected.isVisible() and not connected._shut_down
-    assert connected.context.measurement.state == "stopped"  # stopped, data kept
+    assert connected.context.measurement.is_recording  # Cancel keeps the recording running
     connected.context.save.ask_save_path = lambda _d, _n: None
     connected.ask_unsaved_on_close = lambda: SAVE
     connected.context.session.update_save_fields(group="A", subgroup="x")
