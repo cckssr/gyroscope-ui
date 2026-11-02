@@ -3,14 +3,13 @@ generated ``*_ui.py`` that is exactly what ``pyside6-uic`` produces from the for
 
 from __future__ import annotations
 
-import subprocess
-import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 
 from gyroscope_ui.infrastructure.config import load_config
+from gyroscope_ui.pyqt.preview import compile_form
 from gyroscope_ui.pyqt.sync_texts import PYQT_DIR, SECTIONS, synced_text
 
 FORMS = sorted(PYQT_DIR.glob("*.ui"))
@@ -63,12 +62,7 @@ def test_generated_module_exists(form: Path):
 @pytest.mark.parametrize("form", FORMS, ids=lambda p: p.stem)
 def test_generated_module_matches_the_form(form: Path):
     """A fresh ``pyside6-uic`` run reproduces the committed module."""
-    out = subprocess.run(
-        [str(Path(sys.executable).parent / "pyside6-uic"), str(form)],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
+    out = compile_form(form)
     committed = form.with_name(f"{form.stem}_ui.py").read_text(encoding="utf-8")
     assert out == committed, f"{form.stem}_ui.py is stale: run gyroscope_ui/pyqt/pyuic.sh"
 

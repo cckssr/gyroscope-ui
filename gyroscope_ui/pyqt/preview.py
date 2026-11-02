@@ -12,10 +12,14 @@ combo boxes, tables and plots that the code fills stay empty.
 from __future__ import annotations
 
 import argparse
+import shutil
+import subprocess
 import sys
+import xml.etree.ElementTree as ET
+from pathlib import Path
 
+from PySide6 import QtWidgets
 from PySide6.QtCore import QFileSystemWatcher, QTimer
-from PySide6.QtUiTools import loadUiType
 from PySide6.QtWidgets import QApplication, QWidget
 
 from gyroscope_ui.infrastructure.config import load_config
@@ -23,9 +27,37 @@ from gyroscope_ui.pyqt.sync_texts import PYQT_DIR, SECTIONS
 from gyroscope_ui.ui.i18n import apply_strings
 
 
+def uic_executable() -> str:
+    """The ``pyside6-uic`` of the running interpreter (``which`` adds ``.exe`` on Windows; the
+    scripts folder of a venv is not on ``PATH`` unless the venv is activated)."""
+    found = shutil.which("pyside6-uic", path=str(Path(sys.executable).parent))
+    found = found or shutil.which("pyside6-uic")
+    if found is None:
+        raise FileNotFoundError("pyside6-uic not found next to the Python interpreter or on PATH")
+    return found
+
+
+def compile_form(form: Path) -> str:
+    """The Python module ``pyside6-uic`` generates from the ``.ui`` file ``form``."""
+    result = subprocess.run(
+        [uic_executable(), str(form)], capture_output=True, text=True, check=True
+    )
+    return result.stdout
+
+
+def load_form_class(form: Path) -> tuple[type, type]:
+    """``(Ui_<Name>, widget base class)`` of a ``.ui`` file, compiled on the fly (what
+    ``QtUiTools.loadUiType`` does, which returns ``None`` when it cannot find ``uic``)."""
+    namespace: dict[str, object] = {}
+    exec(compile(compile_form(form), str(form), "exec"), namespace)  # noqa: S102
+    ui_class = next(v for k, v in namespace.items() if k.startswith("Ui_"))
+    base_name = ET.parse(form).getroot().find("widget").get("class")  # type: ignore[union-attr]
+    return ui_class, getattr(QtWidgets, str(base_name))  # type: ignore[return-value]
+
+
 def build_form(name: str) -> QWidget:
     """Instantiate the form ``name`` (a ``.ui`` file stem) with the configured UI strings."""
-    form_class, base_class = loadUiType(str(PYQT_DIR / f"{name}.ui"))
+    form_class, base_class = load_form_class(PYQT_DIR / f"{name}.ui")
 
     class Preview(form_class, base_class):  # type: ignore[misc, valid-type]
         def __init__(self) -> None:
