@@ -17,9 +17,8 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
 from PySide6.QtWidgets import (QApplication, QDockWidget, QFrame, QMainWindow,
-    QMenu, QMenuBar, QScrollArea, QSizePolicy,
-    QSpacerItem, QStatusBar, QTabWidget, QToolBar,
-    QVBoxLayout, QWidget)
+    QScrollArea, QSizePolicy, QSpacerItem, QStatusBar,
+    QTabWidget, QToolBar, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -50,13 +49,6 @@ class Ui_MainWindow(object):
         self.tabs = QTabWidget(MainWindow)
         self.tabs.setObjectName(u"tabs")
         MainWindow.setCentralWidget(self.tabs)
-        self.menuBar = QMenuBar(MainWindow)
-        self.menuBar.setObjectName(u"menuBar")
-        self.menuFile = QMenu(self.menuBar)
-        self.menuFile.setObjectName(u"menuFile")
-        self.menuHelp = QMenu(self.menuBar)
-        self.menuHelp.setObjectName(u"menuHelp")
-        MainWindow.setMenuBar(self.menuBar)
         self.toolBar = QToolBar(MainWindow)
         self.toolBar.setObjectName(u"toolBar")
         self.toolBar.setMovable(False)
@@ -95,20 +87,16 @@ class Ui_MainWindow(object):
         self.statusBar.setObjectName(u"statusBar")
         MainWindow.setStatusBar(self.statusBar)
 
-        self.menuBar.addAction(self.menuFile.menuAction())
-        self.menuBar.addAction(self.menuHelp.menuAction())
-        self.menuFile.addAction(self.actionSave)
-        self.menuFile.addAction(self.actionOpenDataFolder)
-        self.menuFile.addSeparator()
-        self.menuFile.addAction(self.actionQuit)
-        self.menuHelp.addAction(self.actionShortcuts)
-        self.menuHelp.addAction(self.actionAbout)
         self.toolBar.addAction(self.actionConnect)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionStartStop)
         self.toolBar.addAction(self.actionSave)
+        self.toolBar.addAction(self.actionOpenDataFolder)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionShortcuts)
+        self.toolBar.addAction(self.actionAbout)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(self.actionQuit)
 
         self.retranslateUi(MainWindow)
 
@@ -145,8 +133,6 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.actionAbout.setToolTip(QCoreApplication.translate("MainWindow", u"Version und Informationen zur Anwendung", None))
 #endif // QT_CONFIG(tooltip)
-        self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"Datei", None))
-        self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Hilfe", None))
         self.toolBar.setWindowTitle(QCoreApplication.translate("MainWindow", u"Werkzeugleiste", None))
         self.dockControls.setWindowTitle(QCoreApplication.translate("MainWindow", u"Steuerung", None))
     # retranslateUi

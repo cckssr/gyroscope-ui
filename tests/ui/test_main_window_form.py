@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QDockWidget,
     QMainWindow,
     QMenu,
+    QMenuBar,
     QScrollArea,
     QSpacerItem,
     QStatusBar,
@@ -55,26 +56,25 @@ def test_actions_menus_and_toolbar(window):
         "actionShortcuts": "Tastenkürzel",
         "actionOpenDataFolder": "Datenordner öffnen",
         "actionQuit": "Beenden",
+        "actionAbout": "Über Kreisel-GUI",
     }
     for name, text in expected.items():
         assert actions[name].text() == text
         assert actions[name].toolTip()
         assert actions[name].shortcut().isEmpty(), f"{name}: keys belong to config.json"
-    assert "actionAbout" in actions
+    assert actions["actionAbout"].text() == "Über Kreisel-GUI"
+    # no menu bar: it takes space on small screens, everything is in the toolbar
+    assert window.findChild(QMenuBar) is None and window.findChild(QMenu) is None
     toolbar = window.findChild(QToolBar, "toolBar")
-    assert [a.objectName() for a in toolbar.actions() if a.objectName()] == [
+    assert [a.objectName() if a.objectName() else "-" for a in toolbar.actions()] == [
         "actionConnect",
+        "-",
         "actionStartStop",
         "actionSave",
-        "actionShortcuts",
-    ]
-    file_menu = window.findChild(QMenu, "menuFile")
-    assert file_menu.title() == "Datei"
-    assert [a.objectName() for a in file_menu.actions() if not a.isSeparator()] == [
-        "actionSave",
         "actionOpenDataFolder",
+        "-",
+        "actionShortcuts",
+        "actionAbout",
+        "-",
         "actionQuit",
     ]
-    help_menu = window.findChild(QMenu, "menuHelp")
-    assert help_menu.title() == "Hilfe"
-    assert [a.objectName() for a in help_menu.actions()] == ["actionShortcuts", "actionAbout"]

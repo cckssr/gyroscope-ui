@@ -139,8 +139,6 @@
       "self@title": "Kreisel-GUI",
       "dockControls@title": "Steuerung",
       "toolBar@title": "Werkzeugleiste",
-      "menuFile": "Datei",
-      "menuHelp": "Hilfe",
       "actionConnect": "Verbinden",
       "actionConnect@tooltip": "Verbindung zum Gerät herstellen oder trennen",
       "actionStartStop": "Start",

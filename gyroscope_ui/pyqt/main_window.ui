@@ -14,26 +14,6 @@
    <string>Kreisel-GUI</string>
   </property>
   <widget class="QTabWidget" name="tabs"/>
-  <widget class="QMenuBar" name="menuBar">
-   <widget class="QMenu" name="menuFile">
-    <property name="title">
-     <string>Datei</string>
-    </property>
-    <addaction name="actionSave"/>
-    <addaction name="actionOpenDataFolder"/>
-    <addaction name="separator"/>
-    <addaction name="actionQuit"/>
-   </widget>
-   <widget class="QMenu" name="menuHelp">
-    <property name="title">
-     <string>Hilfe</string>
-    </property>
-    <addaction name="actionShortcuts"/>
-    <addaction name="actionAbout"/>
-   </widget>
-   <addaction name="menuFile"/>
-   <addaction name="menuHelp"/>
-  </widget>
   <widget class="QToolBar" name="toolBar">
    <property name="movable">
     <bool>false</bool>
@@ -54,8 +34,12 @@
    <addaction name="separator"/>
    <addaction name="actionStartStop"/>
    <addaction name="actionSave"/>
+   <addaction name="actionOpenDataFolder"/>
    <addaction name="separator"/>
    <addaction name="actionShortcuts"/>
+   <addaction name="actionAbout"/>
+   <addaction name="separator"/>
+   <addaction name="actionQuit"/>
   </widget>
   <widget class="QDockWidget" name="dockControls">
    <property name="features">
