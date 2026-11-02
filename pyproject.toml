@@ -1,98 +1,95 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "gyroscope-ui"
-version = "1.1.5"
-description = "Gyroscope User Interface - A GUI for gyroscope control and data acquisition"
+version = "2.0.0.dev0"
+description = "PySide6 application for the Kreisel (gyroscope) experiment of the TU Berlin lab course"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = "Apache-2.0"
 authors = [
-    {name = "C. Kessler", email = "c.kessler@tu-berlin.de"}
+    {name = "C. Kessler", email = "c.kessler@tu-berlin.de"},
+    {name = "M. Metschl"},
 ]
 keywords = ["gyroscope", "gui", "data-acquisition", "qt", "pyside6"]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: User Interfaces",
 ]
-
 dependencies = [
-    "PySide6>=6.5.0",
-    "numpy>=1.24.0",
-    "matplotlib>=3.7.0",
-    "pyqtgraph>=0.13.0",
-    "scipy>=1.10.0",
-    "pyserial>=3.5",
-    "pillow>=9.5.0",
+    # 6.12.0 aborts in interpreter finalization on Python 3.11 (none_dealloc).
+    "PySide6>=6.5,<6.12; python_version < '3.12'",
+    "PySide6>=6.5; python_version >= '3.12'",
+    "pyqtgraph>=0.13",
+    "numpy>=1.24",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-qt>=4.4", "ruff>=0.5", "build>=1.2"]
 
 [project.gui-scripts]
 gyroscope-ui = "gyroscope_ui.main:main"
-
-[project.optional-dependencies]
-docs = [
-    "sphinx>=7.1.0",
-    "sphinx-rtd-theme>=1.3.0",
-    "myst-parser>=2.0.0",
-    "sphinx-autodoc-typehints>=1.24.0",
-    "sphinx-copybutton>=0.5.2",
-    "sphinxcontrib-napoleon>=0.7",
-]
-
-dev = [
-    "black>=23.0.0",
-    "flake8>=6.0.0",
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-]
 
 [project.urls]
 Homepage = "https://github.com/cckssr/gyroscope-ui"
 Repository = "https://github.com/cckssr/gyroscope-ui"
 Issues = "https://github.com/cckssr/gyroscope-ui/issues"
 
-[tool.setuptools]
-packages = ["gyroscope_ui"]
-
-[tool.setuptools.package-dir]
-gyroscope_ui = "src"
+[tool.setuptools.packages.find]
+include = ["gyroscope_ui*"]
 
 [tool.setuptools.package-data]
-gyroscope_ui = ["*.json", "*.ui", "pyqt/*.py", "pyqt/*.ui"]
-
-[tool.black]
-line-length = 88
-target-version = ['py39']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-  | docs/_build
-)/
-'''
+gyroscope_ui = ["config.json", "pyqt/*.ui"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = "-v --tb=short"
+pythonpath = ["."]
+qt_api = "pyside6"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    "gyroscope_ui/pyqt/*_ui.py",
+    "Arduino-Gyroscope",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pyside6-project]
+# Project file for Qt Creator (opens pyproject.toml as a Python project). Qt Creator does not
+# discover new files, so add them here. Do not run `pyside6-project build`: it would generate
+# ui_*.py next to the .ui files; use gyroscope_ui/pyqt/pyuic.sh instead.
+files = [
+    "gyroscope_ui/pyqt/connection_panel.ui",
+    "gyroscope_ui/pyqt/live_panel.ui",
+    "gyroscope_ui/pyqt/main_window.ui",
+    "gyroscope_ui/pyqt/measurement_panel.ui",
+    "gyroscope_ui/pyqt/measurement_view.ui",
+    "gyroscope_ui/pyqt/save_panel.ui",
+    "gyroscope_ui/pyqt/shortcuts_dialog.ui",
+    "gyroscope_ui/pyqt/simulation_panel.ui",
+    "gyroscope_ui/pyqt/preview.py",
+    "gyroscope_ui/pyqt/pyuic.sh",
+    "gyroscope_ui/pyqt/sync_texts.py",
+    "gyroscope_ui/ui/shortcuts.py",
+    "gyroscope_ui/ui/widgets/connection_panel.py",
+    "gyroscope_ui/ui/widgets/gyro_plot.py",
+    "gyroscope_ui/ui/widgets/live_panel.py",
+    "gyroscope_ui/ui/widgets/measurement_panel.py",
+    "gyroscope_ui/ui/widgets/measurement_view.py",
+    "gyroscope_ui/ui/widgets/save_panel.py",
+    "gyroscope_ui/ui/widgets/shortcuts_dialog.py",
+    "gyroscope_ui/ui/widgets/simulation_panel.py"
+]
