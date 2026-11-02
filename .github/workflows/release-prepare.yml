@@ -1,0 +1,164 @@
+name: Release (prepare)
+
+# Starts a release. Two triggers:
+#   * Actions > "Release (prepare)" > Run workflow  (bump type + pre-release options)
+#   * a PR merged into main that carries a `major`, `minor` or `patch` label
+#
+# Flow: run the CI checks on the exact commit -> bump the version, cut the
+# CHANGELOG, commit + tag -> hand the tag to the "Release" workflow, which
+# publishes the GitHub Release (wheel, sdist, SHA256SUMS).
+# Procedure and one-time setup: docs/RELEASING.md
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "patch/minor/major = next version; keep = next pre-release of the same X.Y.Z (rc1 -> rc2); graduate = rc -> final"
+        required: true
+        default: patch
+        type: choice
+        options: [patch, minor, major, keep, graduate]
+      prerelease:
+        description: "Pre-release kind (none = stable). Ignored for graduate."
+        required: true
+        default: none
+        type: choice
+        options: [none, a, b, rc]
+      prerelease_number:
+        description: "Pre-release number (only used when pre-release is not none)"
+        required: false
+        default: "1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-prepare
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Decide what to release
+    # pull_request_target runs with the base branch's workflow and secrets:
+    # never check out or run code from the PR head here.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      bump: ${{ steps.plan.outputs.bump }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+      number: ${{ steps.plan.outputs.number }}
+      sha: ${{ github.sha }}
+    steps:
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          IN_BUMP: ${{ inputs.bump_type }}
+          IN_PRE: ${{ inputs.prerelease }}
+          IN_NUM: ${{ inputs.prerelease_number }}
+        run: |
+          release=true; pre=none; num=1
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            if [ "$REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
+              echo "::error::Run this workflow on $DEFAULT_BRANCH (selected: $REF)."
+              exit 1
+            fi
+            bump="$IN_BUMP"; pre="$IN_PRE"; num="${IN_NUM:-1}"
+          else
+            labels="$(jq -r '.[]' <<< "$LABELS" | tr '[:upper:]' '[:lower:]')"
+            bump=""
+            for kind in patch minor major; do   # highest wins
+              if grep -qxE "($kind|semver:$kind|release:$kind|bump:$kind)" <<< "$labels"; then bump="$kind"; fi
+            done
+            if [ -z "$bump" ]; then
+              release=false
+              echo "::notice::Merged PR has no major/minor/patch label; no release."
+            fi
+          fi
+          if ! [[ "$num" =~ ^[0-9]+$ ]]; then echo "::error::prerelease_number must be a number"; exit 1; fi
+          {
+            echo "release=$release"
+            echo "bump=$bump"
+            echo "prerelease=$pre"
+            echo "number=$num"
+          } >> "$GITHUB_OUTPUT"
+
+  checks:
+    name: Checks
+    needs: plan
+    if: needs.plan.outputs.release == 'true'
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.plan.outputs.sha }}
+
+  prepare:
+    name: Bump version, commit and tag
+    needs: [plan, checks]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      # RELEASE_TOKEN (fine-grained PAT, Contents: read/write) is only needed when
+      # the default branch is protected against the Actions bot; see RELEASING.md.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Bump, commit, tag, push
+        id: bump
+        env:
+          BUMP: ${{ needs.plan.outputs.bump }}
+          PRERELEASE: ${{ needs.plan.outputs.prerelease }}
+          NUMBER: ${{ needs.plan.outputs.number }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          # Never release a commit that is not the branch tip: the checks above
+          # tested exactly this one.
+          git fetch origin "+refs/heads/$DEFAULT_BRANCH:refs/remotes/origin/$DEFAULT_BRANCH"
+          if [ "$(git rev-parse "origin/$DEFAULT_BRANCH")" != "$(git rev-parse HEAD)" ]; then
+            echo "::error::$DEFAULT_BRANCH moved on while the checks ran; run the release again."
+            exit 1
+          fi
+          git checkout -B "$DEFAULT_BRANCH"
+
+          new_version="$(python scripts/release.py bump --type "$BUMP" --prerelease "$PRERELEASE" --number "$NUMBER")"
+          tag="v$new_version"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            echo "::error::Tag $tag already exists."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- pyproject.toml CHANGELOG.md
+          # [skip ci]: the Release workflow below already tests this commit; a tag
+          # pushed with a PAT must not start it a second time.
+          git commit -m "chore: bump version to $tag [skip ci]"
+          git tag -a "$tag" -m "Release $tag"
+          # Branch first, tag second: a rejected branch push must not leave a tag.
+          git push origin "HEAD:refs/heads/$DEFAULT_BRANCH"
+          git push origin "refs/tags/$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Release
+    needs: prepare
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.prepare.outputs.tag }}

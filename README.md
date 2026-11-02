@@ -60,6 +60,10 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
+To use the application without the source tree, install the wheel of a
+[GitHub Release](https://github.com/cckssr/gyroscope-ui/releases) instead:
+`pip install gyroscope_ui-<version>-py3-none-any.whl`.
+
 ## Running
 
 ```bash
@@ -134,6 +138,7 @@ in the same folder. The log file rotates at 2 MB and keeps three backups.
 - [docs/SHORTCUTS.md](docs/SHORTCUTS.md): the keyboard shortcuts, generated from the configuration.
 - [docs/HARDWARE_CHECKLIST.md](docs/HARDWARE_CHECKLIST.md): the manual test list for a real unit on a
   Windows lab PC.
+- [docs/RELEASING.md](docs/RELEASING.md): how releases (wheel, sdist, checksums) are cut on GitHub.
 
 ## Development
 
@@ -185,7 +190,9 @@ gyroscope-ui/
 │   └── main.py            application entry point
 ├── Arduino-Gyroscope/     firmware (PlatformIO)
 ├── docs/                  specification, protocol, architecture, checklists
+├── scripts/               release tooling (release.py) and its tests
 ├── tests/                 core, infrastructure and ui tests
+├── CHANGELOG.md           release notes, cut by the release workflow
 ├── main.py                launcher from the repository root
 └── pyproject.toml         package metadata, dependencies, ruff configuration
 ```

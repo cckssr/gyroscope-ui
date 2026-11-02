@@ -1,14 +1,29 @@
 name: CI
 
+# Also used as a reusable workflow: the release workflows run these exact checks
+# on the commit they are about to release.
 on:
   push:
     branches: [main, dev, "feature/**", "refactor/**"]
   pull_request:
     branches: [main, dev]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to test (default: the triggering commit)"
+        type: string
+        default: ""
 
+permissions:
+  contents: read
+
+# One run per branch: a newer push cancels the older. github.workflow is the
+# *caller's* name when reused, so release runs never share (or cancel) a group
+# with branch CI.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.workflow == 'CI' }}
 
 jobs:
   test:
@@ -26,6 +41,8 @@ jobs:
       QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - uses: actions/setup-python@v5
         with:
@@ -53,3 +70,18 @@ jobs:
 
       - name: Test
         run: python -m pytest -q
+
+  release-tooling:
+    name: Release tooling
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Test scripts/release.py
+        run: python -m unittest discover -s scripts

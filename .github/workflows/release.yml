@@ -1,36 +1,206 @@
 name: Release
 
+# Builds the wheel and sdist and publishes the GitHub Release for an existing
+# vX.Y.Z tag. The release carries gyroscope_ui-<version>-py3-none-any.whl, the
+# sdist and SHA256SUMS; the release notes list the sums. The lab PCs install the
+# wheel with pip (see the README).
+#
+# Normally called by "Release (prepare)" right after it pushed the tag. It also
+# runs when a version tag is pushed by hand (e.g. after `scripts/release.py bump`
+# locally); the version-bump commit carries [skip ci], so a tag created by the
+# prepare workflow does not start a second run. Procedure: docs/RELEASING.md
+
 on:
   push:
-    tags: ["v*"]
+    tags:
+      - "v*.*.*"
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag, e.g. v2.0.0"
+        required: true
+        type: string
+
+  workflow_call:
+    inputs:
+      tag:
+        description: "Tag to release, e.g. v2.0.0"
+        type: string
+        required: true
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
-  release:
+  verify:
+    name: Verify tag
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
 
-      - name: Check that the tag matches the package version
+      - name: Tag matches the tree and is on the default branch
+        id: v
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
-          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
-            echo "tag ${GITHUB_REF_NAME} does not match pyproject version ${version}" >&2
-            exit 1
+          prerelease=false
+          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then prerelease=true; fi
+          if [ "$prerelease" = "true" ]; then
+            # Pre-releases may be cut from any branch or commit, without a matching
+            # CHANGELOG section or bumped version.
+            echo "::notice::$TAG is a pre-release; skipping the tag, branch and changelog checks."
+          else
+            # Fails unless tag == pyproject.toml version and CHANGELOG has the section
+            python scripts/release.py check --tag "$TAG"
+            git fetch origin "+refs/heads/$DEFAULT_BRANCH:refs/remotes/origin/$DEFAULT_BRANCH"
+            if ! git merge-base --is-ancestor "$(git rev-list -n1 "refs/tags/$TAG")" "origin/$DEFAULT_BRANCH"; then
+              echo "::error::$TAG is not on $DEFAULT_BRANCH; releases are cut from the default branch only."
+              exit 1
+            fi
           fi
+          {
+            echo "tag=$TAG"
+            echo "version=${TAG#v}"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Build sdist and wheel
+  checks:
+    name: Checks
+    needs: verify
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: refs/tags/${{ inputs.tag || github.ref_name }}
+
+  build:
+    name: Build and package
+    needs: [verify, checks]
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.verify.outputs.tag }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.verify.outputs.tag }}
+          fetch-depth: 0 # release notes need the previous tag
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Build wheel and sdist
         run: |
           python -m pip install build
           python -m build
 
-      - uses: softprops/action-gh-release@v2
+      # Installing the wheel in a clean venv proves that it is self-contained (code,
+      # config.json and the Designer forms) and that the embedded version is right.
+      # Nothing here opens a window, so no Qt platform libraries are needed.
+      - name: Smoke-test the wheel
+        run: |
+          python -m venv "$RUNNER_TEMP/verify"
+          "$RUNNER_TEMP/verify/bin/pip" install dist/*.whl
+          cd "$RUNNER_TEMP"   # not the checkout: import the installed wheel only
+          "$RUNNER_TEMP/verify/bin/python" - <<'PY'
+          import importlib.metadata
+          import importlib.resources
+          import os
+
+          import gyroscope_ui
+          from gyroscope_ui.infrastructure.config import load_config
+
+          assert gyroscope_ui.__file__.startswith(os.environ["RUNNER_TEMP"]), gyroscope_ui.__file__
+          installed = importlib.metadata.version("gyroscope-ui")
+          assert gyroscope_ui.__version__ == installed, (gyroscope_ui.__version__, installed)
+          if os.environ["PRERELEASE"] != "true":  # pre-releases skip the version-file check
+              assert installed == os.environ["VERSION"], (installed, os.environ["VERSION"])
+          forms = importlib.resources.files("gyroscope_ui.pyqt")
+          for name in ("main_window.ui", "main_window_ui.py"):
+              assert (forms / name).is_file(), name
+          assert load_config().text("main_window.window_title")
+          print("wheel ok:", installed)
+          PY
+
+      - name: Checksums and release notes
+        run: |
+          mkdir release-dist
+          cp dist/*.whl dist/*.tar.gz release-dist/
+          (cd release-dist && sha256sum -- *.whl *.tar.gz > SHA256SUMS)
+          python scripts/release.py notes --tag "$TAG" --dist release-dist --out release-dist/notes.md
+          cat release-dist/SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
         with:
-          files: dist/*
-          generate_release_notes: true
+          name: release-dist
+          path: release-dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: [verify, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ needs.verify.outputs.tag }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-dist
+          path: release-dist
+
+      - name: Create the release
+        run: |
+          # Never touch a published release. A leftover *draft* from a failed
+          # earlier run is safe to replace.
+          existing="$(gh api --paginate "repos/$GH_REPO/releases" \
+            --jq '.[] | select(.tag_name == env.TAG) | "\(.id) \(.draft)"')"
+          if [ -n "$existing" ]; then
+            read -r id draft <<< "$existing"
+            if [ "$draft" != "true" ]; then
+              echo "::notice::Release $TAG is already published; nothing to do."
+              exit 0
+            fi
+            gh api -X DELETE "repos/$GH_REPO/releases/$id"
+          fi
+
+          flags=(--verify-tag --title "v$VERSION" --notes-file release-dist/notes.md)
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" "${flags[@]}" \
+            release-dist/*.whl release-dist/*.tar.gz release-dist/SHA256SUMS
+
+      - name: Summary
+        run: |
+          {
+            echo "## Released $TAG"
+            echo
+            echo "- Release: $GITHUB_SERVER_URL/$GH_REPO/releases/tag/$TAG"
+            echo "- Pre-release: $PRERELEASE"
+            echo
+            echo '```'
+            cat release-dist/SHA256SUMS
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
