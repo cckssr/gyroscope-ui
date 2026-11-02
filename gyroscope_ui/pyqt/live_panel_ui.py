@@ -33,8 +33,9 @@ class Ui_LivePanel(object):
 
         self.lcdFrequency = QLCDNumber(LivePanel)
         self.lcdFrequency.setObjectName(u"lcdFrequency")
-        self.lcdFrequency.setMinimumSize(QSize(90, 34))
-        self.lcdFrequency.setDigitCount(7)
+        self.lcdFrequency.setMinimumSize(QSize(120, 40))
+        self.lcdFrequency.setDigitCount(8)
+        self.lcdFrequency.setSmallDecimalPoint(True)
         self.lcdFrequency.setSegmentStyle(QLCDNumber.SegmentStyle.Flat)
 
         self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.lcdFrequency)
@@ -46,8 +47,9 @@ class Ui_LivePanel(object):
 
         self.lcdGyroZ = QLCDNumber(LivePanel)
         self.lcdGyroZ.setObjectName(u"lcdGyroZ")
-        self.lcdGyroZ.setMinimumSize(QSize(90, 34))
+        self.lcdGyroZ.setMinimumSize(QSize(120, 40))
         self.lcdGyroZ.setDigitCount(8)
+        self.lcdGyroZ.setSmallDecimalPoint(True)
         self.lcdGyroZ.setSegmentStyle(QLCDNumber.SegmentStyle.Flat)
 
         self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.lcdGyroZ)
@@ -59,8 +61,9 @@ class Ui_LivePanel(object):
 
         self.lcdPoints = QLCDNumber(LivePanel)
         self.lcdPoints.setObjectName(u"lcdPoints")
-        self.lcdPoints.setMinimumSize(QSize(90, 34))
-        self.lcdPoints.setDigitCount(7)
+        self.lcdPoints.setMinimumSize(QSize(120, 40))
+        self.lcdPoints.setDigitCount(8)
+        self.lcdPoints.setSmallDecimalPoint(True)
         self.lcdPoints.setSegmentStyle(QLCDNumber.SegmentStyle.Flat)
 
         self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.lcdPoints)

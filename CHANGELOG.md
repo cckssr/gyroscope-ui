@@ -18,6 +18,10 @@ Rebuild of the application on the layered architecture of oct-ui / spectrum-ui (
 
 ### Changed
 
+- No menu bar: all actions (including "Datenordner öffnen", "Tastenkürzel", "Über Kreisel-GUI" and "Beenden") are in the toolbar, which saves a row on small screens.
+- The plots sit in a splitter; the dividers between them change the plot heights.
+- The cursor in the plots snaps to the nearest sample and shows the time and the values of the visible curves there, with a marker on each curve.
+- The three live displays have the same digit count and size, and the decimal point takes no digit's space, so ω_z is as readable as the frequency.
 - The modal connection dialog is replaced by a "Gerät" panel; the application starts without a device.
 - The `GET /info` request to the device is retried, so the device ID and firmware version are no longer lost when the first request is dropped.
 - Form fields in the control panels grow with the panel on macOS.

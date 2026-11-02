@@ -100,8 +100,11 @@ question. In `stopped` (unsaved) Start and Reset ask before discarding; closing 
   a rolling preview of the last `display.preview_s` (30 s, or the scroll window if that is longer)
   so the students see the device works before pressing Start. Lines without symbols;
   `setDownsampling(auto, peak)` and `setClipToView`; redraw at `display.rate_hz`.
-- Every plot has a cursor: a dashed crosshair with a read-out (time and value) in the plot under
-  the mouse; the vertical line follows the mouse in all visible plots.
+- The plots sit in a vertical splitter: dragging a divider changes the heights of the plots (equal
+  heights again when "Alle Kanäle" adds the third plot).
+- Every plot has a cursor that follows the curves: a dashed vertical line at the sample nearest to
+  the mouse (in all visible plots at once), a marker on each curve and a read-out with the time
+  and the values of that sample (outside the data: the time only).
 - Plot controls under the plots: "Auto-Scroll" (x window follows the newest data, width
   `display.scroll_window_s`, spin box without a practical upper limit), "Auto-Range", and
   "Alle Kanäle" (adds a/g x, y, z as optional curves; off by default).
@@ -182,7 +185,8 @@ frequency.
   Simulation), centre a tab widget with the "Messung" tab (plots + plot controls), status bar. The
   left dock scrolls vertically, never horizontally; the window fits 1366 × 768 (test) and 1024 px
   with the dock collapsed.
-- **Toolbar**: Verbinden/Trennen, Start/Stop, Speichern, Hilfe (shortcut list).
+- **Toolbar** (no menu bar, it would cost a row on small screens): Verbinden/Trennen,
+  Start/Stop, Speichern, Datenordner öffnen, Tastenkürzel, Über Kreisel-GUI, Beenden.
 - **Shortcuts** (config `shortcuts`, one application event filter, work while a text field has
   focus): `Space` Start/Stop (not in text fields), `Ctrl+S` Speichern, `Ctrl+R` Reset, `Esc` Stop,
   `Ctrl+K` Verbinden/Trennen, `Ctrl+Shift+A` Auto-Range, `F1` Tastenkürzel. `docs/SHORTCUTS.md`

@@ -147,6 +147,21 @@ def test_live_panel_formats_values(qtbot, config):
     assert panel.ui.lcdGyroZ.value() == pytest.approx(-0.123)
 
 
+def test_live_panel_displays_look_alike(qtbot, config):
+    """Same digit count and size give equally large segments (a narrower display with fewer
+    digits would draw bigger ones)."""
+    panel = make(qtbot, LivePanel, config)
+    lcds = [panel.ui.lcdFrequency, panel.ui.lcdGyroZ, panel.ui.lcdPoints]
+    assert len({lcd.digitCount() for lcd in lcds}) == 1
+    assert len({lcd.segmentStyle() for lcd in lcds}) == 1
+    assert all(lcd.smallDecimalPoint() for lcd in lcds)  # the point takes no digit's space
+    assert len({(lcd.minimumWidth(), lcd.minimumHeight()) for lcd in lcds}) == 1
+    panel.show()
+    panel.show_values(12.3456, -0.12345)
+    panel.show_recording(1234, 3.0)
+    assert len({(lcd.width(), lcd.height()) for lcd in lcds}) == 1
+
+
 def test_live_panel_blank_values(qtbot, config):
     panel = make(qtbot, LivePanel, config)
     panel.show_values(1.0, 2.0)

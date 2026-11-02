@@ -80,7 +80,7 @@
  <customwidgets>
   <customwidget>
    <class>GyroPlot</class>
-   <extends>QGraphicsView</extends>
+   <extends>QSplitter</extends>
    <header>gyroscope_ui.ui.widgets.gyro_plot</header>
   </customwidget>
  </customwidgets>

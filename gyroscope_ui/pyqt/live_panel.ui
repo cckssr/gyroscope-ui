@@ -23,12 +23,15 @@
     <widget class="QLCDNumber" name="lcdFrequency">
      <property name="minimumSize">
       <size>
-       <width>90</width>
-       <height>34</height>
+       <width>120</width>
+       <height>40</height>
       </size>
      </property>
      <property name="digitCount">
-      <number>7</number>
+      <number>8</number>
+     </property>
+     <property name="smallDecimalPoint">
+      <bool>true</bool>
      </property>
      <property name="segmentStyle">
       <enum>QLCDNumber::SegmentStyle::Flat</enum>
@@ -49,12 +52,15 @@
     <widget class="QLCDNumber" name="lcdGyroZ">
      <property name="minimumSize">
       <size>
-       <width>90</width>
-       <height>34</height>
+       <width>120</width>
+       <height>40</height>
       </size>
      </property>
      <property name="digitCount">
       <number>8</number>
+     </property>
+     <property name="smallDecimalPoint">
+      <bool>true</bool>
      </property>
      <property name="segmentStyle">
       <enum>QLCDNumber::SegmentStyle::Flat</enum>
@@ -75,12 +81,15 @@
     <widget class="QLCDNumber" name="lcdPoints">
      <property name="minimumSize">
       <size>
-       <width>90</width>
-       <height>34</height>
+       <width>120</width>
+       <height>40</height>
       </size>
      </property>
      <property name="digitCount">
-      <number>7</number>
+      <number>8</number>
+     </property>
+     <property name="smallDecimalPoint">
+      <bool>true</bool>
      </property>
      <property name="segmentStyle">
       <enum>QLCDNumber::SegmentStyle::Flat</enum>
