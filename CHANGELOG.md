@@ -6,6 +6,8 @@ Releases are cut by the [Release (prepare)](.github/workflows/release-prepare.ym
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-02
+
 Rebuild of the application on the layered architecture of oct-ui / spectrum-ui (`docs/CONCEPT.md`) together with protocol version 2 of the firmware.
 
 ### Added
@@ -29,3 +31,4 @@ Rebuild of the application on the layered architecture of oct-ui / spectrum-ui (
 ### Fixed
 
 - The saved measurement metadata keeps the UTC offset of timezone-aware times instead of converting them to the local zone of the machine.
+

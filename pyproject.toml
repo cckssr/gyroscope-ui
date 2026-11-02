@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gyroscope-ui"
-version = "2.0.0.dev0"
+version = "2.0.0"
 description = "PySide6 application for the Kreisel (gyroscope) experiment of the TU Berlin lab course"
 readme = "README.md"
 requires-python = ">=3.11"
