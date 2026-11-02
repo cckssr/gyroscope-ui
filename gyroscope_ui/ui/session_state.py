@@ -8,7 +8,8 @@ construction, saved debounced after every change (``session.debounce_s``) and sy
 
 The save fields belong to one lab group: they are restored only within
 ``session.group_valid_days`` calendar days (default 1, i.e. the same day) of their last change,
-so the next day's group starts with empty fields (CONCEPT section 8).
+so the next day's group starts with empty fields (CONCEPT section 8). The suffix is a per-run
+note and is never persisted: it starts empty after every restart.
 """
 
 from __future__ import annotations
@@ -174,7 +175,6 @@ class SessionState(QObject):
             "save_fields": {
                 "group": self._fields.group,
                 "subgroup": self._fields.subgroup,
-                "suffix": self._fields.suffix,
                 "date": self._fields_date.isoformat() if self._fields_date else None,
             },
             "data_dir": str(self._data_dir),
@@ -219,7 +219,6 @@ class SessionState(QObject):
             self._fields = SaveFields(
                 group=group if naming.is_valid_group(group) else "",  # hand-edited file
                 subgroup=str(fields.get("subgroup", "") or ""),
-                suffix=str(fields.get("suffix", "") or ""),
             )
             self._fields_date = date.fromisoformat(fields["date"])
         if isinstance(state.get("data_dir"), str) and state["data_dir"]:

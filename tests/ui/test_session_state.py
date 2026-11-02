@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date, timedelta
 
 from gyroscope_ui.ui.session_state import SessionState
@@ -21,14 +22,25 @@ def test_roundtrip_same_day(qtbot, config, paths, tmp_path):
     s.ui_state("window")["geometry"] = "abc"
     s.shutdown()
     r = _session(config, paths, day)
-    assert (r.save_fields.group, r.save_fields.subgroup, r.save_fields.suffix) == (
-        "D",
-        "Aufbau 2",
-        "x",
-    )
+    assert (r.save_fields.group, r.save_fields.subgroup) == ("D", "Aufbau 2")
+    assert r.save_fields.suffix == ""  # the suffix does not survive a restart
     assert r.data_dir == tmp_path / "elsewhere" and r.auto_save
     assert r.display.all_channels and r.display.scroll_window_s == 120.0
     assert r.ui_state("window") == {"geometry": "abc"}
+
+
+def test_suffix_in_an_older_session_file_is_ignored(qtbot, config, paths):
+    day = date(2026, 11, 2)
+    s = _session(config, paths, day)
+    s.update_save_fields(group="D", subgroup="Aufbau 2")
+    s.shutdown()
+    file = paths.session_dir / "session.json"
+    data = json.loads(file.read_text(encoding="utf-8"))
+    assert "suffix" not in data["save_fields"]
+    data["save_fields"]["suffix"] = "old"  # written by an earlier version
+    file.write_text(json.dumps(data), encoding="utf-8")
+    r = _session(config, paths, day)
+    assert r.save_fields.subgroup == "Aufbau 2" and r.save_fields.suffix == ""
 
 
 def test_group_fields_expire_next_day(qtbot, config, paths, tmp_path):

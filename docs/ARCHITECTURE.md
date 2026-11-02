@@ -181,10 +181,10 @@ Rules:
 3. **One writer per resource.** Only the connection controller opens/closes the device; only the
    session state owns shared values; only `storage.py` writes measurement files.
 
-`SessionState` owns the shared, persisted values (group letter, sub-group, suffix, data folder,
-auto-save, display options, `ui_state(namespace)`, window layout) with a change signal each,
-restores on construction, saves debounced (`session.debounce_s`) and synchronously in
-`shutdown()`. The save fields are restored only within `session.group_valid_days` (1) of their
+`SessionState` owns the shared values (group letter, sub-group, suffix, data folder,
+auto-save, display options, `ui_state(namespace)`, window layout) with a change signal each. All
+but the suffix are persisted: it restores them on construction, saves debounced
+(`session.debounce_s`) and synchronously in `shutdown()`. The save fields are restored only within `session.group_valid_days` (1) of their
 last change, so the next day's group starts empty. Dialogs are attributes of the controllers
 (`measurement.confirm`, `save.ask_save_path`, `save.ask_directory`, `MainWindow.ask_unsaved_on_close`)
 so tests replace them. `AppContext` holds `config`, `paths`, `session`, `connection`, `measurement`,

@@ -192,9 +192,9 @@ frequency.
   `Ctrl+K` Verbinden/Trennen, `Ctrl+Shift+A` Auto-Range, `F1` Tastenkürzel. `docs/SHORTCUTS.md`
   is generated.
 - **Persistence**: data folder, auto-save, display options and the window layout are restored at
-  start (`session.json` in the per-user data directory). Group letter, sub-group and suffix are
+  start (`session.json` in the per-user data directory). Group letter and sub-group are
   restored only on the same calendar day they were entered (the next day's group starts with
-  empty fields; `session.group_valid_days`, default 1).
+  empty fields; `session.group_valid_days`, default 1). The suffix is never persisted.
 
 ## 9. Configuration
 
