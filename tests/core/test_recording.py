@@ -190,7 +190,7 @@ def test_append_performance_100k_samples_in_batches_of_5():
         rec.append(batch)
     elapsed = time.perf_counter() - started
     assert len(rec) == 100_000
-    assert elapsed < 1.0
+    assert elapsed < 5.0  # about 0.3 s locally; shared CI runners are several times slower
 
 
 # --- RollingBuffer ---------------------------------------------------------------------------
