@@ -135,9 +135,9 @@ All workers use a 16 MiB stack.
    when the loop ends are cancelled.
 6. **Shutdown.** `abort()` sets an event checked every loop pass (≤ one read timeout, 0.05 s) and
    cancels pending commands; the owner `wait()`s. `qt_threads.py` keeps no registry of workers:
-   the connection controller keeps a thread that does not finish in its list of lingering workers
-   and closes the device only after it has finished (`run_when_released`, `wait_released`, as in
-   spectrum-ui's `AcquisitionController`); no running `QThread` is destroyed.
+   the `ConnectionController` keeps a thread that does not finish in its dict of lingering
+   threads (thread → device) and closes the device only when the thread's `finished` arrives
+   (`shutdown()` waits for them); no running `QThread` is destroyed.
 
 ## 4. Data flow of a measurement
 
@@ -145,13 +145,18 @@ All workers use a 16 MiB stack.
 device ─► AcquisitionWorker (worker thread): read → core.protocol → Sample list → SampleBatch
                                                                           │ samples_ready (≈ 20 Hz)
                                                                           ▼ (GUI thread)
-                                              MeasurementController.on_batch
+                     ConnectionController.samples_ready (re-emitted once per worker, D2)
+                                                 ▼
+                                              MeasurementController._on_samples
+                                                 │ RollingBuffer.extend (preview, always)
                                                  │ Recording.append (only while recording, only
                                                  │   samples with host time ≥ start; core.timebase
                                                  │   gives elapsed time, restarts, reorder, loss)
                                                  ▼
-                                   live values, plots (timer, display.rate_hz)
-Stop ─► Recording.stop ─► SaveController ─► core.naming + core.metadata ─► storage (atomic CSV + JSON)
+             live panel + MeasurementController.refreshed ─► MeasurementTab.redraw
+             (timer, display.rate_hz; preview with time relative to now outside a recording)
+Stop ─► MeasurementController.stopped ─► SaveController (auto-save) ─► core.naming + core.metadata
+                                         ─► storage.write_measurement (atomic CSV + JSON sidecar)
 ```
 
 The amount of work per batch is small (NumPy appends into preallocated chunks), so the recording
@@ -160,13 +165,13 @@ redrawn by a timer, never per batch.
 
 ## 5. Controllers, session state and the context
 
-| Controller              | Bridges / policy                                                                                           |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `ConnectionController`  | states `disconnected / connecting / connected / stale / lost / error`; simulation switch; owns the workers |
-| `MeasurementController` | Start/Stop/Reset state machine (CONCEPT 4.2), recording, live values, recording limit                      |
-| `SaveController`        | manual save (dialog), auto-save on Stop, file numbers, errors, unsaved-data questions                      |
-| `SimulationController`  | simulation-only commands of the mock (kick, start frequency)                                               |
-| `ShortcutController`    | one application event filter for all key bindings                                                          |
+| Controller              | Bridges / policy                                                                                                                                                                                                                                                             |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ConnectionController`  | states `disconnected / connecting / connected / stale / lost / error`; simulation switch; owns `ConnectWorker` and `AcquisitionWorker`, connects to each worker once and re-emits `samples_ready` / `stats_ready`; `run_device(fn)` + `watch(future, cb)`; lingering threads |
+| `MeasurementController` | Start/Stop/Reset state machine (CONCEPT 4.2), `Recording` + preview `RollingBuffer`, live values, display timer (`refreshed`), recording limit, interrupted-recording warning                                                                                                |
+| `SaveController`        | manual save (dialog), auto-save on Stop, file numbers, errors, unsaved-data questions                                                                                                                                                                                        |
+| `SimulationController`  | simulation-only commands of the mock (kick, start frequency)                                                                                                                                                                                                                 |
+| `ShortcutController`    | one application event filter for all key bindings                                                                                                                                                                                                                            |
 
 Rules:
 
@@ -179,7 +184,10 @@ Rules:
 `SessionState` owns the shared, persisted values (group letter, sub-group, suffix, data folder,
 auto-save, display options, `ui_state(namespace)`, window layout) with a change signal each,
 restores on construction, saves debounced (`session.debounce_s`) and synchronously in
-`shutdown()`. `AppContext` holds `config`, `paths`, `session`, `connection`, `measurement`,
+`shutdown()`. The save fields are restored only within `session.group_valid_days` (1) of their
+last change, so the next day's group starts empty. Dialogs are attributes of the controllers
+(`measurement.confirm`, `save.ask_save_path`, `save.ask_directory`, `MainWindow.ask_unsaved_on_close`)
+so tests replace them. `AppContext` holds `config`, `paths`, `session`, `connection`, `measurement`,
 `save`.
 
 ## 6. Tabs

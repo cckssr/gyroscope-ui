@@ -226,7 +226,8 @@ def test_save_panel_texts(qtbot, config):
     assert "*" not in ui.captionSuffix.text()
     assert "JJJJ_MM_TT" in ui.checkAutoSave.toolTip()
     assert ui.editSubgroup.toolTip()
-    assert ui.comboGroup.count() == 26 and ui.comboGroup.itemText(25) == "Z"
+    assert ui.comboGroup.count() == 27 and ui.comboGroup.itemText(0) == ""
+    assert ui.comboGroup.itemText(26) == "Z"
     assert ui.editDataDir.isReadOnly()
     assert ui.labelLastSaved.text() == "–"
     assert not ui.buttonSave.isEnabled()
@@ -239,7 +240,7 @@ def test_save_panel_signals(qtbot, config):
     groups, subgroups = QSignalSpy(panel.group_changed), QSignalSpy(panel.subgroup_changed)
     suffixes, autos = QSignalSpy(panel.suffix_changed), QSignalSpy(panel.auto_save_toggled)
     saves, browses = QSignalSpy(panel.save_requested), QSignalSpy(panel.browse_requested)
-    ui.comboGroup.setCurrentIndex(2)
+    ui.comboGroup.setCurrentIndex(ui.comboGroup.findText("C"))
     qtbot.keyClicks(ui.editSubgroup, "Aufbau 1")
     qtbot.keyClicks(ui.editSuffix, "a")
     qtbot.mouseClick(ui.checkAutoSave, LEFT)

@@ -54,7 +54,9 @@ class SavePanel(QGroupBox):
         current = combo.currentText()
         with QSignalBlocker(combo):
             combo.clear()
-            combo.addItems([str(letter) for letter in config.get("storage.group_letters", [])])
+            # The empty first entry stands for "no group chosen yet" (a new day, a new group).
+            letters = [str(letter) for letter in config.get("storage.group_letters", [])]
+            combo.addItems(["", *letters])
             combo.setCurrentIndex(max(combo.findText(current), 0))
         self.set_last_saved(None)
 
@@ -64,9 +66,7 @@ class SavePanel(QGroupBox):
         """Show the stored values without emitting any change signal."""
         combo = self.ui.comboGroup
         with QSignalBlocker(combo):
-            index = combo.findText(group)
-            if index >= 0:
-                combo.setCurrentIndex(index)
+            combo.setCurrentIndex(max(combo.findText(group), 0) if group else 0)
         for edit, text in (
             (self.ui.editSubgroup, subgroup),
             (self.ui.editSuffix, suffix),

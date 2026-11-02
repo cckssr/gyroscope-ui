@@ -1,6 +1,6 @@
 # Migration plan: gyroscope-ui onto the oct-ui / spectrum-ui architecture
 
-Branch: `refactor/layered-architecture` (from `dev`). Status: Phases 0-3 done; next Phase 4.
+Branch: `refactor/layered-architecture` (from `dev`). Status: Phases 0-4 done; next Phase 5.
 
 ## 1. Goal
 
@@ -131,10 +131,10 @@ Each phase ends green (`.venv/bin/pytest`, `.venv/bin/ruff check .`) and in its 
 ### Phase 4 – UI [Sonnet builds forms and widgets; Opus builds controllers and main window]
 
 - [x] Designer forms (§4) migrated from `mainwindow.ui` / `connection.ui`; texts via `sync_texts.py`
-- [ ] Controllers: connection, measurement (Start/Stop/Reset state machine, D9), save (manual + auto-save, D11), shortcut (`Space` Start/Stop, `Ctrl+S` Save, `Ctrl+R` Reset, `Esc` Stop – D1)
+- [x] Controllers: connection, measurement (Start/Stop/Reset state machine, D9), save (manual + auto-save, D11), shortcut (`Space` Start/Stop, `Ctrl+S` Save, `Ctrl+R` Reset, `Esc` Stop – D1)
 - [x] Plot widget: two linked pyqtgraph plots, lines without per-point symbols, `setDownsampling`/`setClipToView` (D10)
-- [ ] Session state: group letter, subterm, suffix, data folder, auto-save flag and window layout persisted across restarts
-- [ ] pytest-qt tests: main window, measurement flow in simulation, save, shortcuts, forms, small screens, shutdown
+- [x] Session state: group letter, subterm, suffix, data folder, auto-save flag and window layout persisted across restarts
+- [x] pytest-qt tests: main window, measurement flow in simulation, save, shortcuts, forms, small screens, shutdown
 
 ### Phase 5 – Docs and review [Haiku for README/SHORTCUTS, Sonnet python-reviewer]
 

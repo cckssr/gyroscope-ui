@@ -80,7 +80,8 @@
     "recording_limit_s": 3600
   },
   "session": {
-    "debounce_s": 1.0
+    "debounce_s": 1.0,
+    "group_valid_days": 1
   },
   "shortcuts": {
     "start_stop": "Space",
@@ -93,24 +94,17 @@
     "tab_modifier": "Ctrl"
   },
   "messages": {
-    "app_init": "Anwendung wird initialisiert...",
     "connected": "Verbunden mit {device}. Bereit für Messungen.",
     "disconnected": "Verbindung zum Gerät getrennt.",
-    "connecting": "Verbinde mit {device} ... Versuch {attempt}",
     "connection_failed": "Verbindung zu {device} fehlgeschlagen: {error}",
     "measurement_running": "Messung läuft...",
     "measurement_stopped": "Messung gestoppt.",
-    "measurement_ended": "Messung beendet. Bereit zum Speichern oder für eine neue Messung.",
     "data_saved": "Daten gespeichert in {path}",
     "data_reset": "Daten wurden zurückgesetzt. Bereit für eine neue Messung.",
     "no_data_to_save": "Keine Messdaten zum Speichern vorhanden.",
-    "unsaved_data": "Sie haben ungespeicherte Messdaten. Möchten Sie diese verwerfen und eine neue Messung starten?",
+    "unsaved_data": "Die letzte Messung ist noch nicht gespeichert. Verwerfen und eine neue Messung starten?",
     "close_unsaved_data_title": "Ungespeicherte Messdaten",
     "close_unsaved_data_question": "Sie haben ungespeicherte Messdaten. Möchten Sie diese jetzt speichern?",
-    "auto_save_enabled": "Automatisches Speichern ist aktiviert. Messdaten werden automatisch gespeichert, wenn die Messung endet.",
-    "auto_save_disabled": "Automatisches Speichern ist deaktiviert. Sie müssen die Messdaten manuell speichern.",
-    "group_letter_empty": "Gruppenbuchstabe darf nicht leer sein.",
-    "subterm_required": "Untergruppen-Bezeichnung ist ein Pflichtfeld und darf nicht leer sein. Bitte geben Sie eine Bezeichnung ein (z.B. Versuchsaufbau, Messung-1, etc.).",
     "necessary_fields_missing": "Bitte füllen Sie alle erforderlichen Felder aus, bevor Sie die Messdaten speichern.",
     "device_port_in_use": "Port {port} ist belegt – läuft das Programm schon?",
     "device_not_open": "Das Gerät ist nicht verbunden.",
@@ -123,7 +117,15 @@
     "storage_write_failed": "Speichern in {path} fehlgeschlagen: {error}",
     "file_exists": "Die Datei {path} existiert bereits.",
     "session_damaged": "Die gespeicherten Einstellungen waren beschädigt und wurden zurückgesetzt.",
-    "recording_limit_reached": "Maximale Aufnahmedauer von {limit_s} s erreicht. Die Messung wurde gestoppt."
+    "recording_limit_reached": "Maximale Aufnahmedauer von {limit_s} s erreicht. Die Messung wurde gestoppt.",
+    "disconnect_first": "Bitte zuerst die Verbindung trennen.",
+    "start_needs_data": "Messung kann erst starten, wenn Daten vom Gerät ankommen.",
+    "reset_unsaved": "Die Messdaten sind noch nicht gespeichert. Wirklich verwerfen?",
+    "recording_interrupted": "Die Verbindung ist während der Messung abgerissen; die Lücke wird in den Metadaten vermerkt.",
+    "quality_lost": "Hinweis: Während der Messung sind Messwerte verloren gegangen.",
+    "quality_reordered": "Hinweis: Einige Messwerte kamen in falscher Reihenfolge an und wurden verworfen.",
+    "quality_restart": "Hinweis: Das Gerät wurde während der Messung neu gestartet.",
+    "quality_gap": "Hinweis: Die Messung enthält Lücken (siehe Metadaten)."
   },
   "ui": {
     "main_window": {
@@ -150,7 +152,15 @@
       "action_connect": "Verbinden",
       "action_disconnect": "Trennen",
       "action_start": "Start",
-      "action_stop": "Stop"
+      "action_stop": "Stop",
+      "status_rate": "{rate:.0f} Messwerte/s",
+      "status_rate_none": "– Messwerte/s",
+      "status_invalid": "{invalid} ungültige Zeilen",
+      "save_dialog_title": "Messung speichern",
+      "file_filter_csv": "CSV-Dateien (*.csv)",
+      "choose_data_dir": "Datenordner wählen",
+      "about_title": "Über Kreisel-GUI",
+      "about_text": "Kreisel-GUI {version}\nMessprogramm für den Kreiselversuch (TK8) im Grundpraktikum der TU Berlin.\nC. Kessler, M. Metschl"
     },
     "connection_panel": {
       "self": "Gerät",
@@ -165,7 +175,14 @@
       "button_disconnect": "Trennen",
       "device_format": "{device_id} · Firmware {firmware} · Protokoll {protocol}",
       "device_none": "–",
-      "unknown_value": "?"
+      "unknown_value": "?",
+      "state_disconnected": "Nicht verbunden",
+      "state_connecting": "Verbinde …",
+      "state_connected": "Verbunden, Daten kommen an",
+      "state_connected_simulation": "Simulation läuft",
+      "state_stale": "Keine Daten – WLAN prüfen",
+      "state_lost": "Verbindung verloren",
+      "state_error": "Fehler – erneut verbinden"
     },
     "live_panel": {
       "self": "Live-Messwerte",
@@ -247,7 +264,8 @@
         "accel_x_m_s2": "a_x",
         "accel_y_m_s2": "a_y",
         "accel_z_m_s2": "a_z"
-      }
+      },
+      "label_time_preview": "Zeit relativ zu jetzt (s)"
     },
     "shortcuts_dialog": {
       "self@title": "Tastenkürzel",

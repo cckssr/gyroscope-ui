@@ -193,3 +193,14 @@ def test_background_and_pens_follow_the_palette(plot):
     assert pen.color() == QColor("#e0e0e0")
     x_color = plot.curves["gyro_x_rad_s"].opts["pen"].color()
     assert x_color.value() > 200  # brighter curves on a dark background
+
+
+def test_auto_scroll_short_data_has_no_empty_stretch(plot):
+    """A fresh recording fills the window from 0; the preview (t <= 0) shows just its data."""
+    plot.set_auto_scroll(True, 60.0)
+    t = np.linspace(0.0, 15.0, 1500)
+    plot.set_data(t, columns(len(t), t))
+    assert plot.x_range() == pytest.approx((0.0, 60.0))
+    t = np.linspace(-30.0, 0.0, 3000)
+    plot.set_data(t, columns(len(t), t))
+    assert plot.x_range() == pytest.approx((-30.0, 0.0))

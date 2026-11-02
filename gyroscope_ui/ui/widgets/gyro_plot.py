@@ -230,7 +230,8 @@ class GyroPlot(pg.GraphicsLayoutWidget):
 
     def set_auto_scroll(self, enabled: bool, window_s: float) -> None:
         """With ``enabled`` the x range follows the newest time stamp: ``[t_max - window_s,
-        t_max]``. Disabling keeps the current range and makes the time axis zoomable again."""
+        t_max]`` once the data are longer than the window (see :meth:`_follow`). Disabling
+        keeps the current range and makes the time axis zoomable again."""
         self._auto_scroll = enabled
         self._window_s = max(float(window_s), 1e-3)
         for plot in self._plots.values():
@@ -254,12 +255,17 @@ class GyroPlot(pg.GraphicsLayoutWidget):
         return float(left), float(right)
 
     def _follow(self, t: np.ndarray) -> None:
-        if len(t) == 0:
+        """Show the newest ``window_s`` seconds. While the data are shorter than the window,
+        a recording (t from 0) fills it from the left and the preview (t up to 0 = now) shows
+        exactly its data, so no empty stretch appears before the first sample."""
+        finite = t[np.isfinite(t)] if len(t) else t
+        if len(finite) == 0:
             return
-        t_max = float(t[-1])
-        if not np.isfinite(t_max):
-            finite = t[np.isfinite(t)]
-            if len(finite) == 0:
-                return
-            t_max = float(finite.max())
-        self.frequency_plot.setXRange(t_max - self._window_s, t_max, padding=0)
+        t_min, t_max = float(finite.min()), float(finite.max())
+        if t_max - t_min >= self._window_s:
+            left, right = t_max - self._window_s, t_max
+        elif t_max <= 0.0:
+            left, right = t_min, max(t_max, t_min + 1e-3)
+        else:
+            left, right = t_min, t_min + self._window_s
+        self.frequency_plot.setXRange(left, right, padding=0)
