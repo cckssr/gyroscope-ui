@@ -74,6 +74,18 @@ def test_v2_lines_carry_sequence_numbers_and_the_protocol_version(local_port):
             dev.close()
 
 
+def test_info_is_fetched_again_when_the_first_requests_are_dropped(local_port):
+    with FakeFirmware(protocol_version=2, data_port=local_port, device_id="E94464") as fake:
+        fake.drop_http_requests = 2
+        dev = make_device(fake, local_port)
+        dev.open()
+        try:
+            assert dev.info.device_id == "E94464"
+            assert dev.info.firmware_version == fake.software_version
+        finally:
+            dev.close()
+
+
 def test_v2_registration_payload_selects_the_data_port(local_port):
     # the fake sends to the port in the CONNECT payload, not to ``data_port``
     with FakeFirmware(protocol_version=2, data_port=1, http=False) as fake:

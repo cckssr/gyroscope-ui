@@ -32,6 +32,8 @@ _PORT_IN_USE_ERRNOS = {errno.EADDRINUSE, errno.EACCES}
 _WINERROR_PORT_IN_USE = {10048, 10013}  # WSAEADDRINUSE, WSAEACCES (SO_EXCLUSIVEADDRUSE)
 _WSAEMSGSIZE = 10040
 _MAX_DATAGRAM_BYTES = 4096
+_INFO_ATTEMPTS = 4  # ``GET /info`` tries per connection (see ``_fetch_info``)
+_INFO_RETRY_DELAY_S = 0.15
 _MAX_DRAIN = 2000  # datagrams per read(): bounds the call even if the sender is faster than us
 
 
@@ -200,19 +202,27 @@ class UdpGyroDevice:
                 )
 
     def _fetch_info(self) -> None:
-        """``GET /info`` (best effort): device ID, firmware and protocol version."""
-        try:
-            conn = http.client.HTTPConnection(self._host_ip, self.http_port, self._info_timeout_s)
+        """``GET /info`` (best effort): device ID, firmware and protocol version.
+
+        The firmware serves HTTP from its main loop and drops a connection whose request has not
+        arrived yet, so a single attempt fails now and then: try a few times."""
+        body = None
+        for attempt in range(_INFO_ATTEMPTS):
+            if attempt:
+                time.sleep(_INFO_RETRY_DELAY_S)
             try:
-                conn.request("GET", "/info")
-                response = conn.getresponse()
-                if response.status != 200:
-                    raise http.client.HTTPException(f"status {response.status}")
-                body = response.read(_MAX_DATAGRAM_BYTES * 4).decode("utf-8", errors="replace")
-            finally:
-                conn.close()
-        except (OSError, http.client.HTTPException) as exc:
-            _log.debug("no device information from %s:%s: %s", self.host, self.http_port, exc)
+                body = self._get_info()
+                break
+            except (OSError, http.client.HTTPException) as exc:
+                _log.debug(
+                    "no device information from %s:%s (attempt %d): %s",
+                    self.host,
+                    self.http_port,
+                    attempt + 1,
+                    exc,
+                )
+        if body is None:
+            _log.warning("no device information from %s:%s", self.host, self.http_port)
             return
         device_id, firmware, version = protocol.info_to_device_fields(protocol.parse_info(body))
         self._info = DeviceInfo(
@@ -222,3 +232,14 @@ class UdpGyroDevice:
             firmware_version=firmware,
             protocol_version=version,
         )
+
+    def _get_info(self) -> str:
+        conn = http.client.HTTPConnection(self._host_ip, self.http_port, self._info_timeout_s)
+        try:
+            conn.request("GET", "/info")
+            response = conn.getresponse()
+            if response.status != 200:
+                raise http.client.HTTPException(f"status {response.status}")
+            return response.read(_MAX_DATAGRAM_BYTES * 4).decode("utf-8", errors="replace")
+        finally:
+            conn.close()

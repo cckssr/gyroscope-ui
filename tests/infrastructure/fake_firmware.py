@@ -29,6 +29,9 @@ def free_udp_port() -> int:
 class _InfoHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 (http.server API)
         fake: FakeFirmware = self.server.fake  # type: ignore[attr-defined]
+        if fake.drop_http_requests > 0:  # like the firmware when the request has not arrived yet
+            fake.drop_http_requests -= 1
+            return
         body = fake.info_text().encode() if self.path == "/info" else b"0,0.0000,0,0,0,0,0,0\r\n"
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
@@ -56,6 +59,7 @@ class FakeFirmware:
         params: SimulationParams | None = None,
     ) -> None:
         self.protocol_version = protocol_version
+        self.drop_http_requests = 0  # the next n HTTP requests are closed without a response
         self.rate_hz = rate_hz
         self.data_port = data_port
         self.device_id = device_id
