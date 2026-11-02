@@ -31,7 +31,11 @@ _PLOT_OF = {
     "accel_z_m_s2": "accel",
 }
 _Y_AXIS_WIDTH = 64  # px; equal widths keep the stacked time axes aligned
-_X_AXIS_HUES = {"x": 0, "y": 125}  # z uses the palette's highlight colour
+# Fixed hues instead of the palette's highlight colour, which is a dark blue that is hard to
+# see on a dark background (especially in an inactive window on macOS).
+_HUES = {"frequency": 28, "x": 0, "y": 125, "z": 212}
+_PEN_WIDTH = 1.5
+_LEGEND_ALPHA = 200
 
 
 class GyroPlot(pg.GraphicsLayoutWidget):
@@ -121,26 +125,28 @@ class GyroPlot(pg.GraphicsLayoutWidget):
             self._apply_palette()
 
     def _channel_color(self, name: str) -> QColor:
-        palette = self.palette()
-        axis = name.split("_")[1] if name != "frequency_hz" else "z"
-        if axis == "z":
-            return palette.highlight().color()
-        dark = palette.base().color().lightness() < 128
-        return QColor.fromHsv(_X_AXIS_HUES[axis], 200, 225 if dark else 170)
+        hue = _HUES["frequency" if name == "frequency_hz" else name.split("_")[1]]
+        dark = self.palette().base().color().lightness() < 128
+        return QColor.fromHsv(hue, 160, 255) if dark else QColor.fromHsv(hue, 230, 190)
 
     def _apply_palette(self) -> None:
         palette = self.palette()
         text = palette.text().color()
-        self.setBackground(palette.base().color())
+        base = palette.base().color()
+        self.setBackground(base)
         for plot in self._plots.values():
             for axis in ("left", "bottom"):
                 item = plot.getAxis(axis)
                 item.setPen(pg.mkPen(text))
                 item.setTextPen(pg.mkPen(text))
         for name, curve in self._curves.items():
-            curve.setPen(pg.mkPen(self._channel_color(name), width=1))
+            curve.setPen(pg.mkPen(self._channel_color(name), width=_PEN_WIDTH))
+        legend_brush = QColor(base)
+        legend_brush.setAlpha(_LEGEND_ALPHA)
         for legend in self._legends.values():
             legend.setLabelTextColor(text)
+            legend.setBrush(legend_brush)
+            legend.setPen(pg.mkPen(palette.mid().color()))
         self._apply_texts()
         self._rebuild_legends()
 
