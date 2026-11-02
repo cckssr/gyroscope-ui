@@ -33,10 +33,10 @@
    <item row="1" column="1">
     <widget class="QLineEdit" name="editSubgroup">
      <property name="toolTip">
-      <string>Untergruppen-Bezeichnung zur Identifikation der Messung (Pflichtfeld). Wird in den Metadaten und im Ordnernamen gespeichert. Sonderzeichen werden durch '_' ersetzt. Maximale Länge im Ordnernamen: 20 Zeichen.</string>
+      <string>Untergruppen-Bezeichnung zur Identifikation des Teams (Pflichtfeld). Wird in den Metadaten und im Ordnernamen gespeichert. Sonderzeichen werden durch '_' ersetzt. Maximale Länge im Ordnernamen: 20 Zeichen.</string>
      </property>
      <property name="placeholderText">
-      <string>z. B. Aufbau 1</string>
+      <string>z. B. TimStruppi</string>
      </property>
     </widget>
    </item>
