@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConnectionPanel</class>
+ <widget class="QGroupBox" name="ConnectionPanel">
+  <property name="title">
+   <string>Gerät</string>
+  </property>
+  <layout class="QFormLayout" name="formLayout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="captionState">
+     <property name="text">
+      <string>Status</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <layout class="QHBoxLayout" name="layoutState">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <item>
+      <widget class="StatusLed" name="ledLink"/>
+     </item>
+     <item>
+      <widget class="ElidedLabel" name="labelState">
+       <property name="text">
+        <string>Getrennt</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="0" colspan="2">
+    <widget class="ElidedLabel" name="labelDevice"/>
+   </item>
+   <item row="2" column="0" colspan="2">
+    <widget class="QLabel" name="labelHint">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string>Rechner mit dem WLAN des Kreisels ({ssid}) verbinden und dann „Verbinden“ wählen.</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0" colspan="2">
+    <widget class="QCheckBox" name="checkSimulate">
+     <property name="text">
+      <string>Simulation</string>
+     </property>
+     <property name="toolTip">
+      <string>Simuliertes Gerät statt echter Hardware verwenden (nur im getrennten Zustand änderbar)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0" colspan="2">
+    <widget class="QPushButton" name="buttonConnect">
+     <property name="text">
+      <string>Verbinden</string>
+     </property>
+     <property name="toolTip">
+      <string>Verbindung zum Gerät herstellen oder trennen</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>StatusLed</class>
+   <extends>QWidget</extends>
+   <header>gyroscope_ui.ui.widgets.status_led</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>gyroscope_ui.ui.widgets.elided_label</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

@@ -130,9 +130,9 @@ Each phase ends green (`.venv/bin/pytest`, `.venv/bin/ruff check .`) and in its 
 
 ### Phase 4 – UI [Sonnet builds forms and widgets; Opus builds controllers and main window]
 
-- [ ] Designer forms (§4) migrated from `mainwindow.ui` / `connection.ui`; texts via `sync_texts.py`
+- [x] Designer forms (§4) migrated from `mainwindow.ui` / `connection.ui`; texts via `sync_texts.py`
 - [ ] Controllers: connection, measurement (Start/Stop/Reset state machine, D9), save (manual + auto-save, D11), shortcut (`Space` Start/Stop, `Ctrl+S` Save, `Ctrl+R` Reset, `Esc` Stop – D1)
-- [ ] Plot widget: two linked pyqtgraph plots, lines without per-point symbols, `setDownsampling`/`setClipToView` (D10)
+- [x] Plot widget: two linked pyqtgraph plots, lines without per-point symbols, `setDownsampling`/`setClipToView` (D10)
 - [ ] Session state: group letter, subterm, suffix, data folder, auto-save flag and window layout persisted across restarts
 - [ ] pytest-qt tests: main window, measurement flow in simulation, save, shortcuts, forms, small screens, shutdown
 
@@ -164,13 +164,14 @@ Host side (part of the phases above unless decided otherwise):
 4. Mark a measurement as interrupted when the connection drops during recording (currently silent).
 5. Statistics panel (mean/σ of frequency over a selectable range) – the code exists but is never called.
 6. An "Auswertung" tab later: load a saved CSV, fit the exponential spin-down and the precession frequency vs. 1/ω (lab evaluation directly in the app).
+7. Persist the last group / subgroup only for one day.
 
 Firmware side (Phase 6, separate commits in `Arduino-Gyroscope/`; host stays compatible with today's 8-field line):
 
-7. Append a sequence number to each line → exact loss detection on the host.
-8. Send to the client's source port / parse the CONNECT payload; expire clients after a timeout (today max 5 IPs until reboot).
-9. Remove the "frequency = 0 after 2 s without change" rule or make it a separate "no pulse" flag; a steady rotation currently reads 0 Hz.
-10. Move the OTA/WiFi password out of the committed `platformio.ini` (`upload_flags --auth=…`) into an untracked file.
+8. Append a sequence number to each line → exact loss detection on the host.
+9. Send to the client's source port / parse the CONNECT payload; expire clients after a timeout (today max 5 IPs until reboot).
+10. Remove the "frequency = 0 after 2 s without change" rule or make it a separate "no pulse" flag; a steady rotation currently reads 0 Hz.
+11. Move the OTA/WiFi password out of the committed `platformio.ini` (`upload_flags --auth=…`) into an untracked file.
 
 ## 8. Decisions (2026-11-01)
 

@@ -75,7 +75,24 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 # discover new files, so add them here. Do not run `pyside6-project build`: it would generate
 # ui_*.py next to the .ui files; use gyroscope_ui/pyqt/pyuic.sh instead.
 files = [
+    "gyroscope_ui/pyqt/connection_panel.ui",
+    "gyroscope_ui/pyqt/live_panel.ui",
+    "gyroscope_ui/pyqt/main_window.ui",
+    "gyroscope_ui/pyqt/measurement_panel.ui",
+    "gyroscope_ui/pyqt/measurement_view.ui",
+    "gyroscope_ui/pyqt/save_panel.ui",
+    "gyroscope_ui/pyqt/shortcuts_dialog.ui",
+    "gyroscope_ui/pyqt/simulation_panel.ui",
     "gyroscope_ui/pyqt/preview.py",
     "gyroscope_ui/pyqt/pyuic.sh",
-    "gyroscope_ui/pyqt/sync_texts.py"
+    "gyroscope_ui/pyqt/sync_texts.py",
+    "gyroscope_ui/ui/shortcuts.py",
+    "gyroscope_ui/ui/widgets/connection_panel.py",
+    "gyroscope_ui/ui/widgets/gyro_plot.py",
+    "gyroscope_ui/ui/widgets/live_panel.py",
+    "gyroscope_ui/ui/widgets/measurement_panel.py",
+    "gyroscope_ui/ui/widgets/measurement_view.py",
+    "gyroscope_ui/ui/widgets/save_panel.py",
+    "gyroscope_ui/ui/widgets/shortcuts_dialog.py",
+    "gyroscope_ui/ui/widgets/simulation_panel.py"
 ]

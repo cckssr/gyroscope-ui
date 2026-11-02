@@ -185,8 +185,10 @@ frequency.
   focus): `Space` Start/Stop (not in text fields), `Ctrl+S` Speichern, `Ctrl+R` Reset, `Esc` Stop,
   `Ctrl+K` Verbinden/Trennen, `Ctrl+Shift+A` Auto-Range, `F1` Tastenkürzel. `docs/SHORTCUTS.md`
   is generated.
-- **Persistence**: group letter, sub-group, suffix, data folder, auto-save, display options and
-  the window layout are restored at start (`session.json` in the per-user data directory).
+- **Persistence**: data folder, auto-save, display options and the window layout are restored at
+  start (`session.json` in the per-user data directory). Group letter, sub-group and suffix are
+  restored only on the same calendar day they were entered (the next day's group starts with
+  empty fields; `session.group_valid_days`, default 1).
 
 ## 9. Configuration
 

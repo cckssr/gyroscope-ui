@@ -75,3 +75,30 @@ def test_error_keys_have_messages(data):
 def test_message_keys_are_snake_case(data):
     for key in data["messages"]:
         assert key == key.lower() and " " not in key, key
+
+
+UI_SECTIONS = [
+    "main_window",
+    "connection_panel",
+    "live_panel",
+    "measurement_panel",
+    "save_panel",
+    "simulation_panel",
+    "measurement_view",
+    "gyro_plot",
+    "shortcuts_dialog",
+    "shortcuts_doc",
+    "tabs",
+]
+
+
+def test_ui_has_a_section_per_form_and_widget(data):
+    for name in UI_SECTIONS:
+        assert isinstance(data["ui"].get(name), dict) and data["ui"][name], name
+
+
+def test_ui_texts_are_strings_or_documented_containers(data):
+    containers = {"row_labels", "group_names", "table_columns", "legend", "columns"}
+    for section, texts in data["ui"].items():
+        for key, value in texts.items():
+            assert isinstance(value, str) or key in containers, f"ui.{section}.{key}"

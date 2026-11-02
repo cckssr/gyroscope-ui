@@ -36,7 +36,8 @@ _KIND_PROPERTIES = {
     "placeholder": "placeholderText",
     "title": "windowTitle",
 }
-_TITLE_CLASSES = {"QGroupBox", "QDockWidget"}
+# Classes whose plain key sets the ``title`` property (docks use ``name@title`` = windowTitle).
+_TITLE_CLASSES = {"QGroupBox", "QMenu"}
 
 
 def _property_for(kind: str, class_name: str) -> str:
