@@ -6,6 +6,7 @@ Returns plain JSON-serialisable data; writing the file is up to ``infrastructure
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 from typing import Any
 
 from gyroscope_ui.core.csv_format import CSV_HEADER
@@ -13,6 +14,11 @@ from gyroscope_ui.core.models import DeviceInfo, MeasurementInfo, RecordingQuali
 from gyroscope_ui.core.naming import WEEKDAYS_DE, group_name
 
 FORMAT = "gyroscope-ui-measurement/1"
+
+
+def _with_offset(moment: datetime) -> datetime:
+    """Naive datetimes are local time; aware ones are left alone (no conversion)."""
+    return moment if moment.tzinfo is not None else moment.astimezone()
 
 
 def _device_dict(device: DeviceInfo | None) -> dict[str, Any] | None:
@@ -51,14 +57,15 @@ def build_metadata(
     invalid_lines: int = 0,
     abbreviations: Sequence[str] = WEEKDAYS_DE,
 ) -> dict[str, Any]:
-    """Metadata of one measurement; naive datetimes are taken as local time.
+    """Metadata of one measurement; naive datetimes are taken as local time, aware ones keep
+    their offset.
 
     ``invalid_lines`` is the link's count of rejected lines during the recording (``LinkStats``).
 
     Raises ``NamingError`` if ``info.group`` is not a letter A-Z.
     """
-    start = info.start.astimezone()
-    end = info.end.astimezone() if info.end is not None else None
+    start = _with_offset(info.start)
+    end = _with_offset(info.end) if info.end is not None else None
     samples = quality.samples
     mean_rate_hz = (samples - 1) / duration_s if samples > 1 and duration_s > 0 else 0.0
     return {
