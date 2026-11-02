@@ -24,6 +24,7 @@ class Ui_LivePanel(object):
             LivePanel.setObjectName(u"LivePanel")
         self.formLayout = QFormLayout(LivePanel)
         self.formLayout.setObjectName(u"formLayout")
+        self.formLayout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.captionFrequency = QLabel(LivePanel)
         self.captionFrequency.setObjectName(u"captionFrequency")
 

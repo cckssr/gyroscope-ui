@@ -28,6 +28,7 @@ class Ui_ConnectionPanel(object):
             ConnectionPanel.setObjectName(u"ConnectionPanel")
         self.formLayout = QFormLayout(ConnectionPanel)
         self.formLayout.setObjectName(u"formLayout")
+        self.formLayout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.captionState = QLabel(ConnectionPanel)
         self.captionState.setObjectName(u"captionState")
 

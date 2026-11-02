@@ -6,6 +6,9 @@
    <string>Live-Messwerte</string>
   </property>
   <layout class="QFormLayout" name="formLayout">
+   <property name="fieldGrowthPolicy">
+    <enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum>
+   </property>
    <item row="0" column="0">
     <widget class="QLabel" name="captionFrequency">
      <property name="text">

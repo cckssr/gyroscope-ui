@@ -24,6 +24,7 @@ class Ui_SimulationPanel(object):
             SimulationPanel.setObjectName(u"SimulationPanel")
         self.formLayout = QFormLayout(SimulationPanel)
         self.formLayout.setObjectName(u"formLayout")
+        self.formLayout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.captionStartFrequency = QLabel(SimulationPanel)
         self.captionStartFrequency.setObjectName(u"captionStartFrequency")
 

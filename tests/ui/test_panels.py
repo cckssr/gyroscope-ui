@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QSignalSpy
-from PySide6.QtWidgets import QCheckBox, QLineEdit
+from PySide6.QtWidgets import QCheckBox, QFormLayout, QLineEdit
 
 from gyroscope_ui.core.models import DeviceInfo, LinkState
 from gyroscope_ui.ui.widgets.connection_panel import ConnectionPanel
@@ -360,7 +360,7 @@ def test_measurement_view_defaults_and_texts(qtbot, config):
     assert ui.checkAllChannels.text() == "Alle Kanäle"
     assert ui.buttonAutoRange.text() == "Auto-Range"
     assert ui.spinScrollWindow.suffix() == " s"
-    assert (ui.spinScrollWindow.minimum(), ui.spinScrollWindow.maximum()) == (5, 3600)
+    assert (ui.spinScrollWindow.minimum(), ui.spinScrollWindow.maximum()) == (5, 999999)
     assert ui.checkAutoScroll.isChecked() and ui.spinScrollWindow.value() == 60
     assert not ui.checkAllChannels.isChecked()
     assert view.plot is ui.plot
@@ -393,3 +393,15 @@ def test_measurement_view_set_options_does_not_emit(qtbot, config):
     ui = view.ui
     assert not ui.checkAutoScroll.isChecked() and ui.spinScrollWindow.value() == 120
     assert ui.checkAllChannels.isChecked() and view.plot.all_channels
+
+
+def test_panel_form_layouts_let_the_fields_grow(qtbot, config):
+    """QMacStyle keeps form fields at their size hint unless the policy says otherwise."""
+    for widget in (
+        make(qtbot, SavePanel, config),
+        make(qtbot, ConnectionPanel, config),
+        make(qtbot, LivePanel, config),
+        make(qtbot, SimulationPanel, config),
+    ):
+        policy = widget.ui.formLayout.fieldGrowthPolicy()
+        assert policy == QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow

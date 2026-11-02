@@ -27,6 +27,7 @@ class Ui_SavePanel(object):
             SavePanel.setObjectName(u"SavePanel")
         self.formLayout = QFormLayout(SavePanel)
         self.formLayout.setObjectName(u"formLayout")
+        self.formLayout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.captionGroup = QLabel(SavePanel)
         self.captionGroup.setObjectName(u"captionGroup")
 
