@@ -13,12 +13,19 @@
 #define SECRETS_H
 
 /** @brief WiFi-Netzwerk Passwort (mindestens 8 Zeichen) */
-#define SECRET_PASS "BosonBoson"
+#define SECRET_PASS "ChangeMe-WiFi"
 
 /** @brief Router SSID für OTA-Updates */
-#define SECRET_STA_SSID "YourRouterSSID"
+#define SECRET_STA_SSID "ChangeMe-RouterSSID"
 
 /** @brief Router Passwort für OTA-Updates */
-#define SECRET_STA_PASS "YourRouterPassword"
+#define SECRET_STA_PASS "ChangeMe-RouterPassword"
+
+/**
+ * @brief OTA upload password (ArduinoOTA)
+ * @warning Must differ from SECRET_PASS (the WiFi password the students know).
+ *          The same value goes into secrets.ini (see secrets.ini.template).
+ */
+#define SECRET_OTA_PASS "ChangeMe-OTA"
 
 #endif // SECRETS_H

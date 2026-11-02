@@ -44,6 +44,10 @@
 #include <esp_wifi.h>
 #include "secrets.h"
 
+#ifndef SECRET_OTA_PASS
+#error "Define SECRET_OTA_PASS in src/secrets.h (see secrets_template.h)"
+#endif
+
 // ================================
 // SYSTEM CONFIGURATION
 // ================================
@@ -55,7 +59,10 @@
 const char *DEVICE_ID = DEVICE_ID_STR;
 
 /** @brief Software-Versionsnummer */
-const char *SOFTWARE_VERSION = "1.1.1";
+const char *SOFTWARE_VERSION = "2.0.0";
+
+/** @brief Wire protocol version (9-field data line with sequence number, see docs/PROTOCOL.md) */
+const int PROTOCOL_VERSION = 2;
 
 // ================================
 // HARDWARE PIN DEFINITIONS
@@ -116,9 +123,29 @@ WiFiServer wifiServer(HTTP_SERVER_PORT);
 /** @brief UDP-Socket für Sensordatenübertragung */
 WiFiUDP udpSocket;
 
-/** @brief Liste der UDP-Client-IPs für Unicast */
-IPAddress udpClientIPs[5]; // Maximal 5 UDP-Clients
+/** @brief One registered UDP data receiver (host) */
+struct UdpClient
+{
+  IPAddress ip;        ///< Destination IP (always the datagram's source IP)
+  uint16_t port;       ///< Destination port (from the CONNECT payload, else the source port)
+  uint32_t lastSeenMs; ///< millis() of the last registration datagram
+};
+
+/** @brief Maximum number of simultaneously served UDP clients */
+const int MAX_UDP_CLIENTS = 5;
+
+/** @brief A client is dropped after this time without a registration (the host re-sends CONNECT every 2 s) */
+const uint32_t CLIENT_TIMEOUT_MS = 10000;
+
+/** @brief Maximum number of datagrams drained per loop pass (keeps the loop non-blocking) */
+const int MAX_UDP_PACKETS_PER_PASS = 8;
+
+/** @brief Table of live UDP clients; entries [0, udpClientCount) are valid */
+UdpClient udpClients[MAX_UDP_CLIENTS];
 int udpClientCount = 0;
+
+/** @brief Sequence number of the next data line (starts at 0 at boot, wraps naturally) */
+uint32_t sequenceNumber = 0;
 
 /** @brief Aktuelle persistente WiFi-Client-Verbindung für kontinuierliche TCP-Daten */
 WiFiClient persistentClient;
@@ -149,20 +176,26 @@ QueueHandle_t interruptQueue;
 float currentFrequency = 0.0f;
 
 // ================================
-// FREQUENCY CHANGE RATE DETECTION
+// FREQUENCY PULSE TIMEOUT
 // ================================
 
-/** @brief Zeit in Millisekunden, nach der bei konstanter Frequenz auf 0 gesetzt wird */
-const uint32_t FREQUENCY_STABLE_TIMEOUT_MS = 2000;
+/** @brief Minimum time without a Hall pulse before the frequency is reported as 0 Hz */
+const uint32_t PULSE_TIMEOUT_MIN_MS = 2000;
 
-/** @brief Schwellwert für Frequenzänderung (Hz), unter dem als konstant gilt */
-const float FREQUENCY_CHANGE_THRESHOLD = 0.05f;
+/** @brief The pulse timeout is at least this many periods of the last measured pulse period */
+const uint32_t PULSE_TIMEOUT_PERIODS = 3;
 
-/** @brief Zeitpunkt der letzten signifikanten Frequenzänderung */
-uint32_t lastFrequencyChangeMs = 0;
+/** @brief millis() of the last processed Hall pulse (loop() only) */
+uint32_t lastPulseMs = 0;
 
-/** @brief Letzte gemessene Frequenz für Änderungserkennung */
-float lastFrequency = 0.0f;
+/** @brief Period of the last processed Hall pulse in microseconds (loop() only) */
+uint32_t lastPulsePeriodUs = 0;
+
+/** @brief true once a Hall pulse with a valid period has been processed (loop() only) */
+bool pulseSeen = false;
+
+/** @brief true once the first queued pulse has been discarded (its period is measured from boot, not from a pulse) */
+bool firstPulseDiscarded = false;
 
 // ================================
 // WIFI DEBUG VARIABLES
@@ -607,7 +640,7 @@ bool initializeWiFiConnection(bool waitForConnection = true)
 
   // OTA initialisieren
   ArduinoOTA.setHostname(WIFI_AP_SSID);
-  ArduinoOTA.setPassword(WIFI_AP_PASSWORD);
+  ArduinoOTA.setPassword(SECRET_OTA_PASS);
   ArduinoOTA.begin();
   Serial.printf("OTA bereit (Hostname: %s)\n", WIFI_AP_SSID);
 
@@ -615,62 +648,189 @@ bool initializeWiFiConnection(bool waitForConnection = true)
 }
 
 /**
- * @brief Fügt einen UDP-Client zur Unicast-Liste hinzu
+ * @brief Parses a registration payload of the form "CONNECT:<ip>:<port>"
  *
- * @param clientIP IP-Adresse des Clients
+ * The <ip> part is deliberately ignored: the host's own guess of its address can be wrong
+ * on machines with several network interfaces, so the datagram's source IP is authoritative.
+ * Only the port is taken from the payload. Trailing CR/LF/whitespace is allowed.
+ *
+ * @param payload NUL-terminated payload
+ * @param port Receives the port (1..65535) on success
+ * @return true if the payload is a well-formed CONNECT message with a valid port
  */
-void addUDPClient(IPAddress clientIP)
+bool parseConnectPort(const char *payload, uint16_t &port)
 {
-  // Prüfe ob Client bereits in der Liste ist
-  for (int i = 0; i < udpClientCount; i++)
+  static const char PREFIX[] = "CONNECT:";
+  const size_t prefixLen = sizeof(PREFIX) - 1;
+  if (strncmp(payload, PREFIX, prefixLen) != 0)
   {
-    if (udpClientIPs[i] == clientIP)
+    return false;
+  }
+
+  // The port follows the last ':' (an IPv4 address contains none); there must be a ':' after the prefix.
+  const char *portStart = strrchr(payload, ':');
+  if (portStart == NULL || portStart < payload + prefixLen)
+  {
+    return false;
+  }
+  portStart++;
+  if (portStart == payload + prefixLen)
+  {
+    return false; // "CONNECT:<port>" without an <ip> part
+  }
+
+  uint32_t value = 0;
+  int digits = 0;
+  while (portStart[digits] >= '0' && portStart[digits] <= '9')
+  {
+    if (digits >= 5)
     {
-      return; // Client bereits in der Liste
+      return false;
+    }
+    value = value * 10 + (uint32_t)(portStart[digits] - '0');
+    digits++;
+  }
+  if (digits == 0 || value < 1 || value > 65535)
+  {
+    return false;
+  }
+
+  // Only whitespace may follow the digits
+  for (const char *c = portStart + digits; *c != '\0'; c++)
+  {
+    if (*c != '\r' && *c != '\n' && *c != ' ' && *c != '\t')
+    {
+      return false;
     }
   }
 
-  // Füge neuen Client hinzu (falls Platz vorhanden)
-  if (udpClientCount < 5)
+  port = (uint16_t)value;
+  return true;
+}
+
+/**
+ * @brief Registers a UDP client or refreshes its timestamp
+ *
+ * Clients are keyed by (ip, port). If the table is full, the entry with the oldest
+ * registration is replaced.
+ *
+ * @param ip Destination IP
+ * @param port Destination port
+ * @param nowMs Current millis()
+ */
+void registerUDPClient(const IPAddress &ip, uint16_t port, uint32_t nowMs)
+{
+  for (int i = 0; i < udpClientCount; i++)
   {
-    udpClientIPs[udpClientCount] = clientIP;
-    udpClientCount++;
-    Serial.printf("UDP-Client hinzugefügt: %s (Total: %d)\n",
-                  clientIP.toString().c_str(), udpClientCount);
+    if (udpClients[i].ip == ip && udpClients[i].port == port)
+    {
+      udpClients[i].lastSeenMs = nowMs;
+      return;
+    }
+  }
+
+  int slot;
+  if (udpClientCount < MAX_UDP_CLIENTS)
+  {
+    slot = udpClientCount++;
   }
   else
   {
-    Serial.println("WARNUNG: Maximale Anzahl UDP-Clients erreicht!");
+    // Table full: replace the entry that has not been refreshed for the longest time
+    slot = 0;
+    for (int i = 1; i < udpClientCount; i++)
+    {
+      if ((uint32_t)(nowMs - udpClients[i].lastSeenMs) > (uint32_t)(nowMs - udpClients[slot].lastSeenMs))
+      {
+        slot = i;
+      }
+    }
+    Serial.printf("UDP client table full, replacing %s:%u\n",
+                  udpClients[slot].ip.toString().c_str(), (unsigned)udpClients[slot].port);
+  }
+
+  udpClients[slot].ip = ip;
+  udpClients[slot].port = port;
+  udpClients[slot].lastSeenMs = nowMs;
+  Serial.printf("UDP client registered: %s:%u (total: %d)\n",
+                ip.toString().c_str(), (unsigned)port, udpClientCount);
+}
+
+/**
+ * @brief Removes UDP clients that have not been refreshed within CLIENT_TIMEOUT_MS
+ *
+ * @param nowMs Current millis()
+ */
+void expireUDPClients(uint32_t nowMs)
+{
+  int i = 0;
+  while (i < udpClientCount)
+  {
+    if ((uint32_t)(nowMs - udpClients[i].lastSeenMs) > CLIENT_TIMEOUT_MS)
+    {
+      Serial.printf("UDP client expired: %s:%u\n",
+                    udpClients[i].ip.toString().c_str(), (unsigned)udpClients[i].port);
+      for (int j = i + 1; j < udpClientCount; j++)
+      {
+        udpClients[j - 1] = udpClients[j];
+      }
+      udpClientCount--;
+    }
+    else
+    {
+      i++;
+    }
   }
 }
 
 /**
- * @brief Verarbeitet eingehende UDP-Pakete und registriert Clients
+ * @brief Drains pending UDP datagrams and registers/refreshes their senders
+ *
+ * Any datagram on UDP_PORT registers its sender. The destination IP is always the source IP;
+ * the destination port is taken from a "CONNECT:<ip>:<port>" payload, else it is the source port.
+ * At most MAX_UDP_PACKETS_PER_PASS datagrams are handled per call; never blocks.
  */
 void handleUDPClients()
 {
-  int packetSize = udpSocket.parsePacket();
-  if (packetSize)
-  {
-    IPAddress remoteIP = udpSocket.remoteIP();
+  const uint32_t nowMs = millis();
+  char payload[64];
 
-    // Lese das Paket (auch wenn wir den Inhalt ignorieren)
-    char incomingPacket[255];
-    int len = udpSocket.read(incomingPacket, 255);
-    if (len > 0)
+  for (int n = 0; n < MAX_UDP_PACKETS_PER_PASS; n++)
+  {
+    if (udpSocket.parsePacket() <= 0)
     {
-      incomingPacket[len] = 0;
+      break;
     }
 
-    // Füge Client zur Liste hinzu
-    addUDPClient(remoteIP);
+    const IPAddress remoteIP = udpSocket.remoteIP();
+    const uint16_t remotePort = udpSocket.remotePort();
+
+    // The payload is bounded; the rest of an oversized datagram is discarded
+    int len = udpSocket.read(payload, sizeof(payload) - 1);
+    if (len < 0)
+    {
+      len = 0;
+    }
+    payload[len] = '\0';
+
+    uint16_t destinationPort = remotePort;
+    uint16_t payloadPort = 0;
+    if (parseConnectPort(payload, payloadPort))
+    {
+      destinationPort = payloadPort;
+    }
+
+    registerUDPClient(remoteIP, destinationPort, nowMs);
 
     if (isDebugMode)
     {
-      Serial.printf("DEBUG: UDP-Registrierung von %s, Paket: %s\n",
-                    remoteIP.toString().c_str(), incomingPacket);
+      Serial.printf("DEBUG: UDP registration from %s:%u -> %s:%u, payload: %s\n",
+                    remoteIP.toString().c_str(), (unsigned)remotePort,
+                    remoteIP.toString().c_str(), (unsigned)destinationPort, payload);
     }
   }
+
+  expireUDPClients(nowMs);
 }
 
 /**
@@ -711,6 +871,7 @@ void handleHTTPRequest(WiFiClient &client, const String &request)
     client.print(httpHeader);
     client.printf("Device-ID: %s\n", DEVICE_ID);
     client.printf("Software-Version: %s\n", SOFTWARE_VERSION);
+    client.printf("Protocol: %d\n", PROTOCOL_VERSION);
     client.printf("Uptime: %lu ms\n", millis());
     client.printf("WiFi-Status: %s\n", WIFI_AP_MODE ? "Access Point" : (WiFi.status() == WL_CONNECTED ? "Verbunden" : "Getrennt"));
     client.printf("IP-Adresse: %s\n", WIFI_AP_MODE ? WiFi.softAPIP().toString().c_str() : WiFi.localIP().toString().c_str());
@@ -886,7 +1047,7 @@ void setup()
 
   if (isDebugMode)
   {
-    Serial.println("Datenformat: Zeitstempel,Frequenz,Accel_X,Accel_Y,Accel_Z,Gyro_X,Gyro_Y,Gyro_Z");
+    Serial.println("Datenformat: Zeitstempel,Frequenz,Accel_X,Accel_Y,Accel_Z,Gyro_X,Gyro_Y,Gyro_Z,Sequenz");
     Serial.printf("Übertragungsmodus: %s (%s)\n",
                   USE_UDP_FOR_DATA ? "UDP" : "TCP",
                   USE_UDP_FOR_DATA ? (USE_UDP_BROADCAST ? "Broadcast" : "Unicast") : "Point-to-Point");
@@ -963,55 +1124,51 @@ void loop()
   lsm6ds33.getEvent(&accelerationEvent, &gyroscopeEvent, &temperatureEvent);
 
   // ========== Hall-Sensor Interrupt-Daten verarbeiten ==========
+  // Drain the queue completely; the latest period wins.
   uint32_t interruptTimeDelta;
-  if (xQueueReceive(interruptQueue, &interruptTimeDelta, 0) == pdTRUE)
+  while (xQueueReceive(interruptQueue, &interruptTimeDelta, 0) == pdTRUE)
   {
-    // Neue Interrupt-Daten verfügbar
+    if (!firstPulseDiscarded)
+    {
+      // The first period is measured from setup(), not from a previous pulse: ignore it
+      firstPulseDiscarded = true;
+      continue;
+    }
+
     if (interruptTimeDelta > 0)
     {
-      float newFrequency = 1000000.0f / (float)interruptTimeDelta;
-
-      // Prüfe ob signifikante Frequenzänderung vorliegt
-      if (abs(newFrequency - lastFrequency) > FREQUENCY_CHANGE_THRESHOLD)
-      {
-        // Signifikante Änderung erkannt - Timer zurücksetzen
-        lastFrequencyChangeMs = millis();
-        lastFrequency = newFrequency;
-
-        if (isDebugMode)
-        {
-          Serial.printf("DEBUG: Frequenzänderung erkannt: %.4f Hz -> %.4f Hz\n",
-                        lastFrequency, newFrequency);
-        }
-      }
-
-      currentFrequency = newFrequency;
+      currentFrequency = 1000000.0f / (float)interruptTimeDelta;
+      lastPulsePeriodUs = interruptTimeDelta;
+      lastPulseMs = millis();
+      pulseSeen = true;
     }
   }
 
-  // ========== Frequenz-Konstanz-Überprüfung ==========
-  // Wenn Frequenz über definierte Zeit konstant ist, setze auf 0
-  if (currentFrequency > 0.0f)
+  // ========== Pulse-Timeout ==========
+  // Report 0 Hz only if no pulse arrived for max(2 s, 3 x last period); a steady rotation keeps its value.
+  if (pulseSeen && currentFrequency > 0.0f)
   {
-    uint32_t timeSinceLastChange = millis() - lastFrequencyChangeMs;
+    uint64_t timeoutMs = ((uint64_t)lastPulsePeriodUs * PULSE_TIMEOUT_PERIODS) / 1000ULL;
+    if (timeoutMs < PULSE_TIMEOUT_MIN_MS)
+    {
+      timeoutMs = PULSE_TIMEOUT_MIN_MS;
+    }
 
-    if (timeSinceLastChange > FREQUENCY_STABLE_TIMEOUT_MS)
+    if ((uint64_t)(uint32_t)(millis() - lastPulseMs) > timeoutMs)
     {
       if (isDebugMode)
       {
-        Serial.printf("DEBUG: Frequenz seit %lu ms konstant bei %.4f Hz - setze auf 0\n",
-                      timeSinceLastChange, currentFrequency);
+        Serial.printf("DEBUG: No Hall pulse for %lu ms - frequency set to 0\n",
+                      (unsigned long)(uint32_t)(millis() - lastPulseMs));
       }
-
       currentFrequency = 0.0f;
-      lastFrequency = 0.0f;
     }
   }
 
   // ========== Datenpaket formatieren ==========
-  // Format: Zeitstempel,Frequenz,Accel_X,Accel_Y,Accel_Z,Gyro_X,Gyro_Y,Gyro_Z
+  // Format: Zeitstempel,Frequenz,Accel_X,Accel_Y,Accel_Z,Gyro_X,Gyro_Y,Gyro_Z,Sequenz
   snprintf(outputBuffer, sizeof(outputBuffer),
-           "%lu,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f",
+           "%lu,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%lu",
            (unsigned long)millis(),
            currentFrequency,
            accelerationEvent.acceleration.x,
@@ -1019,7 +1176,9 @@ void loop()
            accelerationEvent.acceleration.z,
            gyroscopeEvent.gyro.x,
            gyroscopeEvent.gyro.y,
-           gyroscopeEvent.gyro.z);
+           gyroscopeEvent.gyro.z,
+           (unsigned long)sequenceNumber);
+  sequenceNumber++; // one sequence number per generated data line; wraps naturally
 
   // ========== Datenausgabe ==========
 
@@ -1071,10 +1230,10 @@ void loop()
     }
     else
     {
-      // Unicast an registrierte Clients
+      // Unicast to every live client at its registered ip:port
       for (int i = 0; i < udpClientCount; i++)
       {
-        udpSocket.beginPacket(udpClientIPs[i], UDP_PORT);
+        udpSocket.beginPacket(udpClients[i].ip, udpClients[i].port);
         udpSocket.println(outputBuffer); // println für Newline
         udpSocket.endPacket();
       }

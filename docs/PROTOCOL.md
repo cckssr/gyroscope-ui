@@ -1,8 +1,8 @@
 # Device protocol
 
 The wire protocol between the Kreisel firmware (`Arduino-Gyroscope/src/main.cpp`) and the host
-application. Version 1 is what firmware 1.1.1 implements today; version 2 is the planned
-extension (Phase 6 of [MIGRATION_PLAN.md](MIGRATION_PLAN.md)). The host must accept both.
+application. Version 1 is what firmware ≤ 1.1.1 implements; version 2 is implemented by firmware
+2.0.0 (Phase 6 of [MIGRATION_PLAN.md](MIGRATION_PLAN.md)). The host must accept both.
 
 ## 1. Hardware
 
@@ -70,8 +70,9 @@ datagrams; a datagram is never split, so a datagram is either a complete line or
 
 - The value is the period of the **last** Hall pulse taken from an 8-entry queue, one entry per
   loop pass. Above ≈ 90 pulses/s the queue lags and overflows (stale values).
-- If the value changes by less than 0.05 Hz for 2 s, the firmware reports **0.0** until it changes
-  again. A steady rotation therefore reads 0 Hz after 2 s.
+- If the value changes by less than 0.05 Hz for 2 s, the firmware reports **0.0** until the next
+  Hall pulse. A steady or slowly decelerating rotation therefore shows short drops to 0 Hz about
+  every 2 s.
 - Before the first pulse the value is 0.0.
 
 ### 3.3 Host-side validation
@@ -130,22 +131,38 @@ to read device information after connecting (optional; failures are not errors).
 | `GET /status`    | `Uptime`, `Aktuelle-Frequenz`, `Freier-Heap`, `WiFi-Signalstärke`                                       |
 | anything else    | the current data line                                                                                   |
 
+Firmware 2.0.0 adds the line `Protocol: 2` to `GET /info` (section 6).
+
 The HTTP server is served from the main loop between samples; a slow client delays the samples.
 The host therefore queries it once per connection, with a 1 s timeout, never periodically.
 
-## 6. Version 2 (planned firmware)
+## 6. Version 2 (firmware 2.0.0)
 
 The new application reads v1 and v2 devices. The old application (1.1.x) rejects 9-field lines, so
 **the lab PCs get the new application before any unit is flashed with v2**.
 
-| Change         | Version 2                                                                                                                                                        |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Data line      | 9 fields: the 8 of v1 plus `seq` (`%lu` uint32, +1 per sample, wraps)                                                                                            |
-| Registration   | the payload `CONNECT:<ip>:<port>` is parsed; data go to that IP **and port**; a malformed payload falls back to source IP and source port                        |
-| Client table   | entries expire after 10 s without a registration (the host's keep-alive refreshes them); a full table replaces the oldest entry                                  |
-| Frequency      | the queue is drained every loop pass (latest period wins); 0 Hz only after no Hall pulse for `max(2 s, 3 × last period)`; the "constant for 2 s" rule is removed |
-| Identification | `GET /info` adds `Protocol: 2`                                                                                                                                   |
-| OTA password   | separate from the WiFi password, not committed (see `secrets_template.h`)                                                                                        |
+| Change         | Version 2 (firmware 2.0.0)                                                                                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data line      | 9 fields: the 8 of v1 plus `seq` (`%lu` uint32, starts at 0 at boot, +1 per generated data line, wraps); every client receives the same line                                                                              |
+| Registration   | any datagram on port 12345 registers its sender; destination IP is always the source IP; destination port is the port of a `CONNECT:<ip>:<port>` payload (1..65535), otherwise the source port; `<ip>` is ignored         |
+| Client table   | keyed by (IP, port), at most 5 entries; entries expire after 10 s without a registration (the host's keep-alive refreshes them); a full table replaces the oldest entry                                                   |
+| Frequency      | the queue is drained every loop pass (latest period wins); 0 Hz only after no Hall pulse for `max(2 s, 3 × last period)`, 0 before the first pulse; the "constant for 2 s" rule is removed                                |
+| Identification | `GET /info` adds the line `Protocol: 2` (`Device-ID` and `Software-Version` unchanged)                                                                                                                                    |
+| OTA password   | separate from the WiFi password; `SECRET_OTA_PASS` in the untracked `src/secrets.h` (template: `secrets_template.h`), the same value in the untracked `secrets.ini` for `upload_flags` (template: `secrets.ini.template`) |
+
+Details:
+
+- The `<ip>` in `CONNECT:<ip>:<port>` is parsed but ignored: the host's own guess of its address can
+  be wrong with several network interfaces, so the datagram's source IP is authoritative. Trailing
+  CR, LF or whitespace after the port is accepted. Any other payload (or an invalid port) falls back
+  to the source port, so an arbitrary datagram still registers.
+- The host sends the registration from the socket bound to the receive port (12345), so source port
+  and payload port normally coincide; the payload port allows a different receive socket.
+- The firmware handles at most 8 registration datagrams per loop pass; the payload is read into a
+  64-byte buffer.
+- The first Hall pulse after boot is not used for the frequency (its period would be measured from
+  power-up). After a long standstill the first pulse yields the low frequency `1e6 / (time since the
+previous pulse)`, which is held for up to `3 × period` or until the next pulse.
 
 The host detects the version from the field count of the first valid line and from `/info`
 (if reachable) and stores both in the measurement metadata.

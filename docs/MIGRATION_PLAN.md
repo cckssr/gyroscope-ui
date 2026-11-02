@@ -1,6 +1,6 @@
 # Migration plan: gyroscope-ui onto the oct-ui / spectrum-ui architecture
 
-Branch: `refactor/layered-architecture` (from `dev`). Status: Phases 0-5 done; next Phase 6.
+Branch: `refactor/layered-architecture` (from `dev`). Status: Phases 0-6 done; next Phase 7 (hardware validation).
 
 ## 1. Goal
 
@@ -144,12 +144,13 @@ Each phase ends green (`.venv/bin/pytest`, `.venv/bin/ruff check .`) and in its 
 
 ### Phase 6 – Firmware [Sonnet; Opus reviews protocol changes]
 
-- [ ] Protocol v2 in `docs/PROTOCOL.md`: 9th field sequence number (uint32, wraps); host accepts 8 (v1) and 9 (v2) fields
-- [ ] Parse the CONNECT payload, send to the client's source port; expire clients without CONNECT refresh after a timeout; host re-sends CONNECT periodically as keep-alive
-- [ ] Replace "frequency = 0 after 2 s without change" with a pulse timeout (no Hall pulse for N periods → 0 Hz), so a steady rotation keeps its value
-- [ ] Move the OTA/WiFi password from `platformio.ini` (`--auth=…`) into an untracked `secrets.ini` / env variable; rotate the password because it is in the git history
-- [ ] Bump `SOFTWARE_VERSION`; `/info` reports the protocol version; host logs it into the metadata sidecar
-- [ ] `pio run` builds for all envs (CI job optional)
+- [x] Protocol v2 in `docs/PROTOCOL.md`: 9th field sequence number (uint32, wraps); host accepts 8 (v1) and 9 (v2) fields
+- [x] Parse the CONNECT payload, send to the client's source port; expire clients without CONNECT refresh after a timeout; host re-sends CONNECT periodically as keep-alive
+- [x] Replace "frequency = 0 after 2 s without change" with a pulse timeout (no Hall pulse for N periods → 0 Hz), so a steady rotation keeps its value
+- [x] Move the OTA/WiFi password from `platformio.ini` (`--auth=…`) into an untracked `secrets.ini` / env variable
+- [ ] Rotate the WiFi and OTA passwords (both are in the git history): set them in `src/secrets.h` and `secrets.ini`, flash every unit over USB [user]
+- [x] Bump `SOFTWARE_VERSION`; `/info` reports the protocol version; host logs it into the metadata sidecar
+- [x] `pio run` builds for all envs (CI job optional)
 
 ### Phase 7 – Hardware validation [user, in the lab]
 
