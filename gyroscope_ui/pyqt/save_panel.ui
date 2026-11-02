@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SavePanel</class>
+ <widget class="QGroupBox" name="SavePanel">
+  <property name="title">
+   <string>Speichern</string>
+  </property>
+  <layout class="QFormLayout" name="formLayout">
+   <property name="fieldGrowthPolicy">
+    <enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum>
+   </property>
+   <item row="0" column="0">
+    <widget class="QLabel" name="captionGroup">
+     <property name="text">
+      <string>Gruppe *</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="comboGroup">
+     <property name="toolTip">
+      <string>Buchstabe der Praktikumsgruppe (Pflichtfeld)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="captionSubgroup">
+     <property name="text">
+      <string>Untergruppe *</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QLineEdit" name="editSubgroup">
+     <property name="toolTip">
+      <string>Untergruppen-Bezeichnung zur Identifikation des Teams (Pflichtfeld). Wird in den Metadaten und im Ordnernamen gespeichert. Sonderzeichen werden durch '_' ersetzt. Maximale Länge im Ordnernamen: 20 Zeichen.</string>
+     </property>
+     <property name="placeholderText">
+      <string>z. B. TimStruppi</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="captionSuffix">
+     <property name="text">
+      <string>Suffix</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QLineEdit" name="editSuffix">
+     <property name="maxLength">
+      <number>20</number>
+     </property>
+     <property name="toolTip">
+      <string>Optionaler Zusatz im Dateinamen beim automatischen Speichern (höchstens 20 Zeichen)</string>
+     </property>
+     <property name="placeholderText">
+      <string>optional</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="captionDataDir">
+     <property name="text">
+      <string>Datenordner</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <layout class="QHBoxLayout" name="layoutDataDir">
+     <item>
+      <widget class="QLineEdit" name="editDataDir">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+       <property name="toolTip">
+        <string>Ordner, in dem die Messungen gespeichert werden</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="buttonBrowse">
+       <property name="text">
+        <string>…</string>
+       </property>
+       <property name="toolTip">
+        <string>Datenordner wählen</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="4" column="0" colspan="2">
+    <widget class="QCheckBox" name="checkAutoSave">
+     <property name="text">
+      <string>Automatisch speichern</string>
+     </property>
+     <property name="toolTip">
+      <string>Bei Aktivierung wird die Messung beim Stoppen automatisch gespeichert, im Format:
+JJJJ_MM_TT-NN-Messung[-Suffix].csv
+in einem Unterordner Gruppe_Untergruppe des Datenordners (Standard: Dokumente/Kreisel/).</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0" colspan="2">
+    <widget class="QPushButton" name="buttonSave">
+     <property name="text">
+      <string>Speichern …</string>
+     </property>
+     <property name="toolTip">
+      <string>Messung in eine Datei speichern (Dateidialog)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="captionLastSaved">
+     <property name="text">
+      <string>Zuletzt</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <widget class="ElidedLabel" name="labelLastSaved">
+     <property name="text">
+      <string>–</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>gyroscope_ui.ui.widgets.elided_label</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

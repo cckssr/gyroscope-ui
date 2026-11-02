@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LivePanel</class>
+ <widget class="QGroupBox" name="LivePanel">
+  <property name="title">
+   <string>Live-Messwerte</string>
+  </property>
+  <layout class="QFormLayout" name="formLayout">
+   <property name="rowWrapPolicy">
+    <enum>QFormLayout::RowWrapPolicy::WrapLongRows</enum>
+   </property>
+   <property name="fieldGrowthPolicy">
+    <enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum>
+   </property>
+   <item row="0" column="0">
+    <widget class="QLabel" name="captionFrequency">
+     <property name="text">
+      <string>Rotationsfrequenz (Hz)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QLCDNumber" name="lcdFrequency">
+     <property name="minimumSize">
+      <size>
+       <width>120</width>
+       <height>40</height>
+      </size>
+     </property>
+     <property name="digitCount">
+      <number>8</number>
+     </property>
+     <property name="smallDecimalPoint">
+      <bool>true</bool>
+     </property>
+     <property name="segmentStyle">
+      <enum>QLCDNumber::SegmentStyle::Flat</enum>
+     </property>
+     <property name="toolTip">
+      <string>Aktuelle Rotationsfrequenz der Kreiselscheibe in Hertz</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="captionGyroZ">
+     <property name="text">
+      <string>Z-Rotation (rad/s)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QLCDNumber" name="lcdGyroZ">
+     <property name="minimumSize">
+      <size>
+       <width>120</width>
+       <height>40</height>
+      </size>
+     </property>
+     <property name="digitCount">
+      <number>8</number>
+     </property>
+     <property name="smallDecimalPoint">
+      <bool>true</bool>
+     </property>
+     <property name="segmentStyle">
+      <enum>QLCDNumber::SegmentStyle::Flat</enum>
+     </property>
+     <property name="toolTip">
+      <string>Aktuelle Winkelgeschwindigkeit um die z-Achse in Radiant pro Sekunde</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="captionPoints">
+     <property name="text">
+      <string>Datenpunkte</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QLCDNumber" name="lcdPoints">
+     <property name="minimumSize">
+      <size>
+       <width>120</width>
+       <height>40</height>
+      </size>
+     </property>
+     <property name="digitCount">
+      <number>8</number>
+     </property>
+     <property name="smallDecimalPoint">
+      <bool>true</bool>
+     </property>
+     <property name="segmentStyle">
+      <enum>QLCDNumber::SegmentStyle::Flat</enum>
+     </property>
+     <property name="toolTip">
+      <string>Anzahl der aufgezeichneten Messwerte</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="captionDuration">
+     <property name="text">
+      <string>Dauer (mm:ss)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLabel" name="labelDuration">
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignVCenter</set>
+     </property>
+     <property name="toolTip">
+      <string>Dauer der aktuellen Aufzeichnung</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
