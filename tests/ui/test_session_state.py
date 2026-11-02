@@ -35,10 +35,12 @@ def test_suffix_in_an_older_session_file_is_ignored(qtbot, config, paths):
     s.update_save_fields(group="D", subgroup="Aufbau 2")
     s.shutdown()
     file = paths.session_dir / "session.json"
-    data = json.loads(file.read_text(encoding="utf-8"))
+    data = json.loads(file.read_text(encoding="utf-8"))["data"]  # {"format": ..., "data": {...}}
     assert "suffix" not in data["save_fields"]
     data["save_fields"]["suffix"] = "old"  # written by an earlier version
-    file.write_text(json.dumps(data), encoding="utf-8")
+    store = json.loads(file.read_text(encoding="utf-8"))
+    store["data"] = data
+    file.write_text(json.dumps(store), encoding="utf-8")
     r = _session(config, paths, day)
     assert r.save_fields.subgroup == "Aufbau 2" and r.save_fields.suffix == ""
 
