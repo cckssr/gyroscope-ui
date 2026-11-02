@@ -4,10 +4,10 @@ Releases are cut by GitHub Actions. A release bumps the version in `pyproject.to
 
 ## Workflows
 
-| File                  | Trigger                                                                     | Purpose                                                                                                                                                                       |
-| --------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ci.yml`              | push to `main`, `dev`, `feature/**`, `refactor/**`, pull request, manual    | ruff and pytest on Linux (Python 3.11 and 3.14), Windows and macOS, tests of `scripts/release.py`; reused by the release workflows                                            |
-| `release-prepare.yml` | **manual** ("Run workflow") or a merged PR labelled `major`/`minor`/`patch` | runs CI on the exact commit, bumps the version, cuts the CHANGELOG, commits `chore: bump version to vX.Y.Z [skip ci]`, tags, calls `release.yml`                              |
+| File                  | Trigger                                                                     | Purpose                                                                                                                                                                                  |
+| --------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`              | push to `main`, `dev`, `feature/**`, `refactor/**`, pull request, manual    | ruff and pytest on Linux (Python 3.11 and 3.14), Windows and macOS, tests of `scripts/release.py`; reused by the release workflows                                                       |
+| `release-prepare.yml` | **manual** ("Run workflow") or a merged PR labelled `major`/`minor`/`patch` | runs CI on the exact commit, bumps the version, cuts the CHANGELOG, commits `chore: bump version to vX.Y.Z [skip ci]`, tags, calls `release.yml`                                         |
 | `release.yml`         | called by `release-prepare.yml`; also a pushed `vX.Y.Z` tag                 | verifies the tag (stable releases only: version, changelog, default branch), re-runs CI on it, builds and smoke-tests the wheel, creates the GitHub Release (wheel, sdist, `SHA256SUMS`) |
 
 ## One-time repository setup
@@ -21,11 +21,11 @@ Releases are cut by GitHub Actions. A release bumps the version in `pyproject.to
 1. Put the notes you want under `## [Unreleased]` in `CHANGELOG.md`. If it is empty, notes are generated from commit subjects since the last stable tag.
 2. **Actions → Release (prepare) → Run workflow** on `main` and choose:
 
-   | Input               | Values                                                                                                                                                      |
-   | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Input               | Values                                                                                                                                           |
+   | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
    | `bump_type`         | `patch` · `minor` · `major` — next version. `keep` — next pre-release of the same `X.Y.Z` (`rc1` → `rc2`). `graduate` — `rc` or `.devN` → final. |
-   | `prerelease`        | `none` (stable) · `a` · `b` · `rc`                                                                                                                          |
-   | `prerelease_number` | e.g. `1`                                                                                                                                                    |
+   | `prerelease`        | `none` (stable) · `a` · `b` · `rc`                                                                                                               |
+   | `prerelease_number` | e.g. `1`                                                                                                                                         |
 
    Examples: stable minor = `minor / none`; first candidate = `minor / rc / 1`; second candidate = `keep / rc / 2`; ship it = `graduate / none`. **The first release (2.0.0)** starts from `2.0.0.dev0`: use `graduate / none` (or `keep / rc / 1` for a candidate first).
 
@@ -37,20 +37,20 @@ Never edit the version by hand. `release.yml` rejects a tag whose tree disagrees
 
 ## Release assets
 
-| Asset                                  | Content                                                                                           |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Asset                                     | Content                                                                                            |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `gyroscope_ui-<version>-py3-none-any.whl` | The application (code, `config.json`, Designer forms). Pure Python, installs on Windows and macOS. |
-| `gyroscope_ui-<version>.tar.gz`        | The sdist.                                                                                        |
-| `SHA256SUMS`                           | Checksums of both files; the release notes repeat them.                                           |
+| `gyroscope_ui-<version>.tar.gz`           | The sdist.                                                                                         |
+| `SHA256SUMS`                              | Checksums of both files; the release notes repeat them.                                            |
 
 `release.yml` installs the wheel in a clean venv before publishing and fails unless it imports from there with the tagged version and carries `config.json` and the forms. The firmware (`Arduino-Gyroscope/`) is versioned separately (`SOFTWARE_VERSION`) and is not part of a release.
 
 ## What is versioned where
 
-| File           | Notes                                                                                                                              |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `pyproject.toml` | single source of truth (read by `scripts/release.py current`); `gyroscope_ui.__version__` reads the installed package metadata   |
-| `CHANGELOG.md` | the `[Unreleased]` section is moved to `## [X.Y.Z] - date` (copied for pre-releases)                                               |
+| File             | Notes                                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `pyproject.toml` | single source of truth (read by `scripts/release.py current`); `gyroscope_ui.__version__` reads the installed package metadata |
+| `CHANGELOG.md`   | the `[Unreleased]` section is moved to `## [X.Y.Z] - date` (copied for pre-releases)                                           |
 
 ## Rollback / withdrawing a release
 

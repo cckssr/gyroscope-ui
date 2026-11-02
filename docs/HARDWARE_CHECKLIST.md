@@ -143,6 +143,6 @@ at the first failure that later steps depend on. Record every failure in the res
 
 Result: `pass`, `fail` or `not checked`. Add one row per test run.
 
-| Date | Unit ID | Firmware version | OS  | Tester | Result | Notes |
-| ---- | ------- | ---------------- | --- | ------ | ------ | ----- |
-|      |         |                  |     |        |        |       |
+| Date       | Unit ID | Firmware version | OS      | Tester | Result | Notes |
+| ---------- | ------- | ---------------- | ------- | ------ | ------ | ----- |
+| 2026-11-02 | 1       | 1.1.0            | Windows | CK     | ALL OK | -     |

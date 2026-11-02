@@ -6,6 +6,7 @@ the application takes its texts from config.json at run time, so nothing checks 
 
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -14,6 +15,8 @@ import pytest
 from gyroscope_ui.infrastructure.config import load_config
 from gyroscope_ui.pyqt.preview import compile_form
 from gyroscope_ui.pyqt.sync_texts import PYQT_DIR, SECTIONS
+
+_UIC_BANNER = re.compile(r"(Qt User Interface Compiler version )[\d.]+")
 
 FORMS = sorted(PYQT_DIR.glob("*.ui"))
 EXPECTED = {
@@ -56,9 +59,11 @@ def test_generated_module_exists(form: Path):
 
 @pytest.mark.parametrize("form", FORMS, ids=lambda p: p.stem)
 def test_generated_module_matches_the_form(form: Path):
-    """A fresh ``pyside6-uic`` run reproduces the committed module."""
-    out = compile_form(form)
-    committed = form.with_name(f"{form.stem}_ui.py").read_text(encoding="utf-8")
+    """A fresh ``pyside6-uic`` run reproduces the committed module (up to the compiler version)."""
+    out = _UIC_BANNER.sub(r"\1X", compile_form(form))
+    committed = _UIC_BANNER.sub(
+        r"\1X", form.with_name(f"{form.stem}_ui.py").read_text(encoding="utf-8")
+    )
     assert out == committed, f"{form.stem}_ui.py is stale: run gyroscope_ui/pyqt/pyuic.sh"
 
 

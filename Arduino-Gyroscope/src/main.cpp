@@ -31,8 +31,8 @@
  * - TCP: nc <IP> 80
  *
  * @author M. Metschl, C. Kessler
- * @version 1.0.1
- * @date 2025-10-02
+ * @version 1.1.0
+ * @date 2026-11-02
  */
 
 #include <Arduino.h>

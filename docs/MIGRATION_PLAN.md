@@ -109,8 +109,8 @@ Each phase ends green (`.venv/bin/pytest`, `.venv/bin/ruff check .`) and in its 
 ### Phase 1 – Scaffold [Sonnet]
 
 - [x] Create the new package `gyroscope_ui/` next to `src/` (the old app stays untouched as reference until Phase 5), new `pyproject.toml` (requires-python ≥3.11, ruff, pytest-qt, drop unused deps), `.gitignore`
-- [ ] Copy generic modules from spectrum-ui (§5, "copy" rows) with package rename
-- [ ] New `config.json` layout: `application`, `debug`, `device`, `acquisition`, `simulation`, `display`, `storage`, `session`, `shortcuts`, `messages`, `ui` (German strings migrated from the old `de` section and the `.ui` literals)
+- [x] Copy generic modules from spectrum-ui (§5, "copy" rows) with package rename
+- [x] New `config.json` layout: `application`, `debug`, `device`, `acquisition`, `simulation`, `display`, `storage`, `session`, `shortcuts`, `messages`, `ui` (German strings migrated from the old `de` section and the `.ui` literals)
 - [x] CI/release workflows from oct-ui; remove `test-build.yml`, `setup.py`, `MANIFEST.in`, `requirements.txt`, `GYRO_UI.pyproject*`, `.qtcreator/`, `book.toml`, Sphinx/RTD files
 - [x] Recreate `.venv` (Python 3.14 as in the sibling projects) with `pip install -e ".[dev]"`
 
@@ -148,7 +148,7 @@ Each phase ends green (`.venv/bin/pytest`, `.venv/bin/ruff check .`) and in its 
 - [x] Parse the CONNECT payload, send to the client's source port; expire clients without CONNECT refresh after a timeout; host re-sends CONNECT periodically as keep-alive
 - [x] Replace "frequency = 0 after 2 s without change" with a pulse timeout (no Hall pulse for N periods → 0 Hz), so a steady rotation keeps its value
 - [x] Move the OTA/WiFi password from `platformio.ini` (`--auth=…`) into an untracked `secrets.ini` / env variable
-- [ ] Rotate the WiFi and OTA passwords (both are in the git history): set them in `src/secrets.h` and `secrets.ini`, flash every unit over USB [user]
+- [x] ~~_Rotate the WiFi and OTA passwords (both are in the git history): set them in `src/secrets.h` and `secrets.ini`, flash every unit over USB [user]_~~ [02.11.2026]
 - [x] Bump `SOFTWARE_VERSION`; `/info` reports the protocol version; host logs it into the metadata sidecar
 - [x] `pio run` builds for all envs (CI job optional)
 
