@@ -1,5 +1,8 @@
-"""Designer forms: the German texts in the ``.ui`` files match config.json, and every form has a
-generated ``*_ui.py`` that is exactly what ``pyside6-uic`` produces from the form."""
+"""Designer forms: every text key of config.json names a widget of its form, and every form has a
+generated ``*_ui.py`` that is exactly what ``pyside6-uic`` produces from the form.
+
+The German texts inside the ``.ui`` files are only a preview aid for Designer (``sync_texts.py``);
+the application takes its texts from config.json at run time, so nothing checks them."""
 
 from __future__ import annotations
 
@@ -10,7 +13,7 @@ import pytest
 
 from gyroscope_ui.infrastructure.config import load_config
 from gyroscope_ui.pyqt.preview import compile_form
-from gyroscope_ui.pyqt.sync_texts import PYQT_DIR, SECTIONS, synced_text
+from gyroscope_ui.pyqt.sync_texts import PYQT_DIR, SECTIONS
 
 FORMS = sorted(PYQT_DIR.glob("*.ui"))
 EXPECTED = {
@@ -27,14 +30,6 @@ EXPECTED = {
 
 def test_forms_exist():
     assert {p.stem for p in FORMS} >= EXPECTED
-
-
-@pytest.mark.parametrize("form", FORMS, ids=lambda p: p.stem)
-def test_ui_texts_are_in_sync_with_config(form: Path):
-    config = load_config()
-    assert synced_text(form, config) == form.read_text(encoding="utf-8"), (
-        f"{form.name} is out of date: run gyroscope_ui/pyqt/pyuic.sh"
-    )
 
 
 @pytest.mark.parametrize("form", FORMS, ids=lambda p: p.stem)

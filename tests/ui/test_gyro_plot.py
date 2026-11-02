@@ -155,11 +155,12 @@ def test_clear_empties_the_curves(plot):
     plot.clear()  # does not raise without a stored data set
 
 
-def test_texts_come_from_the_config(plot):
-    assert plot.frequency_plot.titleLabel.text == "Rotationsfrequenz Scheibe"
-    assert plot.gyro_plot.getAxis("left").labelText == "Winkelgeschwindigkeit (rad/s)"
-    assert plot.accel_plot.getAxis("left").labelText == "Beschleunigung (m/s²)"
-    assert plot.gyro_plot.getAxis("bottom").labelText == "Vergangene Zeit (s)"
+def test_texts_come_from_the_config(plot, config):
+    text = lambda key: config.text(f"gyro_plot.{key}")  # noqa: E731
+    assert plot.frequency_plot.titleLabel.text == text("title_frequency")
+    assert plot.gyro_plot.getAxis("left").labelText == text("label_gyro")
+    assert plot.accel_plot.getAxis("left").labelText == text("label_accel")
+    assert plot.gyro_plot.getAxis("bottom").labelText == text("label_time")
     # With two plots the time axis is labelled once, under the lowest one.
     assert not plot.frequency_plot.getAxis("bottom").label.isVisible()
     plot.set_x_label("Zeit (s)")

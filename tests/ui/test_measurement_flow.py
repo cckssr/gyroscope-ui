@@ -22,7 +22,8 @@ def test_start_stop_reset(qtbot, connected):
     m = connected.context.measurement
     record(qtbot, connected)
     assert m.state == "recording"
-    assert connected.measurement_panel.ui.buttonStartStop.text() == "Stop"
+    stop = connected.config.text("measurement_panel.button_stop")
+    assert connected.measurement_panel.ui.buttonStartStop.text() == stop
     assert not connected.save_panel.ui.comboGroup.isEnabled()
     assert m.stop()
     assert m.state == "stopped" and m.has_unsaved and m.can_save
@@ -117,7 +118,9 @@ def test_open_failure_shows_message_and_allows_retry(qtbot, make_window):
     conn.connect_device()
     assert conn.state == "error"
     assert "12345" in window.message_log[-1][1]
-    assert window.connection_panel.ui.buttonConnect.text() == "Verbinden"
+    assert window.connection_panel.ui.buttonConnect.text() == window.config.text(
+        "connection_panel.button_connect"
+    )
 
 
 def test_worker_failure_ends_in_error(qtbot, make_window, config):

@@ -28,7 +28,9 @@ def qt_messages():
 
 def test_window_parts(window):
     assert __version__ in window.windowTitle()
-    assert window.ui.tabs.count() == 1 and window.ui.tabs.tabText(0) == "Messung"
+    assert window.ui.tabs.count() == 1 and window.ui.tabs.tabText(0) == window.config.text(
+        "tabs.measurement"
+    )
     assert window.simulation_panel.isVisibleTo(window)  # simulate=True
     assert "(" in window.ui.actionSave.toolTip()  # shortcut hint appended
     assert not window.ui.actionSave.isEnabled()
@@ -36,10 +38,10 @@ def test_window_parts(window):
 
 def test_actions_follow_state(qtbot, connected):
     ui = connected.ui
-    assert ui.actionConnect.text() == "Trennen"
+    assert ui.actionConnect.text() == connected.config.text("main_window.action_disconnect")
     assert ui.actionStartStop.isEnabled()
     ui.actionStartStop.trigger()
-    assert ui.actionStartStop.text() == "Stop"
+    assert ui.actionStartStop.text() == connected.config.text("main_window.action_stop")
     record_wait = connected.context.measurement
     qtbot.waitUntil(lambda: len(record_wait.recording) > 5)
     ui.actionStartStop.trigger()

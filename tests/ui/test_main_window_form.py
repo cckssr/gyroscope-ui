@@ -16,7 +16,10 @@ from PySide6.QtWidgets import (
     QToolBar,
 )
 
+from gyroscope_ui.infrastructure.config import load_config
 from gyroscope_ui.pyqt.preview import build_form
+
+TEXTS = load_config().section("ui")["main_window"]
 
 
 @pytest.fixture
@@ -31,7 +34,7 @@ def test_structure(window):
     assert isinstance(window.centralWidget(), QTabWidget)
     assert window.centralWidget().objectName() == "tabs"
     dock = window.findChild(QDockWidget, "dockControls")
-    assert dock.windowTitle() == "Steuerung"
+    assert dock.windowTitle() == TEXTS["dockControls@title"]
     assert dock.features() == (
         QDockWidget.DockWidgetFeature.DockWidgetMovable
         | QDockWidget.DockWidgetFeature.DockWidgetFloatable
@@ -44,25 +47,24 @@ def test_structure(window):
     assert layout.objectName() == "layoutControls"
     assert layout.count() == 1 and isinstance(layout.itemAt(0), QSpacerItem)
     assert isinstance(window.findChild(QStatusBar, "statusBar"), QStatusBar)
-    assert window.windowTitle() == "Kreisel-GUI"
+    assert window.windowTitle() == TEXTS["self@title"]
 
 
 def test_actions_menus_and_toolbar(window):
     actions = {a.objectName(): a for a in window.findChildren(QAction) if a.objectName()}
-    expected = {
-        "actionConnect": "Verbinden",
-        "actionStartStop": "Start",
-        "actionSave": "Speichern …",
-        "actionShortcuts": "Tastenkürzel",
-        "actionOpenDataFolder": "Datenordner öffnen",
-        "actionQuit": "Beenden",
-        "actionAbout": "Über Kreisel-GUI",
-    }
-    for name, text in expected.items():
-        assert actions[name].text() == text
-        assert actions[name].toolTip()
+    names = (
+        "actionConnect",
+        "actionStartStop",
+        "actionSave",
+        "actionShortcuts",
+        "actionOpenDataFolder",
+        "actionQuit",
+        "actionAbout",
+    )
+    for name in names:
+        assert actions[name].text() == TEXTS[name]
+        assert actions[name].toolTip() == TEXTS[f"{name}@tooltip"]
         assert actions[name].shortcut().isEmpty(), f"{name}: keys belong to config.json"
-    assert actions["actionAbout"].text() == "Über Kreisel-GUI"
     # no menu bar: it takes space on small screens, everything is in the toolbar
     assert window.findChild(QMenuBar) is None and window.findChild(QMenu) is None
     toolbar = window.findChild(QToolBar, "toolBar")

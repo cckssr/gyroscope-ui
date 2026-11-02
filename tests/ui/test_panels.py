@@ -64,12 +64,12 @@ def test_connection_led_follows_the_link_state(qtbot, config, state, led):
     assert panel.ui.labelState.text() == "Text"
 
 
-def test_connection_texts_are_german(qtbot, config):
+def test_connection_texts_come_from_the_config(qtbot, config):
     panel = make(qtbot, ConnectionPanel, config)
-    assert panel.title() == "Gerät"
-    assert panel.ui.checkSimulate.text() == "Simulation"
-    assert panel.ui.buttonConnect.text() == "Verbinden"
-    assert "Kreisel-*" in panel.ui.labelHint.text()
+    assert panel.title() == config.text("connection_panel.self")
+    assert panel.ui.checkSimulate.text() == config.text("connection_panel.checkSimulate")
+    assert panel.ui.buttonConnect.text() == config.text("connection_panel.buttonConnect")
+    assert str(config.get("device.ssid_pattern")) in panel.ui.labelHint.text()
     assert "{ssid}" not in panel.ui.labelHint.text()
     assert panel.ui.labelHint.wordWrap()
     assert panel.ui.labelDevice.text() == "–"
@@ -105,11 +105,18 @@ def test_connection_device_text(qtbot, config):
     panel.set_device(
         DeviceInfo("E35433", "192.168.4.1:12345", firmware_version="1.1.1", protocol_version=1)
     )
-    assert panel.ui.labelDevice.text() == "E35433 · Firmware 1.1.1 · Protokoll 1"
+    expected = config.text(
+        "connection_panel.device_format", device_id="E35433", firmware="1.1.1", protocol="1"
+    )
+    assert panel.ui.labelDevice.text() == expected
     panel.set_device(DeviceInfo("E35433", "192.168.4.1:12345"))
-    assert panel.ui.labelDevice.text() == "E35433 · Firmware ? · Protokoll ?"
+    unknown = config.text("connection_panel.unknown_value")
+    expected = config.text(
+        "connection_panel.device_format", device_id="E35433", firmware=unknown, protocol=unknown
+    )
+    assert panel.ui.labelDevice.text() == expected
     panel.set_device(None)
-    assert panel.ui.labelDevice.text() == "–"
+    assert panel.ui.labelDevice.text() == config.text("connection_panel.device_none")
 
 
 def test_connection_simulation_switch(qtbot, config):
@@ -132,14 +139,14 @@ def test_connection_keeps_the_link_text_across_apply_config(qtbot, config):
     panel = make(qtbot, ConnectionPanel, config)
     panel.set_link("connected", "Verbunden")
     panel.apply_config(config)
-    assert panel.ui.labelState.text() == "Verbunden"
-    assert panel.ui.buttonConnect.text() == "Trennen"
+    assert panel.ui.labelState.text() == "Verbunden"  # the text passed to set_link
+    assert panel.ui.buttonConnect.text() == config.text("connection_panel.button_disconnect")
 
 
 # ---- live panel -----------------------------------------------------------------------------
 def test_live_panel_formats_values(qtbot, config):
     panel = make(qtbot, LivePanel, config)
-    assert panel.title() == "Live-Messwerte"
+    assert panel.title() == config.text("live_panel.self")
     panel.show_values(12.3456, -0.12345)
     assert panel.displayed["frequency"] == "12.35"
     assert panel.displayed["gyro_z"] == "-0.123"
@@ -186,19 +193,20 @@ def test_live_panel_recording_counters(qtbot, config):
 def test_measurement_panel_texts_and_enabling_per_state(qtbot, config):
     panel = make(qtbot, MeasurementPanel, config)
     ui = panel.ui
-    assert panel.title() == "Messung"
+    assert panel.title() == config.text("measurement_panel.self")
+    start, stop = (config.text(f"measurement_panel.button_{key}") for key in ("start", "stop"))
     expected = {
-        # state: (start/stop text, state text, start/stop enabled once can_start, reset enabled)
-        "empty": ("Start", "Bereit", True, False),
-        "recording": ("Stop", "Messung läuft", True, False),
-        "stopped": ("Start", "Gestoppt, nicht gespeichert", True, True),
-        "saved": ("Start", "Gespeichert", True, True),
+        # state: (start/stop text, start/stop enabled once can_start, reset enabled)
+        "empty": (start, True, False),
+        "recording": (stop, True, False),
+        "stopped": (start, True, True),
+        "saved": (start, True, True),
     }
-    for state, (button, text, enabled, reset) in expected.items():
+    for state, (button, enabled, reset) in expected.items():
         panel.set_can_start(True)
         panel.set_state(state)
         assert ui.buttonStartStop.text() == button, state
-        assert ui.labelState.text() == text, state
+        assert ui.labelState.text() == config.text(f"measurement_panel.state_{state}"), state
         assert ui.buttonStartStop.isEnabled() is enabled, state
         assert ui.buttonReset.isEnabled() is reset, state
 
@@ -234,17 +242,18 @@ def test_measurement_signals_and_unknown_state(qtbot, config):
 def test_save_panel_texts(qtbot, config):
     panel = make(qtbot, SavePanel, config)
     ui = panel.ui
-    assert panel.title() == "Speichern"
-    assert ui.buttonSave.text() == "Speichern …"
-    assert ui.checkAutoSave.text() == "Automatisch speichern"
+    assert panel.title() == config.text("save_panel.self")
+    assert ui.buttonSave.text() == config.text("save_panel.buttonSave")
+    assert ui.checkAutoSave.text() == config.text("save_panel.checkAutoSave")
     assert "*" in ui.captionGroup.text() and "*" in ui.captionSubgroup.text()
     assert "*" not in ui.captionSuffix.text()
-    assert "JJJJ_MM_TT" in ui.checkAutoSave.toolTip()
-    assert ui.editSubgroup.toolTip()
+    assert ui.checkAutoSave.toolTip() == config.text("save_panel.checkAutoSave@tooltip")
+    assert ui.editSubgroup.toolTip() == config.text("save_panel.editSubgroup@tooltip")
+    assert ui.editSubgroup.placeholderText() == config.text("save_panel.editSubgroup@placeholder")
     assert ui.comboGroup.count() == 27 and ui.comboGroup.itemText(0) == ""
     assert ui.comboGroup.itemText(26) == "Z"
     assert ui.editDataDir.isReadOnly()
-    assert ui.labelLastSaved.text() == "–"
+    assert ui.labelLastSaved.text() == config.text("save_panel.no_last_saved")
     assert not ui.buttonSave.isEnabled()
 
 
@@ -345,9 +354,11 @@ def test_simulation_panel(qtbot, config):
     panel = make(qtbot, SimulationPanel, config)
     panel.show()
     ui = panel.ui
-    assert panel.title() == "Simulation"
-    assert ui.buttonKick.text() == "Anwerfen"
-    assert ui.spinStartFrequency.suffix() == " Hz"
+    assert panel.title() == config.text("simulation_panel.self")
+    assert ui.buttonKick.text() == config.text("simulation_panel.buttonKick")
+    assert ui.spinStartFrequency.suffix() == config.text(
+        "simulation_panel.spinStartFrequency@suffix"
+    )
     assert (ui.spinStartFrequency.minimum(), ui.spinStartFrequency.maximum()) == (1.0, 60.0)
     assert ui.spinStartFrequency.value() == 15.0
     spy = QSignalSpy(panel.kick_requested)
@@ -371,10 +382,10 @@ def test_simulation_default_comes_from_the_config(qtbot, config):
 def test_measurement_view_defaults_and_texts(qtbot, config):
     view = make(qtbot, MeasurementView, config)
     ui = view.ui
-    assert ui.checkAutoScroll.text() == "Auto-Scroll"
-    assert ui.checkAllChannels.text() == "Alle Kanäle"
-    assert ui.buttonAutoRange.text() == "Auto-Range"
-    assert ui.spinScrollWindow.suffix() == " s"
+    assert ui.checkAutoScroll.text() == config.text("measurement_view.checkAutoScroll")
+    assert ui.checkAllChannels.text() == config.text("measurement_view.checkAllChannels")
+    assert ui.buttonAutoRange.text() == config.text("measurement_view.buttonAutoRange")
+    assert ui.spinScrollWindow.suffix() == config.text("measurement_view.spinScrollWindow@suffix")
     assert (ui.spinScrollWindow.minimum(), ui.spinScrollWindow.maximum()) == (5, 999999)
     assert ui.checkAutoScroll.isChecked() and ui.spinScrollWindow.value() == 60
     assert not ui.checkAllChannels.isChecked()
