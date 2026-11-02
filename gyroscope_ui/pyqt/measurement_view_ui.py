@@ -43,7 +43,7 @@ class Ui_MeasurementView(object):
         self.spinScrollWindow = QSpinBox(MeasurementView)
         self.spinScrollWindow.setObjectName(u"spinScrollWindow")
         self.spinScrollWindow.setMinimum(5)
-        self.spinScrollWindow.setMaximum(3600)
+        self.spinScrollWindow.setMaximum(999999)
         self.spinScrollWindow.setValue(60)
 
         self.layoutOptions.addWidget(self.spinScrollWindow)

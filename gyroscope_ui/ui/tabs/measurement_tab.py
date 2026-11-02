@@ -1,9 +1,10 @@
 """The "Messung" tab: frequency and angular rate over time (plots and plot options).
 
 Outside a measurement the plots show a rolling preview of the last ``display.preview_s``
-seconds (time relative to now), so the students see that the device works before they press
-Start; during and after a measurement they show the recording. Redrawn on
-``measurement.refreshed`` (``display.rate_hz``), never per sample batch.
+seconds, or of the scrolling window if that is longer (time relative to now), so the students
+see that the device works before they press Start; during and after a measurement they show
+the recording. Redrawn on ``measurement.refreshed`` (``display.rate_hz``), never per sample
+batch.
 """
 
 from __future__ import annotations
@@ -36,18 +37,25 @@ class MeasurementTab(TabBase):
         self._label_time = cfg.text("gyro_plot.label_time")
         self._label_preview = cfg.text("gyro_plot.label_time_preview")
         self._mode = ""
+        self._span_s = self._preview_s
         display = context.session.display
         self.view.set_options(display.auto_scroll, display.scroll_window_s, display.all_channels)
-        self.view.auto_scroll_changed.connect(
-            lambda on, window_s: context.session.update_display(
-                auto_scroll=on, scroll_window_s=window_s
-            )
-        )
+        self._set_scroll(display.auto_scroll, display.scroll_window_s)
+        self.view.auto_scroll_changed.connect(self._on_auto_scroll_changed)
         self.view.all_channels_toggled.connect(
             lambda on: context.session.update_display(all_channels=on)
         )
         context.measurement.refreshed.connect(self.redraw)
         context.measurement.state_changed.connect(lambda _s: self.redraw())
+
+    def _on_auto_scroll_changed(self, on: bool, window_s: float) -> None:
+        self.context.session.update_display(auto_scroll=on, scroll_window_s=window_s)
+        self._set_scroll(on, window_s)
+
+    def _set_scroll(self, auto_scroll: bool, window_s: float) -> None:
+        """The preview has to reach back as far as the scrolling window shows."""
+        self._span_s = max(self._preview_s, window_s) if auto_scroll else self._preview_s
+        self.context.measurement.set_preview_span_s(self._span_s)
 
     @property
     def plot(self) -> GyroPlot:
@@ -82,6 +90,6 @@ class MeasurementTab(TabBase):
             self.plot.clear()
             return
         t = host_t - host_t[-1]
-        keep = t >= -self._preview_s
+        keep = t >= -self._span_s
         columns = {name: buffer.column(name)[keep] for name in CHANNELS}
         self.plot.set_data(np.ascontiguousarray(t[keep]), columns)

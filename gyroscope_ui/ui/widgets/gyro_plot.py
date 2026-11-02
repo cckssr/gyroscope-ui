@@ -5,15 +5,19 @@ The x axes are linked. All curves are created once and updated with ``setData``;
 over points in Python (downsampling and clipping to the view are pyqtgraph's, ``peak`` mode keeps
 spikes visible). Non-finite values leave gaps. Background and text follow the palette, so the plots
 follow light and dark mode.
+
+Every plot has a cursor: a crosshair with a read-out of time and value under the mouse; the
+vertical line follows the mouse in all visible plots at once.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import QEvent
+from PySide6.QtCore import QEvent, QPointF, Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget
 
@@ -36,6 +40,9 @@ _Y_AXIS_WIDTH = 64  # px; equal widths keep the stacked time axes aligned
 _HUES = {"frequency": 28, "x": 0, "y": 125, "z": 212}
 _PEN_WIDTH = 1.5
 _LEGEND_ALPHA = 200
+_CURSOR_ALPHA = 170
+_READOUT_OFFSET = (8, 4)  # px from the top left corner of the plot area
+_UNIT = re.compile(r"\(([^()]*)\)\s*$")  # "Rotationsfrequenz (Hz)" -> "Hz"
 
 
 class GyroPlot(pg.GraphicsLayoutWidget):
@@ -79,6 +86,21 @@ class GyroPlot(pg.GraphicsLayoutWidget):
             "gyro": self.gyro_plot.addLegend(offset=(-10, 10)),
             "accel": self.accel_plot.addLegend(offset=(-10, 10)),
         }
+
+        self._vlines: dict[str, pg.InfiniteLine] = {}
+        self._hlines: dict[str, pg.InfiniteLine] = {}
+        self._readouts: dict[str, pg.TextItem] = {}
+        for key, plot in self._plots.items():
+            self._vlines[key] = pg.InfiniteLine(angle=90, movable=False)
+            self._hlines[key] = pg.InfiniteLine(angle=0, movable=False)
+            self._readouts[key] = pg.TextItem(anchor=(0, 0))
+            # ``ignoreBounds``: the cursor must not take part in auto-ranging.
+            plot.addItem(self._vlines[key], ignoreBounds=True)
+            plot.addItem(self._hlines[key], ignoreBounds=True)
+            self._readouts[key].setParentItem(plot.getViewBox())
+            self._readouts[key].setPos(*_READOUT_OFFSET)
+        self._hide_cursor()
+        self.scene().sigMouseMoved.connect(self._on_mouse_moved)
 
         self._curves: dict[str, pg.PlotDataItem] = {}
         for name in CHANNELS:
@@ -141,6 +163,13 @@ class GyroPlot(pg.GraphicsLayoutWidget):
                 item.setTextPen(pg.mkPen(text))
         for name, curve in self._curves.items():
             curve.setPen(pg.mkPen(self._channel_color(name), width=_PEN_WIDTH))
+        cursor = QColor(text)
+        cursor.setAlpha(_CURSOR_ALPHA)
+        for line in (*self._vlines.values(), *self._hlines.values()):
+            line.setPen(pg.mkPen(cursor, width=1, style=Qt.PenStyle.DashLine))
+        for readout in self._readouts.values():
+            readout.setColor(text)
+            readout.fill = pg.mkBrush(base)
         legend_brush = QColor(base)
         legend_brush.setAlpha(_LEGEND_ALPHA)
         for legend in self._legends.values():
@@ -171,6 +200,46 @@ class GyroPlot(pg.GraphicsLayoutWidget):
             for name, curve in self._curves.items():
                 if _PLOT_OF[name] == key and curve.isVisible():
                     legend.addItem(curve, self._legend_names.get(name, name))
+
+    # ---- cursor --------------------------------------------------------------------------
+    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802
+        super().leaveEvent(event)
+        self._hide_cursor()
+
+    def _hide_cursor(self) -> None:
+        for key in self._plots:
+            self._vlines[key].setVisible(False)
+            self._hlines[key].setVisible(False)
+            self._readouts[key].setVisible(False)
+
+    def _on_mouse_moved(self, scene_pos: QPointF) -> None:
+        """Move the cursor to the mouse: crosshair and read-out in the plot under the mouse,
+        the vertical line alone in the other visible plots."""
+        visible = self._visible_plots()
+        hovered = next(
+            (
+                key
+                for key in visible
+                if self._plots[key].getViewBox().sceneBoundingRect().contains(scene_pos)
+            ),
+            None,
+        )
+        if hovered is None:
+            self._hide_cursor()
+            return
+        point = self._plots[hovered].getViewBox().mapSceneToView(scene_pos)
+        x, y = float(point.x()), float(point.y())
+        for key in self._plots:
+            shown = key in visible
+            self._vlines[key].setVisible(shown)
+            if shown:
+                self._vlines[key].setPos(x)
+            self._hlines[key].setVisible(key == hovered)
+            self._readouts[key].setVisible(key == hovered)
+        self._hlines[hovered].setPos(y)
+        unit = _UNIT.search(self._texts.get(f"label_{hovered}", ""))
+        value = f"{y:.4g}" + (f" {unit.group(1)}" if unit else "")
+        self._readouts[hovered].setText(f"t = {x:.2f} s\n{value}")
 
     # ---- data ----------------------------------------------------------------------------
     @property

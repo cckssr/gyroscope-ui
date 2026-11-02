@@ -6,7 +6,9 @@ import time
 
 import numpy as np
 import pytest
+from PySide6.QtCore import QPointF
 from PySide6.QtGui import QColor, QPalette
+from PySide6.QtWidgets import QApplication
 
 from gyroscope_ui.core.models import CHANNELS
 from gyroscope_ui.ui.widgets.gyro_plot import GyroPlot
@@ -204,3 +206,55 @@ def test_auto_scroll_short_data_has_no_empty_stretch(plot):
     t = np.linspace(-30.0, 0.0, 3000)
     plot.set_data(t, columns(len(t), t))
     assert plot.x_range() == pytest.approx((-30.0, 0.0))
+
+
+# ---- cursor ---------------------------------------------------------------------------------
+def scene_pos(plot: GyroPlot, key: str, x: float, y: float):
+    """Scene position of the view point (x, y) once the layout and the ranges have settled."""
+    QApplication.processEvents()
+    plot.frequency_plot.setXRange(0.0, 10.0, padding=0)
+    vb = plot._plots[key].getViewBox()
+    vb.setYRange(-1.0, 1.0, padding=0)
+    return vb.mapViewToScene(QPointF(x, y))
+
+
+def test_cursor_is_hidden_until_the_mouse_is_over_a_plot(plot):
+    plot.set_data(np.arange(1000) / 100.0, columns(1000))
+    assert not any(line.isVisible() for line in plot._vlines.values())
+    plot._on_mouse_moved(QPointF(-100.0, -100.0))
+    assert not any(line.isVisible() for line in plot._vlines.values())
+
+
+def test_cursor_crosshair_in_the_hovered_plot_and_vertical_line_in_all(plot):
+    plot.set_data(np.arange(1000) / 100.0, columns(1000))
+    plot.set_all_channels(True)
+    plot._on_mouse_moved(scene_pos(plot, "gyro", 4.0, 0.5))
+    assert all(plot._vlines[key].isVisible() for key in ("frequency", "gyro", "accel"))
+    assert all(plot._vlines[key].value() == pytest.approx(4.0) for key in plot._vlines)
+    assert plot._hlines["gyro"].isVisible() and plot._hlines["gyro"].value() == pytest.approx(0.5)
+    assert not plot._hlines["frequency"].isVisible() and not plot._hlines["accel"].isVisible()
+    assert plot._readouts["gyro"].isVisible() and not plot._readouts["frequency"].isVisible()
+    text = plot._readouts["gyro"].toPlainText()
+    assert "t = 4.00 s" in text and "0.5 rad/s" in text
+    plot._hide_cursor()
+    assert not any(line.isVisible() for line in plot._vlines.values())
+
+
+def test_cursor_ignores_the_accel_plot_while_it_is_hidden(plot):
+    plot.set_data(np.arange(1000) / 100.0, columns(1000))
+    plot._on_mouse_moved(scene_pos(plot, "frequency", 2.0, 0.0))
+    assert not plot._vlines["accel"].isVisible()
+
+
+def test_cursor_does_not_change_the_auto_range(plot):
+    n = 500
+    plot.set_data(np.arange(n) / 100.0, columns(n))
+    plot.set_auto_scroll(False, 60.0)
+    plot.auto_range()
+    QApplication.processEvents()
+    before = plot.frequency_plot.getViewBox().viewRange()
+    plot._on_mouse_moved(plot.frequency_plot.getViewBox().sceneBoundingRect().center())
+    assert plot._vlines["frequency"].isVisible()
+    plot.auto_range()
+    QApplication.processEvents()
+    assert plot.frequency_plot.getViewBox().viewRange() == before

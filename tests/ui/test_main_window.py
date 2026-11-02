@@ -67,6 +67,43 @@ def test_plot_shows_preview_then_recording(qtbot, connected):
     qtbot.waitUntil(lambda: len(x_data()) > 0 and max(x_data()) > 0)
 
 
+def _feed_preview(window, seconds: int) -> None:
+    from gyroscope_ui.core.models import Sample, SampleBatch
+
+    samples = [
+        Sample(
+            device_ms=i * 10,
+            frequency_hz=1.0,
+            accel_x_m_s2=0.0,
+            accel_y_m_s2=0.0,
+            accel_z_m_s2=9.81,
+            gyro_x_rad_s=0.0,
+            gyro_y_rad_s=0.0,
+            gyro_z_rad_s=1.0,
+            seq=i,
+            host_time_s=i / 100.0,
+        )
+        for i in range(seconds * 100)
+    ]
+    window.context.measurement.preview.extend(SampleBatch.from_samples(samples))
+
+
+def test_preview_reaches_back_as_far_as_the_scroll_window(window):
+    tab = window.tabs["measurement"]
+    tab.view.ui.spinScrollWindow.setValue(90)  # longer than display.preview_s (30 s)
+    _feed_preview(window, 120)
+    tab.redraw()
+    x = tab.plot.curves["frequency_hz"].xData
+    assert x is not None and x.max() == 0.0
+    assert -90.0 <= x.min() < -89.0
+    left, right = tab.plot.x_range()
+    assert right - left == pytest.approx(90.0)
+    tab.view.ui.spinScrollWindow.setValue(10)  # back to the preview length
+    tab.redraw()
+    x = tab.plot.curves["frequency_hz"].xData
+    assert -30.0 <= x.min() < -29.0
+
+
 def test_fits_small_screens(window):
     hint = window.minimumSizeHint()
     assert hint.width() <= SCREEN_WIDTH and hint.height() <= SCREEN_HEIGHT

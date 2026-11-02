@@ -58,9 +58,9 @@ class MeasurementController(QObject):
         self._clock = clock
         self._state = EMPTY
         self.recording = Recording()
-        rate_hz = float(config.get("simulation.rate_hz", 100))
-        preview_s = float(config.get("display.preview_s", 30))
-        self.preview = RollingBuffer(max(1, int(rate_hz * preview_s * 1.5)))
+        self._rate_hz = float(config.get("simulation.rate_hz", 100))
+        self.preview = RollingBuffer(1)
+        self.set_preview_span_s(float(config.get("display.preview_s", 30)))
         self._limit_s = float(config.get("storage.recording_limit_s", 3600))
         self.start_time: datetime | None = None
         self.end_time: datetime | None = None
@@ -167,6 +167,11 @@ class MeasurementController(QObject):
             self._set_state(SAVED)
 
     # ---- data ----------------------------------------------------------------------------
+    def set_preview_span_s(self, span_s: float) -> None:
+        """Keep (at least) the newest ``span_s`` seconds in the preview buffer; the margin
+        covers a device that runs faster than the nominal rate."""
+        self.preview.resize(max(1, int(self._rate_hz * span_s * 1.5)))
+
     def _on_samples(self, batch: SampleBatch) -> None:
         self.preview.extend(batch)
         if self._state == RECORDING:

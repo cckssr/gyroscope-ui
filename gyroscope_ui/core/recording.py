@@ -160,13 +160,18 @@ class Recording:
 
 
 class RollingBuffer:
-    """Fixed-capacity ring buffer of the newest samples for the live preview."""
+    """Ring buffer of the newest samples for the live preview, at most ``capacity`` of them.
+
+    The storage grows on demand (doubling), so a large capacity costs nothing until the samples
+    have actually arrived."""
 
     _NAMES = ("host_time_s", *CHANNELS)
+    _INITIAL = 4096  # samples allocated up front
 
     def __init__(self, capacity: int) -> None:
         self._capacity = max(1, capacity)
-        self._data = np.empty((len(self._NAMES), self._capacity), dtype=np.float64)
+        self._alloc = min(self._capacity, self._INITIAL)
+        self._data = np.empty((len(self._NAMES), self._alloc), dtype=np.float64)
         self._size = 0
         self._head = 0  # index of the oldest sample once the buffer is full
 
@@ -186,9 +191,10 @@ class RollingBuffer:
         n = len(batch)
         if n == 0:
             return
-        cap = self._capacity
-        start = max(0, n - cap)
+        start = max(0, n - self._capacity)
         count = n - start
+        self._reserve(min(self._capacity, self._size + count))
+        cap = self._alloc  # == capacity as soon as samples are overwritten
         # write position of the first kept sample (the oldest samples are overwritten)
         first = (self._head + self._size) % cap
         index = (first + np.arange(count)) % cap
@@ -201,17 +207,34 @@ class RollingBuffer:
         else:
             self._size += count
 
+    def _reserve(self, needed: int) -> None:
+        """Make the storage hold ``needed`` samples (``needed`` <= capacity)."""
+        if needed <= self._alloc:
+            return
+        self._relocate(min(self._capacity, max(needed, 2 * self._alloc)))
+
+    def _relocate(self, alloc: int) -> None:
+        """Move the samples, oldest first, into fresh storage of ``alloc`` slots."""
+        keep = min(self._size, alloc)
+        old = {name: self.column(name)[self._size - keep :] for name in self._NAMES}
+        self._alloc = alloc
+        self._data = np.empty((len(self._NAMES), alloc), dtype=np.float64)
+        for row, name in enumerate(self._NAMES):
+            self._data[row, :keep] = old[name]
+        self._size = keep
+        self._head = 0
+
     def column(self, name: str) -> np.ndarray:
         """Chronological copy of ``host_time_s`` or a channel."""
         row = self._NAMES.index(name)
-        order = (self._head + np.arange(self._size)) % self._capacity
+        order = (self._head + np.arange(self._size)) % self._alloc
         return self._data[row, order]
 
     def latest(self) -> dict[str, float] | None:
         """Newest sample as ``{name: value}`` (``host_time_s`` and all channels), or ``None``."""
         if self._size == 0:
             return None
-        newest = (self._head + self._size - 1) % self._capacity
+        newest = (self._head + self._size - 1) % self._alloc
         return {name: float(self._data[row, newest]) for row, name in enumerate(self._NAMES)}
 
     def resize(self, capacity: int) -> None:
@@ -219,11 +242,5 @@ class RollingBuffer:
         capacity = max(1, capacity)
         if capacity == self._capacity:
             return
-        keep = min(self._size, capacity)
-        old = {name: self.column(name)[self._size - keep :] for name in self._NAMES}
         self._capacity = capacity
-        self._data = np.empty((len(self._NAMES), capacity), dtype=np.float64)
-        for row, name in enumerate(self._NAMES):
-            self._data[row, :keep] = old[name]
-        self._size = keep
-        self._head = 0
+        self._relocate(min(capacity, max(self._size, self._alloc)))

@@ -97,12 +97,14 @@ question. In `stopped` (unsaved) Start and Reset ask before discarding; closing 
   `display.rate_hz` (10 Hz) from the latest sample, also when not recording.
 - **Plots** (centre): frequency over time (top) and ω_z over time (bottom), x-axes linked, x label
   "Vergangene Zeit (s)". While recording they show the recording; outside a recording they show
-  a rolling preview of the last `display.preview_s` (30 s) so the students see the device works
-  before pressing Start. Lines without symbols; `setDownsampling(auto, peak)` and
-  `setClipToView`; redraw at `display.rate_hz`.
+  a rolling preview of the last `display.preview_s` (30 s, or the scroll window if that is longer)
+  so the students see the device works before pressing Start. Lines without symbols;
+  `setDownsampling(auto, peak)` and `setClipToView`; redraw at `display.rate_hz`.
+- Every plot has a cursor: a dashed crosshair with a read-out (time and value) in the plot under
+  the mouse; the vertical line follows the mouse in all visible plots.
 - Plot controls under the plots: "Auto-Scroll" (x window follows the newest data, width
-  `display.scroll_window_s`, spin box), "Auto-Range", and "Alle Kanäle" (adds a/g x, y, z as
-  optional curves; off by default).
+  `display.scroll_window_s`, spin box without a practical upper limit), "Auto-Range", and
+  "Alle Kanäle" (adds a/g x, y, z as optional curves; off by default).
 - **Status bar**: connection text, sample rate (Hz), invalid/lost counters, data age, measurement
   state; messages with level colours, timed.
 

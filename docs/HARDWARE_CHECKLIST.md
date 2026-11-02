@@ -42,7 +42,9 @@ at the first failure that later steps depend on. Record every failure in the res
 - [ ] Reverse the rotation direction: the sign of ω_z changes.
 - [ ] Before Start, the plots show a rolling preview of the last 30 s and the x-axis label "Zeit relativ zu jetzt (s)".
 - [ ] With "Auto-Scroll" checked, the plot window follows the newest data; with it unchecked it does not.
+- [ ] A scroll window longer than 30 s (e.g. 120 s) is honoured in the preview as well as in the recording.
 - [ ] "Auto-Range" fits the axes to the data.
+- [ ] Moving the mouse over the plots shows a crosshair with time and value; the vertical line is shown in all plots at once and disappears when the mouse leaves.
 - [ ] With "Alle Kanäle" checked, the acceleration and the other rate curves appear; unchecked, they disappear.
 
 ## 4. Ten-minute measurement

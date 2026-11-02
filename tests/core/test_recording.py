@@ -244,6 +244,19 @@ def test_rolling_buffer_resize_keeps_the_newest():
     assert buf.column("frequency_hz").tolist() == [6.0, 7.0, 8.0, 9.0, 10.0]
 
 
+def test_rolling_buffer_grows_on_demand_up_to_the_capacity():
+    buf = RollingBuffer(100_000)
+    assert buf._data.shape[1] < buf.capacity  # a large capacity is not allocated up front
+    for i in range(30):
+        buf.extend(rolling_batch(i * 1000, 1000))
+    assert len(buf) == 30_000
+    assert buf.column("frequency_hz").tolist() == [float(v) for v in range(30_000)]
+    buf.resize(40_000)  # larger window: nothing is lost, the newest samples stay in order
+    buf.extend(rolling_batch(30_000, 20_000))
+    assert len(buf) == 40_000
+    assert buf.column("frequency_hz").tolist() == [float(v) for v in range(10_000, 50_000)]
+
+
 def test_rolling_buffer_clear_and_empty_batch():
     buf = RollingBuffer(3)
     buf.extend(rolling_batch(0, 3))
