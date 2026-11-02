@@ -22,6 +22,13 @@
 #define SECRET_STA_PASS "ChangeMe-RouterPassword"
 
 /**
+ * @brief Optional second router for OTA updates (e.g. another building or a hotspot).
+ *        If both are defined, the strongest known network in range is chosen at boot.
+ */
+// #define SECRET_STA_SSID2 "ChangeMe-RouterSSID2"
+// #define SECRET_STA_PASS2 "ChangeMe-RouterPassword2"
+
+/**
  * @brief OTA upload password (ArduinoOTA)
  * @warning Must differ from SECRET_PASS (the WiFi password the students know).
  *          The same value goes into secrets.ini (see secrets.ini.template).

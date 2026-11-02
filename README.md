@@ -163,11 +163,14 @@ The firmware is in `Arduino-Gyroscope/` (PlatformIO, C++).
 cd Arduino-Gyroscope
 pio run                                 # build
 pio run -e <DEVICE_ID> -t upload        # OTA upload to one unit, e.g. E35433
-pio run -e usb -t upload                # first flash or recovery over USB
+pio run -e usb-<DEVICE_ID> -t upload    # first flash, recovery or new passwords over USB
 ```
 
-The local configuration `src/secrets.h` is not tracked by git. Create it from
-`src/secrets_template.h` before building.
+The passwords are not tracked by git. Before building, create `src/secrets.h` from
+`src/secrets_template.h` (WiFi password, router network(s) for OTA, OTA password) and
+`secrets.ini` from `secrets.ini.template` (the same OTA password, used for the upload). An optional
+second router network (`SECRET_STA_SSID2`, `SECRET_STA_PASS2`) can be set; at boot the unit joins
+the stronger one in range.
 
 ## Repository layout
 

@@ -89,6 +89,27 @@ char WIFI_AP_SSID[32]; // Buffer für dynamische SSID
 
 /** @brief WiFi-Access Point Passwort */
 const char *WIFI_AP_PASSWORD = SECRET_PASS;
+
+/** @brief A router network the station side joins for OTA updates */
+struct StaNetwork
+{
+  const char *ssid;
+  const char *password;
+};
+
+/** @brief Known router networks for OTA; the second one is optional (SECRET_STA_SSID2 / SECRET_STA_PASS2) */
+const StaNetwork STA_NETWORKS[] = {
+    {SECRET_STA_SSID, SECRET_STA_PASS},
+#if defined(SECRET_STA_SSID2) && defined(SECRET_STA_PASS2)
+    {SECRET_STA_SSID2, SECRET_STA_PASS2},
+#endif
+};
+
+/** @brief Number of entries in STA_NETWORKS */
+const size_t STA_NETWORK_COUNT = sizeof(STA_NETWORKS) / sizeof(STA_NETWORKS[0]);
+
+/** @brief The router network chosen at boot (see chooseStaNetwork) */
+const StaNetwork *selectedStaNetwork = &STA_NETWORKS[0];
 /** @brief Access Point IP-Adresse */
 const IPAddress AP_IP(192, 168, 4, 1);
 /** @brief Access Point Gateway */
@@ -370,7 +391,7 @@ void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     break;
 
   case ARDUINO_EVENT_WIFI_STA_CONNECTED:
-    Serial.printf("[WiFi-Event] Router verbunden (SSID: %s)\n", SECRET_STA_SSID);
+    Serial.printf("[WiFi-Event] Router verbunden (SSID: %s)\n", selectedStaNetwork->ssid);
     break;
 
   case ARDUINO_EVENT_WIFI_STA_GOT_IP:
@@ -466,6 +487,49 @@ bool initializeLSM6DS3Sensor()
 }
 
 /**
+ * @brief Chooses the router network for OTA
+ *
+ * With one known network it is used directly. With two, a single scan at boot picks the
+ * strongest known network that is in range; if none is found, the first one is used (the
+ * station keeps retrying it in the background, as before). Scanning only once at boot keeps
+ * the access point on a stable channel while students are connected.
+ *
+ * @return Entry of STA_NETWORKS to connect to
+ */
+const StaNetwork *chooseStaNetwork()
+{
+  if (STA_NETWORK_COUNT == 1)
+  {
+    return &STA_NETWORKS[0];
+  }
+
+  Serial.println("Scanning for known router networks...");
+  const int found = WiFi.scanNetworks();
+  const StaNetwork *best = NULL;
+  int32_t bestRssi = INT32_MIN;
+  for (int i = 0; i < found; i++)
+  {
+    for (size_t k = 0; k < STA_NETWORK_COUNT; k++)
+    {
+      if (WiFi.SSID(i) == STA_NETWORKS[k].ssid && WiFi.RSSI(i) > bestRssi)
+      {
+        best = &STA_NETWORKS[k];
+        bestRssi = WiFi.RSSI(i);
+      }
+    }
+  }
+  WiFi.scanDelete();
+
+  if (best == NULL)
+  {
+    Serial.println("No known router network in range, using the first one");
+    return &STA_NETWORKS[0];
+  }
+  Serial.printf("Router network chosen: %s (RSSI: %ld dBm)\n", best->ssid, (long)bestRssi);
+  return best;
+}
+
+/**
  * @brief Initialisiert die WiFi-Verbindung als Access Point oder Station
  *
  * Je nach Konfiguration wird entweder ein Access Point erstellt oder
@@ -547,8 +611,9 @@ bool initializeWiFiConnection(bool waitForConnection = true)
     delay(1000);
 
     // STA-Verbindung zum Router starten (für OTA), max. 10 Sekunden warten
-    Serial.printf("Verbinde mit Router (SSID: %s)", SECRET_STA_SSID);
-    WiFi.begin(SECRET_STA_SSID, SECRET_STA_PASS);
+    selectedStaNetwork = chooseStaNetwork();
+    Serial.printf("Verbinde mit Router (SSID: %s)", selectedStaNetwork->ssid);
+    WiFi.begin(selectedStaNetwork->ssid, selectedStaNetwork->password);
     {
       int attempts = 0;
       const int maxAttempts = 10;
@@ -567,7 +632,7 @@ bool initializeWiFiConnection(bool waitForConnection = true)
     else
     {
       Serial.printf("\nRouter-Verbindung fehlgeschlagen (SSID: %s) - OTA nicht verfügbar\n",
-                    SECRET_STA_SSID);
+                    selectedStaNetwork->ssid);
     }
 
     Serial.println("Access Point ist nun bereit für Verbindungen!");

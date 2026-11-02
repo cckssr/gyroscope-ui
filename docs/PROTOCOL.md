@@ -6,24 +6,24 @@ application. Version 1 is what firmware ≤ 1.1.1 implements; version 2 is imple
 
 ## 1. Hardware
 
-| Item         | Value                                                                                           |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| Board        | Arduino Nano ESP32                                                                              |
-| IMU          | LSM6DS33 over SPI (CS 5, SCK 3, MISO 4, MOSI 6); accelerometer ±2 g, gyroscope ±250 °/s         |
-| Hall sensor  | digital pin 2, `INPUT_PULLUP`, interrupt on the falling edge, dead time 1.5 ms (max ≈ 666 Hz)   |
-| Device ID    | build flag `DEVICE_ID_STR` (e.g. `E35433`), one PlatformIO environment per unit                 |
-| Debug output | USB serial 115200 Bd; debug mode only if a serial terminal is open within 3 s after power-up    |
-| Firmware     | `SOFTWARE_VERSION` in `main.cpp`; flashed over USB (`env:usb`) or OTA (`espota`, mDNS hostname) |
+| Item         | Value                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------- |
+| Board        | Arduino Nano ESP32                                                                                   |
+| IMU          | LSM6DS33 over SPI (CS 5, SCK 3, MISO 4, MOSI 6); accelerometer ±2 g, gyroscope ±250 °/s              |
+| Hall sensor  | digital pin 2, `INPUT_PULLUP`, interrupt on the falling edge, dead time 1.5 ms (max ≈ 666 Hz)        |
+| Device ID    | build flag `DEVICE_ID_STR` (e.g. `E35433`), one PlatformIO environment per unit                      |
+| Debug output | USB serial 115200 Bd; debug mode only if a serial terminal is open within 3 s after power-up         |
+| Firmware     | `SOFTWARE_VERSION` in `main.cpp`; flashed over USB (`env:usb-<ID>`) or OTA (`espota`, mDNS hostname) |
 
 ## 2. Network
 
-| Item         | Value                                                                                  |
-| ------------ | -------------------------------------------------------------------------------------- |
-| WiFi         | own access point, SSID `Kreisel-<DEVICE_ID>`, WPA2, channel 1, max. 4 stations         |
-| Device IP    | `192.168.4.1/24` (the host gets an address from the AP's DHCP, usually `192.168.4.2…`) |
-| Data         | UDP, device port **12345**                                                             |
-| HTTP API     | TCP port 80 (section 5)                                                                |
-| Station side | the board also joins a router (`SECRET_STA_SSID`) for OTA; not used by the application |
+| Item         | Value                                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WiFi         | own access point, SSID `Kreisel-<DEVICE_ID>`, WPA2, channel 1, max. 4 stations                                                                                |
+| Device IP    | `192.168.4.1/24` (the host gets an address from the AP's DHCP, usually `192.168.4.2…`)                                                                        |
+| Data         | UDP, device port **12345**                                                                                                                                    |
+| HTTP API     | TCP port 80 (section 5)                                                                                                                                       |
+| Station side | the board also joins a router for OTA (`SECRET_STA_SSID`, optional second `SECRET_STA_SSID2`: the stronger one in range at boot); not used by the application |
 
 The host has to be connected to the device's WiFi. The application does not manage WiFi; it shows
 the SSID pattern and the device address as a hint.
